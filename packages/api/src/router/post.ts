@@ -28,6 +28,26 @@ export const postRouter = {
       });
     }),
 
+  // update: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       id: z.string(),
+  //       title: z.string().optional(),
+  //       content: z.string().optional(),
+  //     }),
+  //   )
+  //   .mutation(async ({ ctx, input }) => {
+  //     const { id, ...updates } = input;
+
+  //     return ctx.db
+  //       .update(Post)
+  //       .set({
+  //         ...updates,
+  //         updatedAt: new Date(),
+  //       })
+  //       .where(eq(Post.id, id));
+  //   }),
+
   create: protectedProcedure
     .input(CreatePostSchema)
     .mutation(({ ctx, input }) => {

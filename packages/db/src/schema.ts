@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { pgTable, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -7,10 +7,14 @@ export const Post = pgTable("post", (t) => ({
   id: t.uuid().notNull().primaryKey().defaultRandom(),
   title: t.varchar({ length: 256 }).notNull(),
   content: t.text().notNull(),
-  createdAt: t.timestamp().defaultNow().notNull(),
+  createdAt: t
+    .timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: t
-    .timestamp({ mode: "date", withTimezone: true })
-    .$onUpdateFn(() => sql`now()`),
+    .timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 }));
 
 export const CreatePostSchema = createInsertSchema(Post, {

@@ -1,10 +1,13 @@
 import type { Config } from "drizzle-kit";
+import * as dotenv from "dotenv";
 
-if (!process.env.POSTGRES_URL) {
+dotenv.config({ path: "../../.env  " });
+
+const nonPoolingUrl = process.env.SUPABASE_DB_POOL_URL!;
+
+if (!nonPoolingUrl) {
   throw new Error("Missing POSTGRES_URL");
 }
-
-const nonPoolingUrl = process.env.POSTGRES_URL.replace(":6543", ":5432");
 
 export default {
   schema: "./src/schema.ts",

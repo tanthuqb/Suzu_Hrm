@@ -18,15 +18,17 @@ import * as schema from "./schema";
 // Xác định connection string phù hợp môi trường
 const connectionString =
   process.env.NODE_ENV === "production"
-    ? process.env.SUPABASE_DB_POOL_URL
-    : process.env.POSTGRES_URL;
+    ? process.env.POSTGRES_URL
+    : process.env.SUPABASE_DB_POOL_URL;
 
 if (!connectionString) {
   throw new Error("Database connection string is not defined.");
 }
 
 // Kết nối postgres client qua postgres-js (Supabase backend)
-const client = postgres(connectionString, { ssl: "require" });
+const client = postgres(connectionString, {
+  ssl: { rejectUnauthorized: false },
+});
 
 // Tạo drizzle instance
 export const db = drizzle(client, { schema });
