@@ -32,8 +32,10 @@
     "@acme/eslint-config": "workspace:*",
     "@acme/prettier-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/react": "catalog:react19",
     "eslint": "catalog:",
+    "jsonwebtoken": "^9.0.2",
     "prettier": "catalog:",
     "typescript": "catalog:"
   },

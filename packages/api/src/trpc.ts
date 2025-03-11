@@ -1,16 +1,8 @@
-/**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1)
- * 2. You want to create a new middleware or type of procedure (see Part 3)
- *
- * tl;dr - this is where all the tRPC server stuff is created and plugged in.
- * The pieces you will need to use are documented accordingly near the end
- */
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import type { Session } from "@acme/auth";
+import type { Session, User } from "@acme/auth";
 import { auth, validateToken } from "@acme/auth";
 import { db } from "@acme/db/client";
 
@@ -19,7 +11,9 @@ import { db } from "@acme/db/client";
  * - Expo requests will have a session token in the Authorization header
  * - Next.js requests will have a session token in cookies
  */
-const isomorphicGetSession = async (headers: Headers) => {
+const isomorphicGetSession = async (
+  headers: Headers,
+): Promise<Session | null> => {
   const authToken = headers.get("Authorization") ?? null;
   if (authToken) return validateToken(authToken);
   return auth();

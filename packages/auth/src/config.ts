@@ -1,76 +1,84 @@
-import type {
-  DefaultSession,
-  NextAuthConfig,
-  Session as NextAuthSession,
-} from "next-auth";
-import { skipCSRFCheck } from "@auth/core";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import Discord from "next-auth/providers/discord";
+import type { JwtPayload } from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
 
 import { db } from "@acme/db/client";
-import { Account, Session, User } from "@acme/db/schema";
+import { HRMUser } from "@acme/db/schema"; // Bảng users hệ thống HRM (có cột supabase_user_id)
 
+import { supabase } from "../../supabase/index";
 import { env } from "../env";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-    } & DefaultSession["user"];
-  }
+// Define type for HRM User row
+export interface HRMUserRow {
+  id: string;
+  supabaseUserId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
-const adapter = DrizzleAdapter(db, {
-  usersTable: User,
-  accountsTable: Account,
-  sessionsTable: Session,
-});
 
 export const isSecureContext = env.NODE_ENV !== "development";
 
-export const authConfig = {
-  adapter,
-  // In development, we need to skip checks to allow Expo to work
-  ...(!isSecureContext
-    ? {
-        skipCSRFCheck: skipCSRFCheck,
-        trustHost: true,
-      }
-    : {}),
-  secret: env.AUTH_SECRET,
-  providers: [Discord],
-  callbacks: {
-    session: (opts) => {
-      if (!("user" in opts))
-        throw new Error("unreachable with session strategy");
-
-      return {
-        ...opts.session,
-        user: {
-          ...opts.session.user,
-          id: opts.user.id,
-        },
-      };
-    },
-  },
-} satisfies NextAuthConfig;
-
+/** Validate Supabase JWT Token và map về HRM User */
 export const validateToken = async (
   token: string,
-): Promise<NextAuthSession | null> => {
-  const sessionToken = token.slice("Bearer ".length);
-  const session = await adapter.getSessionAndUser?.(sessionToken);
-  return session
-    ? {
-        user: {
-          ...session.user,
-        },
-        expires: session.session.expires.toISOString(),
-      }
-    : null;
+): Promise<{ user: HRMUserRow; expires: string } | null> => {
+  const jwtToken = token.startsWith("Bearer ")
+    ? token.slice("Bearer ".length)
+    : token;
+
+  try {
+    // Decode JWT để lấy thông tin
+    const decoded = jwt.decode(jwtToken) as JwtPayload | null;
+
+    if (!decoded || typeof decoded !== "object") {
+      console.error("Invalid token structure");
+      return null;
+    }
+
+    // Kiểm tra user có tồn tại trong bảng HRM users (liên kết với Supabase user)
+    const user = await db
+      .select()
+      .from(HRMUser)
+      .where(eq(HRMUser.supabaseUserId, decoded.sub!))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0] || null);
+
+    if (!user) {
+      console.error("User not found in HRM system");
+      return null;
+    }
+
+    return {
+      user,
+      expires: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : "",
+    };
+  } catch (err) {
+    console.error("Token validation failed:", err);
+    return null;
+  }
 };
 
-export const invalidateSessionToken = async (token: string) => {
-  const sessionToken = token.slice("Bearer ".length);
-  await adapter.deleteSession?.(sessionToken);
+/** Logout/Inactivate session (Client sẽ dùng supabase.auth.signOut) */
+export const invalidateSessionToken = async () => {
+  await supabase.auth.signOut();
+};
+
+/** Client side lấy thông tin người dùng hiện tại */
+export const getCurrentUser = async () => {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("Failed to get current user:", error);
+    return null;
+  }
+
+  return user;
 };

@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> NextAuth setup now works for Expo app!
+> Supabase setup now works for Expo app!
 
 > [!NOTE]
 >

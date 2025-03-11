@@ -1,21 +1,36 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 
-import { invalidateSessionToken } from "@acme/auth";
-
 import { protectedProcedure, publicProcedure } from "../trpc";
 
 export const authRouter = {
-  getSession: publicProcedure.query(({ ctx }) => {
-    return ctx.session;
+  getSession: publicProcedure.query(async ({ ctx }) => {
+    console.log("getSession", ctx);
+    const { db } = ctx;
+    console.log("db", db);
+    // const { data, error } = await db.auth.getSession();
+
+    // if (error) {
+    //   return { session: null, error: error.message };
+    // }
+
+    // return { session: data.session, user: data.session?.user ?? null };
   }),
+
   getSecretMessage: protectedProcedure.query(() => {
     return "you can see this secret message!";
   }),
-  signOut: protectedProcedure.mutation(async (opts) => {
-    if (!opts.ctx.token) {
-      return { success: false };
-    }
-    await invalidateSessionToken(opts.ctx.token);
-    return { success: true };
+
+  // Protected: Sign out the user
+  signOut: protectedProcedure.mutation(async ({ ctx }) => {
+    console.log("getSession", ctx);
+    const { db } = ctx;
+    console.log("db", db);
+    // const { error } = await db.auth.signOut();
+
+    // if (error) {
+    //   return { success: false, error: error.message };
+    // }
+
+    // return { success: true };
   }),
 } satisfies TRPCRouterRecord;
