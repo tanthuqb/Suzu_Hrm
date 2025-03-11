@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import type { Session, User } from "@acme/auth";
+import type { Session } from "@acme/auth";
 import { auth, validateToken } from "@acme/auth";
 import { db } from "@acme/db/client";
 
@@ -15,7 +15,15 @@ const isomorphicGetSession = async (
   headers: Headers,
 ): Promise<Session | null> => {
   const authToken = headers.get("Authorization") ?? null;
-  if (authToken) return validateToken(authToken);
+  if (authToken) {
+    const validatedSession = await validateToken(authToken);
+    if (validatedSession) {
+      return {
+        user: validatedSession.user,
+        expires: validatedSession.expires,
+      };
+    }
+  }
   return auth();
 };
 
@@ -35,7 +43,6 @@ export const createTRPCContext = async (opts: {
   headers: Headers;
   session: Session | null;
 }) => {
-  const authToken = opts.headers.get("Authorization") ?? null;
   const session = await isomorphicGetSession(opts.headers);
 
   const source = opts.headers.get("x-trpc-source") ?? "unknown";
@@ -44,7 +51,6 @@ export const createTRPCContext = async (opts: {
   return {
     session,
     db,
-    token: authToken,
   };
 };
 
@@ -124,7 +130,8 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure
+
+export const protectedProcedure: typeof publicProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
     if (!ctx.session?.user) {
@@ -132,7 +139,6 @@ export const protectedProcedure = t.procedure
     }
     return next({
       ctx: {
-        // infers the `session` as non-nullable
         session: { ...ctx.session, user: ctx.session.user },
       },
     });

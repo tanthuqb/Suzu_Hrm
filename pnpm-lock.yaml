@@ -474,6 +474,16 @@ importers:
 
   packages/supabase:
     dependencies:
+      '@supabase/ssr':
+        specifier: ^0.5.2
+        version: 0.5.2(@supabase/supabase-js@2.49.1(bufferutil@4.0.8)(utf-8-validate@6.0.4))
+      '@supabase/supabase-js':
+        specifier: ^2.49.1
+        version: 2.49.1(bufferutil@4.0.8)(utf-8-validate@6.0.4)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+    devDependencies:
       '@acme/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
@@ -483,9 +493,6 @@ importers:
       '@acme/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
-      '@supabase/supabase-js':
-        specifier: ^2.39.7
-        version: 2.49.1(bufferutil@4.0.8)(utf-8-validate@6.0.4)
       eslint:
         specifier: 'catalog:'
         version: 9.19.0(jiti@2.4.2)

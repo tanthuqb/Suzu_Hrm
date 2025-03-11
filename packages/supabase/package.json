@@ -1,33 +1,32 @@
 {
   "name": "@acme/supabase",
-  "version": "0.1.0",
   "private": true,
-  "main": "index.ts",
-  "types": "index.ts",
-  "scripts": {
-    "clean": "rm -rf .turbo node_modules",
-    "lint": "eslint .",
-    "format": "prettier --check \"**/*.{mjs,ts,md,json}\"",
-    "typecheck": "tsc --noEmit"
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
   },
-  "dependencies": {
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "tsc",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/prettier-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
-    "@supabase/supabase-js": "^2.39.7",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
   },
-  "eslintConfig": {
-    "extends": [
-      "@acme/eslint-config/base"
-    ]
-  },
   "prettier": "@acme/prettier-config",
-  "pnpm": {
-    "overrides": {
-      "esbuild@<=0.24.2": ">=0.25.0"
-    }
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7"
   }
 }

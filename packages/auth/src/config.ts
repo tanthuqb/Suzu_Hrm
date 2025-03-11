@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 import { db } from "@acme/db/client";
-import { HRMUser } from "@acme/db/schema"; // Bảng users hệ thống HRM (có cột supabase_user_id)
+import { HRMUser } from "@acme/db/schema";
 
-import { supabase } from "../../supabase/index";
+import { supabaseClient } from "../../supabase/src";
 import { env } from "../env";
 
 // Define type for HRM User row
@@ -20,42 +20,51 @@ export interface HRMUserRow {
   updatedAt: Date;
 }
 
+export interface Session {
+  user: {
+    id: string;
+    email?: string;
+    name?: string;
+    image?: string;
+  };
+  expires: string;
+}
+
 export const isSecureContext = env.NODE_ENV !== "development";
 
-/** Validate Supabase JWT Token và map về HRM User */
+/** Validate Supabase JWT Token and map to HRM User */
 export const validateToken = async (
   token: string,
 ): Promise<{ user: HRMUserRow; expires: string } | null> => {
-  const jwtToken = token.startsWith("Bearer ")
-    ? token.slice("Bearer ".length)
-    : token;
-
   try {
-    // Decode JWT để lấy thông tin
-    const decoded = jwt.decode(jwtToken) as JwtPayload | null;
+    // First verify the token with Supabase
+    const {
+      data: { user },
+      error,
+    } = await supabaseClient.auth.getUser(token);
 
-    if (!decoded || typeof decoded !== "object") {
-      console.error("Invalid token structure");
+    if (error || !user) {
+      console.error("Invalid Supabase token:", error);
       return null;
     }
 
-    // Kiểm tra user có tồn tại trong bảng HRM users (liên kết với Supabase user)
-    const user = await db
+    // Check if user exists in HRM users table
+    const hrmUser = await db
       .select()
       .from(HRMUser)
-      .where(eq(HRMUser.supabaseUserId, decoded.sub!))
+      .where(eq(HRMUser.supabaseUserId, user.id))
       .limit(1)
       .execute()
       .then((rows) => rows[0] || null);
 
-    if (!user) {
+    if (!hrmUser) {
       console.error("User not found in HRM system");
       return null;
     }
 
     return {
-      user,
-      expires: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : "",
+      user: hrmUser,
+      expires: new Date(Date.now() + 3600 * 1000).toISOString(),
     };
   } catch (err) {
     console.error("Token validation failed:", err);
@@ -63,17 +72,21 @@ export const validateToken = async (
   }
 };
 
-/** Logout/Inactivate session (Client sẽ dùng supabase.auth.signOut) */
+/** Logout/Invalidate session */
 export const invalidateSessionToken = async () => {
-  await supabase.auth.signOut();
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) {
+    console.error("Failed to sign out:", error);
+    throw error;
+  }
 };
 
-/** Client side lấy thông tin người dùng hiện tại */
+/** Get current user info from Supabase */
 export const getCurrentUser = async () => {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await supabaseClient.auth.getUser();
 
   if (error) {
     console.error("Failed to get current user:", error);

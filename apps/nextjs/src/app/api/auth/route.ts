@@ -1,40 +1,14 @@
-import type { CookieOptions } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import dotenv from "dotenv";
 
+import { getSupabaseClient } from "../../../lib/supabaseClient";
+
 dotenv.config();
+
 const EXPO_COOKIE_NAME = "__acme-expo-redirect-state";
 
 /**
- * Initialize Supabase client per request.
- */
-function getSupabaseClient(req: NextRequest) {
-  const response = NextResponse.next();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set(name, value, options);
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set(name, "", { ...options, maxAge: 0 });
-        },
-      },
-    },
-  );
-  return { supabase, response };
-}
-
-/**
- * Noop in production.
- * In development, rewrite the request URL to use localhost instead of host IP address
- * so that Expo Auth works without CSRF protection issues.
+ * Rewrite URL to localhost in dev to avoid IP issues with Expo.
  */
 function rewriteRequestUrlInDevelopment(req: NextRequest) {
   if (process.env.NODE_ENV === "production") return req;
@@ -46,83 +20,83 @@ function rewriteRequestUrlInDevelopment(req: NextRequest) {
 }
 
 /**
- * Handle Expo callback logic after Supabase auth.
+ * Handle Expo OAuth callback flow.
  */
 async function handleExpoSigninCallback(req: NextRequest, redirectURL: string) {
   const { response } = getSupabaseClient(req);
 
-  // After successful authentication, assume Supabase sets the "sb:token"
   const sessionToken = req.cookies.get("sb:token")?.value;
 
-  // Clear the Expo redirect state cookie
+  // Clear redirect cookie after use
   response.cookies.set(EXPO_COOKIE_NAME, "", { maxAge: 0, path: "/" });
 
-  if (!sessionToken) {
-    throw new Error("Unable to find Supabase session token.");
-  }
+  if (!sessionToken) throw new Error("Supabase session token missing.");
 
-  // Append the session token to redirect URL
+  // Redirect with session_token back to Expo app
   const url = new URL(redirectURL);
   url.searchParams.set("session_token", sessionToken);
 
   return NextResponse.redirect(url);
 }
 
+/**
+ * POST handler for Supabase auth (OAuth callback, session check)
+ */
 export const POST = async (
   _req: NextRequest,
   props: { params: Promise<{ nextauth: string[] }> },
 ) => {
   const req = rewriteRequestUrlInDevelopment(_req);
   const { supabase, response } = getSupabaseClient(req);
-
-  const nextauthAction = (await props.params).nextauth[0]; // Reuse route logic
+  const nextauthAction = (await props.params).nextauth[0];
   const isExpoCallback = req.cookies.get(EXPO_COOKIE_NAME);
 
-  if (nextauthAction === "callback" && !!isExpoCallback) {
+  // Handle Expo OAuth callback
+  if (nextauthAction === "callback" && isExpoCallback) {
     return handleExpoSigninCallback(req, isExpoCallback.value);
   }
 
-  // Handle Supabase sign-in callback if applicable (e.g., OAuth providers)
+  // Handle normal Supabase session check
   const { data, error } = await supabase.auth.getSession();
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 401 });
-  }
 
-  // Return the response with any cookies set
+  // Return cookies for next usage
   return response;
 };
 
+/**
+ * GET handler for Supabase OAuth flow and session checks.
+ */
 export const GET = async (
   _req: NextRequest,
   props: { params: Promise<{ nextauth: string[] }> },
 ) => {
   const req = rewriteRequestUrlInDevelopment(_req);
   const { supabase, response } = getSupabaseClient(req);
-
   const nextauthAction = (await props.params).nextauth[0];
   const isExpoSignIn = req.nextUrl.searchParams.get("expo-redirect");
   const isExpoCallback = req.cookies.get(EXPO_COOKIE_NAME);
 
-  // Handle Expo redirect setup for sign-in
-  if (nextauthAction === "signin" && !!isExpoSignIn) {
+  // Expo app prepares redirect
+  if (nextauthAction === "signin" && isExpoSignIn) {
     response.cookies.set(EXPO_COOKIE_NAME, isExpoSignIn, {
-      maxAge: 60 * 10, // 10 min
+      maxAge: 60 * 10, // 10 mins
       path: "/",
     });
     return response;
   }
 
-  // Handle Expo redirect after callback
-  if (nextauthAction === "callback" && !!isExpoCallback) {
+  // Expo callback handling
+  if (nextauthAction === "callback" && isExpoCallback) {
     return handleExpoSigninCallback(req, isExpoCallback.value);
   }
 
-  // Example: Check current user session (adjust per needs)
+  // Session check (e.g. protected route)
   const { data: sessionData, error } = await supabase.auth.getSession();
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 401 });
-  }
 
-  // You can adjust the response or redirect based on session presence
+  // Return current session
   return NextResponse.json({ session: sessionData.session });
 };
