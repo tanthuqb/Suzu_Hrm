@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation";
 
 import type { HRMUserRow } from "./config";
-import { supabaseClient } from "../../supabase/src";
+import { createBrowserClient } from "../../supabase/src";
+import { env } from "../env";
 import {
   invalidateSessionToken,
   isSecureContext,
   validateToken,
 } from "./config";
+
+const supabase = await createBrowserClient();
 
 export type User = HRMUserRow;
 
@@ -16,10 +19,17 @@ export interface Session {
 }
 
 export const handleSignInWithGoogle = async () => {
-  const { data, error } = await supabaseClient.auth.signInWithOAuth({
+  const { PUBLIC_APP_URL } = env;
+  console.log("aaa", `${PUBLIC_APP_URL}/api/auth/callback`);
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "https://mempvqxtouxcmxqiilln.supabase.co/auth/v1/callback",
+      redirectTo: `${PUBLIC_APP_URL}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+      skipBrowserRedirect: false, // Ensure browser handles the redirect
     },
   });
 
@@ -28,7 +38,9 @@ export const handleSignInWithGoogle = async () => {
     throw new Error(error.message);
   }
 
+  // Only redirect if we have a URL
   if (data.url) {
+    console.log("Redirecting to auth URL:", data.url);
     redirect(data.url);
   }
 
@@ -37,7 +49,7 @@ export const handleSignInWithGoogle = async () => {
 
 /** Supabase Sign In (Email & Password hoặc OAuth) */
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -51,7 +63,7 @@ export const signIn = async (email: string, password: string) => {
 
 /** Supabase Sign Out */
 export const signOut = async () => {
-  const { error } = await supabaseClient.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
   if (error) {
     throw new Error(error.message);
@@ -59,7 +71,7 @@ export const signOut = async () => {
 };
 
 export const auth = async (): Promise<Session | null> => {
-  const { data, error } = await supabaseClient.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
 
   if (error) {
     console.error("Failed to get user:", error);
@@ -72,9 +84,8 @@ export const auth = async (): Promise<Session | null> => {
   }
 
   // Get HRM user data using validateToken
-  const token = await supabaseClient.auth
-    .getSession()
-    .then((res) => res.data.session?.access_token);
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
   if (!token) {
     return null;
   }

@@ -1,2 +1,3 @@
-export * from "./Client";
-export * from "./Server";
+export { createClient as createBrowserClient } from "./client";
+export { createClient as createServerClient } from "./server";
+export * from "./middleware";

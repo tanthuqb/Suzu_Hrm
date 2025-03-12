@@ -15,7 +15,11 @@ const config = {
     "@acme/validators",
     "@acme/supabase",
   ],
-
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
+  },
   /** We already do linting and typechecking as separate tasks in CI */
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import dotenv from "dotenv";
 
-import { getSupabaseClient } from "../../../lib/supabaseClient";
-
-dotenv.config();
+import { createServerClient } from "../../../../../../packages/supabase/src";
 
 const EXPO_COOKIE_NAME = "__acme-expo-redirect-state";
 
@@ -23,7 +20,8 @@ function rewriteRequestUrlInDevelopment(req: NextRequest) {
  * Handle Expo OAuth callback flow.
  */
 async function handleExpoSigninCallback(req: NextRequest, redirectURL: string) {
-  const { response } = getSupabaseClient(req);
+  const response = NextResponse.next();
+  const supabase = await createServerClient();
 
   const sessionToken = req.cookies.get("sb:token")?.value;
 
@@ -47,7 +45,8 @@ export const POST = async (
   props: { params: Promise<{ nextauth: string[] }> },
 ) => {
   const req = rewriteRequestUrlInDevelopment(_req);
-  const { supabase, response } = getSupabaseClient(req);
+  const response = NextResponse.next();
+  const supabase = await createServerClient();
   const nextauthAction = (await props.params).nextauth[0];
   const isExpoCallback = req.cookies.get(EXPO_COOKIE_NAME);
 
@@ -73,7 +72,8 @@ export const GET = async (
   props: { params: Promise<{ nextauth: string[] }> },
 ) => {
   const req = rewriteRequestUrlInDevelopment(_req);
-  const { supabase, response } = getSupabaseClient(req);
+  const response = NextResponse.next();
+  const supabase = await createServerClient();
   const nextauthAction = (await props.params).nextauth[0];
   const isExpoSignIn = req.nextUrl.searchParams.get("expo-redirect");
   const isExpoCallback = req.cookies.get(EXPO_COOKIE_NAME);

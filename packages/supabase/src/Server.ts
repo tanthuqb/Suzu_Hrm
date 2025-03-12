@@ -1,48 +1,29 @@
-import type { CookieOptions } from "@supabase/ssr";
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export async function updateSession(request: NextRequest) {
-  // Create a response object that we can modify
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  // Create a Supabase client configured for the Edge Runtime
-  const supabase = createServerClient(
-    // Use direct environment variables instead of dotenv
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+export async function createClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        persistSession: false, // Don't persist the session in Edge Runtime
-      },
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        async getAll() {
+          const cookieStore = await cookies();
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
+        async setAll(cookiesToSet) {
+          try {
+            const cookieStore = await cookies();
+            for (const { name, value, options } of cookiesToSet) {
+              await cookieStore.set(name, value, options);
+            }
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
         },
       },
     },
   );
-
-  await supabase.auth.getSession();
-
-  return response;
 }

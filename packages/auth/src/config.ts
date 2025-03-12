@@ -1,12 +1,14 @@
-import type { JwtPayload } from "jsonwebtoken";
 import { eq } from "drizzle-orm";
-import jwt from "jsonwebtoken";
 
 import { db } from "@acme/db/client";
 import { HRMUser } from "@acme/db/schema";
 
-import { supabaseClient } from "../../supabase/src";
+import { createBrowserClient, createServerClient } from "../../supabase/src";
 import { env } from "../env";
+
+// Initialize clients with proper await
+const supabaseBrowser = await createBrowserClient();
+const supabaseServer = await createServerClient();
 
 // Define type for HRM User row
 export interface HRMUserRow {
@@ -41,7 +43,7 @@ export const validateToken = async (
     const {
       data: { user },
       error,
-    } = await supabaseClient.auth.getUser(token);
+    } = await supabaseBrowser.auth.getUser(token);
 
     if (error || !user) {
       console.error("Invalid Supabase token:", error);
@@ -74,7 +76,7 @@ export const validateToken = async (
 
 /** Logout/Invalidate session */
 export const invalidateSessionToken = async () => {
-  const { error } = await supabaseClient.auth.signOut();
+  const { error } = await supabaseBrowser.auth.signOut();
   if (error) {
     console.error("Failed to sign out:", error);
     throw error;
@@ -83,15 +85,20 @@ export const invalidateSessionToken = async () => {
 
 /** Get current user info from Supabase */
 export const getCurrentUser = async () => {
-  const {
-    data: { user },
-    error,
-  } = await supabaseClient.auth.getUser();
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabaseServer.auth.getUser();
 
-  if (error) {
-    console.error("Failed to get current user:", error);
+    if (error) {
+      console.error("Failed to get current user:", error);
+      return null;
+    }
+
+    return user;
+  } catch (err) {
+    console.error("Error getting current user:", err);
     return null;
   }
-
-  return user;
 };

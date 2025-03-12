@@ -2,18 +2,29 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import type { Session } from "./config";
-import { supabaseClient } from "../../supabase/src";
+import { createServerClient } from "../../supabase/src";
+import { env } from "../env";
 import {
   invalidateSessionToken,
   isSecureContext,
   validateToken,
 } from "./config";
 
+const supabase = await createServerClient();
+
 export const handleSignInWithGoogle = async () => {
-  const { data, error } = await supabaseClient.auth.signInWithOAuth({
+  const { PUBLIC_APP_URL } = env;
+  console.log("aaa", `${PUBLIC_APP_URL}/api/auth/callback`);
+  console.log("PUBLIC_APP_URL", PUBLIC_APP_URL);
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "https://mempvqxtouxcmxqiilln.supabase.co/auth/v1/callback",
+      redirectTo: `${PUBLIC_APP_URL}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+      skipBrowserRedirect: false, // Ensure browser handles the redirect
     },
   });
 
@@ -22,7 +33,9 @@ export const handleSignInWithGoogle = async () => {
     throw new Error(error.message);
   }
 
+  // Only redirect if we have a URL
   if (data.url) {
+    console.log("Redirecting to auth URL:", data.url);
     redirect(data.url);
   }
 
@@ -30,7 +43,7 @@ export const handleSignInWithGoogle = async () => {
 };
 
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -43,7 +56,7 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
-  const { error } = await supabaseClient.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
   if (error) {
     throw new Error(error.message);
@@ -51,14 +64,14 @@ export const signOut = async () => {
 };
 
 export const auth = cache(async (): Promise<Session | null> => {
-  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData.session;
 
   if (!session) {
     return null;
   }
 
-  const { data: userData, error } = await supabaseClient.auth.getUser();
+  const { data: userData, error } = await supabase.auth.getUser();
 
   if (error || !userData.user) {
     return null;
