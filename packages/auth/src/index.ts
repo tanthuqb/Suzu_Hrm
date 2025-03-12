@@ -20,11 +20,10 @@ export interface Session {
 
 export const handleSignInWithGoogle = async () => {
   const { PUBLIC_APP_URL } = env;
-  console.log("aaa", `${PUBLIC_APP_URL}/api/auth/callback`);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: `${PUBLIC_APP_URL}/api/auth/callback`,
       queryParams: {
         access_type: "offline",
         prompt: "consent",

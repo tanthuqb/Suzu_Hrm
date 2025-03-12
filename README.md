@@ -57,8 +57,8 @@ apps
 packages
   ├─ api
   |   └─ tRPC v11 router definition
-  ├─ auth
-  |   └─ Authentication using next-auth.
+  ├─ supabase
+  |   └─ Authentication using supabase.
   ├─ db
   |   └─ Typesafe db calls using Drizzle & Supabase
   └─ ui

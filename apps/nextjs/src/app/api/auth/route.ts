@@ -21,8 +21,6 @@ function rewriteRequestUrlInDevelopment(req: NextRequest) {
  */
 async function handleExpoSigninCallback(req: NextRequest, redirectURL: string) {
   const response = NextResponse.next();
-  const supabase = await createServerClient();
-
   const sessionToken = req.cookies.get("sb:token")?.value;
 
   // Clear redirect cookie after use
