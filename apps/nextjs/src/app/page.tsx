@@ -8,7 +8,7 @@ import {
 } from "./_components/posts";
 
 export default function HomePage() {
-  prefetch(trpc.post.all.queryOptions());
+  prefetch((trpc as any).post.all.queryOptions());
 
   return (
     <HydrateClient>

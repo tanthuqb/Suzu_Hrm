@@ -4,9 +4,7 @@ import { protectedProcedure, publicProcedure } from "../trpc";
 
 export const authRouter = {
   getSession: publicProcedure.query(async ({ ctx }) => {
-    console.log("getSession", ctx);
     const { db } = ctx;
-    console.log("db", db);
     // const { data, error } = await db.auth.getSession();
 
     // if (error) {
