@@ -20,9 +20,7 @@ export const authRouter = {
 
   // Protected: Sign out the user
   signOut: protectedProcedure.mutation(async ({ ctx }) => {
-    console.log("getSession", ctx);
     const { db } = ctx;
-    console.log("db", db);
     // const { error } = await db.auth.signOut();
 
     // if (error) {
