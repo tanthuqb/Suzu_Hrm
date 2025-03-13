@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@acme/db": "workspace:*",
+    "@acme/supabase": "workspace:*",
     "@auth/core": "catalog:",
     "@auth/drizzle-adapter": "catalog:",
     "@t3-oss/env-nextjs": "^0.12.0",

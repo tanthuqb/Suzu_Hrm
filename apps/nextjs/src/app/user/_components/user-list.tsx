@@ -7,7 +7,6 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
-import type { RouterOutputs } from "@acme/api";
 import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
