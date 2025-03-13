@@ -1,12 +1,13 @@
 "use client";
 
+import type { TRPCClientError } from "@trpc/client";
 import {
   useMutation,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
-import type { RouterOutputs } from "@acme/api";
+import type { AppRouter, RouterOutputs } from "@acme/api";
 import { CreatePostSchema } from "@acme/db/schema";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
@@ -23,6 +24,8 @@ import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 
+type TRPCError = TRPCClientError<AppRouter>;
+
 export function CreatePostForm() {
   const trpc = useTRPC();
   const form = useForm({
@@ -34,13 +37,13 @@ export function CreatePostForm() {
   });
 
   const queryClient = useQueryClient();
-  const createPost = useMutation(
-    trpc.post.create.mutationOptions({
+  const createPost = useMutation({
+    ...trpc.post?.create.mutationOptions({
       onSuccess: async () => {
         form.reset();
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
+        await queryClient.invalidateQueries(trpc.post?.pathFilter());
       },
-      onError: (err) => {
+      onError: (err: { data?: { code: string } }) => {
         toast.error(
           err.data?.code === "UNAUTHORIZED"
             ? "You must be logged in to post"
@@ -48,14 +51,14 @@ export function CreatePostForm() {
         );
       },
     }),
-  );
+  });
 
   return (
     <Form {...form}>
       <form
         className="flex w-full max-w-2xl flex-col gap-4"
         onSubmit={form.handleSubmit((data) => {
-          createPost.mutate(data);
+          createPost.mutate(data as { title: string; content: string });
         })}
       >
         <FormField
@@ -90,9 +93,14 @@ export function CreatePostForm() {
 
 export function PostList() {
   const trpc = useTRPC();
-  const { data: posts } = useSuspenseQuery(trpc.post.all.queryOptions());
+  const { data: posts } = useSuspenseQuery(
+    trpc.post?.all.queryOptions() ?? {
+      queryKey: ["post.all"],
+      queryFn: () => [] as RouterOutputs["post"]["all"],
+    },
+  );
 
-  if (posts.length === 0) {
+  if (!posts || posts.length === 0) {
     return (
       <div className="relative flex w-full flex-col gap-4">
         <PostCardSkeleton pulse={false} />
@@ -108,7 +116,7 @@ export function PostList() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {posts.map((p) => {
+      {posts.map((p: any) => {
         return <PostCard key={p.id} post={p} />;
       })}
     </div>
@@ -120,12 +128,12 @@ export function PostCard(props: {
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const deletePost = useMutation(
-    trpc.post.delete.mutationOptions({
+  const deletePost = useMutation({
+    ...trpc.post?.delete.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
+        await queryClient.invalidateQueries(trpc.post?.pathFilter());
       },
-      onError: (err) => {
+      onError: (err: TRPCError) => {
         toast.error(
           err.data?.code === "UNAUTHORIZED"
             ? "You must be logged in to delete a post"
@@ -133,7 +141,7 @@ export function PostCard(props: {
         );
       },
     }),
-  );
+  });
 
   return (
     <div className="flex flex-row rounded-lg bg-muted p-4">
