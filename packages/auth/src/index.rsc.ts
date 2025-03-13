@@ -14,7 +14,6 @@ const supabase = await createServerClient();
 
 export const handleSignInWithGoogle = async () => {
   const { PUBLIC_APP_URL } = env;
-  console.log("PUBLIC_APP_URL", PUBLIC_APP_URL);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
