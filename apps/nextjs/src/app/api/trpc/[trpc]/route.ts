@@ -75,7 +75,7 @@ const handler = async (req: NextRequest) => {
         console.error(`>>> tRPC Error on '${path}'`, error);
       },
     });
-
+    console.log("IP HOSTING", req.headers.get("x-forwarded-for"));
     setCorsHeaders(response);
     return response;
   } catch (error) {
