@@ -1,3 +1,4 @@
+// filepath: c:\CongLoc\hrm\apps\nextjs\src\app\api\auth\route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServerClient } from "../../../../../../packages/supabase/src";
