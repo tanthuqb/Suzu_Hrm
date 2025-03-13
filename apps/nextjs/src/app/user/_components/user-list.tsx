@@ -82,7 +82,7 @@ export function UserList() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {users.map((user: User) => (
+      {users.map((user: any) => (
         <UserCard key={user.id} user={user} />
       ))}
     </div>
