@@ -10,9 +10,8 @@ import {
   validateToken,
 } from "./config";
 
-const supabase = await createServerClient();
-
 export const handleSignInWithGoogle = async () => {
+  const supabase = await createServerClient();
   const { PUBLIC_APP_URL } = env;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -41,6 +40,7 @@ export const handleSignInWithGoogle = async () => {
 };
 
 export const signIn = async (email: string, password: string) => {
+  const supabase = await createServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -54,6 +54,7 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
+  const supabase = await createServerClient();
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -62,6 +63,7 @@ export const signOut = async () => {
 };
 
 export const auth = cache(async (): Promise<Session | null> => {
+  const supabase = await createServerClient();
   const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData.session;
 

@@ -6,10 +6,6 @@ import { HRMUser } from "@acme/db/schema";
 import { createBrowserClient, createServerClient } from "../../supabase/src";
 import { env } from "../env";
 
-// Initialize clients with proper await
-const supabaseBrowser = await createBrowserClient();
-const supabaseServer = await createServerClient();
-
 // Define type for HRM User row
 export interface HRMUserRow {
   id: string;
@@ -38,6 +34,7 @@ export const isSecureContext = env.NODE_ENV !== "development";
 export const validateToken = async (
   token: string,
 ): Promise<{ user: HRMUserRow; expires: string } | null> => {
+  const supabaseBrowser = createBrowserClient();
   try {
     // First verify the token with Supabase
     const {
@@ -76,6 +73,7 @@ export const validateToken = async (
 
 /** Logout/Invalidate session */
 export const invalidateSessionToken = async () => {
+  const supabaseBrowser = createBrowserClient();
   const { error } = await supabaseBrowser.auth.signOut();
   if (error) {
     console.error("Failed to sign out:", error);
@@ -85,6 +83,7 @@ export const invalidateSessionToken = async () => {
 
 /** Get current user info from Supabase */
 export const getCurrentUser = async () => {
+  const supabaseServer = await createServerClient();
   try {
     const {
       data: { user },
