@@ -57,7 +57,7 @@ export default function userPage() {
             </tr>
           </TableHeader>
           <TableBody>
-            {user?.map((user) => (
+            {user?.map((user: any) => (
               <tr key={user.id}>
                 <td className="px-4 py-3 text-center">{user.id}</td>
                 <td className="px-4 py-3 text-center">{user.name}</td>
