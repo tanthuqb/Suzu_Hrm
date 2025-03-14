@@ -18,6 +18,9 @@ import { createQueryClient } from "./query-client";
 const createContext = cache(async () => {
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
+  // Log headers for debugging
+  console.log("x-forwarded-host", heads.get("x-forwarded-host"));
+  console.log("host", heads.get("host"));
 
   return createTRPCContext({
     session: (await auth()) as unknown as Session,

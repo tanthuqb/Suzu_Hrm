@@ -133,7 +133,7 @@ export function PostCard(props: {
       onSuccess: async () => {
         await queryClient.invalidateQueries(trpc.post?.pathFilter());
       },
-      onError: (err: TRPCError) => {
+      onError: (err: TRPCError, ctx) => {
         toast.error(
           err.data?.code === "UNAUTHORIZED"
             ? "You must be logged in to delete a post"
