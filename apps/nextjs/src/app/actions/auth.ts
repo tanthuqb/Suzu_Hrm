@@ -61,38 +61,6 @@ export const signOut = async () => {
   }
 };
 
-export const auth = async (): Promise<Session | null> => {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) {
-    console.error("Failed to get user:", error);
-    return null;
-  }
-
-  if (!data.user) {
-    console.error("No user found in the session");
-    return null;
-  }
-
-  // Get HRM user data using validateToken
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (!token) {
-    return null;
-  }
-
-  const hrmUser = await validateToken(token);
-  if (!hrmUser) {
-    return null;
-  }
-
-  return {
-    user: hrmUser.user,
-    expires: hrmUser.expires,
-  };
-};
-
 export const registerUser = async (
   email: string,
   password: string,
