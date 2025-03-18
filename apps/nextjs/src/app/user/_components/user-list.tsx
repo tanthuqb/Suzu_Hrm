@@ -7,20 +7,14 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
+import type { IUser } from "@acme/db";
 import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 import { UserCardSkeleton } from "./user-card";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
 interface UserCardProps {
-  user: User;
+  user: IUser;
 }
 
 function UserCard({ user }: UserCardProps) {

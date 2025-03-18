@@ -6,6 +6,9 @@ createJiti(fileURLToPath(import.meta.url))("./src/env");
 
 /** @type {import("next").NextConfig} */
 const config = {
+  env: {
+    PUBLIC_APP_CLIENT_URL: process.env.PUBLIC_APP_URL,
+  },
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [
     "@acme/api",
