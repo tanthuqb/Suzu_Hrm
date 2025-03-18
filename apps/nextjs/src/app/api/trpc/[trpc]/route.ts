@@ -4,6 +4,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { appRouter, createTRPCContext } from "@acme/api";
 import { validateToken } from "@acme/auth";
+import { env } from "~/env";
 
 const setCorsHeaders = (res: Response) => {
   res.headers.set("Access-Control-Allow-Origin", "*");
@@ -18,6 +19,12 @@ export const OPTIONS = () => {
   return response;
 };
 
+type CookieOptions = {
+  name: string;
+  value?: string;
+  [key: string]: unknown;
+};
+
 const handler = async (req: NextRequest) => {
   try {
     console.log(">>> tRPC Request:", {
@@ -27,17 +34,17 @@ const handler = async (req: NextRequest) => {
 
     // Create Supabase client
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           get(name: string) {
             return req.cookies.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: CookieOptions) {
             req.cookies.set({ name, value, ...options });
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: CookieOptions) {
             req.cookies.delete({ name, ...options });
           },
         },
@@ -75,7 +82,12 @@ const handler = async (req: NextRequest) => {
         console.error(`>>> tRPC Error on '${path}'`, error);
       },
     });
-    console.log("IP HOSTING", req.headers.get("x-forwarded-for"));
+    
+    const clientIp = req.headers.get("x-forwarded-for");
+    if (clientIp) {
+      console.log("IP HOSTING", clientIp);
+    }
+    
     setCorsHeaders(response);
     return response;
   } catch (error) {

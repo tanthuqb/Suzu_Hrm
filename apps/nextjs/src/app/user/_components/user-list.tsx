@@ -37,15 +37,19 @@ export function UserList() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const { data: users } = useSuspenseQuery(
-    (trpc as any).user.all.queryOptions() ?? {
-      queryKey: ["user.all"],
-      queryFn: () => [],
+  const { data: users } = useSuspenseQuery({
+    ...trpc.user.all.queryOptions(),
+    queryKey: ["user.all"],
+    queryFn: async () => {
+      const result = await trpc.user.all.query();
+      return result ?? [];
     },
-  );
+  });
 
   const deleteUser = useMutation({
-    mutationFn: (userId: string) => (trpc as any).user.delete.mutate(userId),
+    mutationFn: async (userId: string) => {
+      return await trpc.user.delete.mutate({ id: userId });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
       toast.success("User deleted successfully");
@@ -75,7 +79,7 @@ export function UserList() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {users.map((user: any) => (
+      {users.map((user) => (
         <UserCard key={user.id} user={user} />
       ))}
     </div>
