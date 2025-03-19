@@ -25,7 +25,6 @@ export const handleSignInWithGoogle = async () => {
 
   // Only redirect if we have a URL
   if (data.url) {
-    console.log("Redirecting to auth URL:", data.url);
     redirect(data.url);
   }
 
@@ -56,15 +55,19 @@ export async function signInEmail(email: string, password: string) {
     throw new Error(sessionError.message);
   }
 
-  // Log the session details to help debugging
-  console.log("Session established:", {
-    userId: sessionData.session?.user.id,
-    email: sessionData.session?.user.email,
-    hasSession: !!sessionData.session,
-  });
-
   return data;
 }
+
+export const checkAuth = async () => {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    return null;
+  }
+
+  return data.user;
+};
 
 /** Supabase Sign Out */
 export const signOut = async () => {

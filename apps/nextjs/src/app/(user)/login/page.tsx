@@ -4,7 +4,14 @@ import type React from "react";
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AlertCircle, GithubIcon, TwitterIcon } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  GithubIcon,
+  LinkedinIcon,
+  TwitterIcon,
+} from "lucide-react";
 
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
@@ -12,7 +19,6 @@ import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 import { Separator } from "@acme/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
 import { toast } from "@acme/ui/toast";
 
 import {
@@ -20,15 +26,32 @@ import {
   registerUser,
   signInEmail,
 } from "../../actions/auth";
+import ConfirmEmail from "./_components/confirm-email";
+import MainTabs from "./_components/main-tab";
+import NewResetPassword from "./_components/new-reset-password";
+import ResetPassword from "./_components/reset-password";
+import SignInForm from "./_components/sign-in-form";
+import SignUpForm from "./_components/sign-up-form";
+import Success from "./_components/success";
+
+export type AuthView =
+  | "signup"
+  | "signin"
+  | "confirm-email"
+  | "reset-password"
+  | "new-password";
 
 export default function Page() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmationCode, setConfirmationCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [currentTab, setCurrentTab] = useState("signup");
+  const [currentTab, setCurrentTab] = useState<"signup" | "signin">("signup");
+  const [currentView, setCurrentView] = useState<AuthView>("signup");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Email validation
@@ -39,6 +62,12 @@ export default function Page() {
   // Password strength validation (min 8 chars, at least 1 number)
   const isStrongPassword = (password: string) => {
     return password.length >= 8 && /\d/.test(password);
+  };
+
+  const handleGoogleLogin = () => {
+    startTransition(async () => {
+      await handleSignInWithGoogle();
+    });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -124,17 +153,196 @@ export default function Page() {
     }
   };
 
+  const handleConfirmEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!confirmationCode || confirmationCode.length < 6) {
+      setError("Please enter a valid confirmation code");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call for email confirmation
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSuccess(true);
+      setSuccessMessage("Email confirmed successfully! You can now sign in.");
+      // Clear form fields
+      setConfirmationCode("");
+    }, 1500);
+  };
+
+  const handleRequestPasswordReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validate email
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call for password reset request
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setCurrentView("new-password");
+      setSuccessMessage("Reset code sent to your email");
+    }, 1500);
+  };
+
+  const handlePasswordReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validate confirmation code
+    if (!confirmationCode || confirmationCode.length < 6) {
+      setError("Please enter a valid reset code");
+      return;
+    }
+
+    // Validate password strength
+    if (!isStrongPassword(password)) {
+      setError(
+        "Password must be at least 8 characters and contain at least 1 number",
+      );
+      return;
+    }
+
+    // Validate password match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call for password reset
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSuccess(true);
+      setSuccessMessage(
+        "Password reset successfully! You can now sign in with your new password.",
+      );
+      // Clear form fields
+      setConfirmationCode("");
+      setPassword("");
+      setConfirmPassword("");
+    }, 1500);
+  };
   const resetForm = () => {
     setIsSuccess(false);
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setConfirmationCode("");
+    setError(null);
+    setSuccessMessage(null);
+    setCurrentView(currentTab);
   };
 
-  const handleGoogleLogin = () => {
-    startTransition(async () => {
-      await handleSignInWithGoogle();
-    });
+  const goBack = () => {
+    setError(null);
+    setSuccessMessage(null);
+    if (currentView === "confirm-email") {
+      setCurrentView("signup");
+    } else if (
+      currentView === "reset-password" ||
+      currentView === "new-password"
+    ) {
+      setCurrentView("signin");
+    }
+  };
+
+  const renderCurrentView = () => {
+    if (isSuccess) {
+      <Success currentTab={currentTab} resetForm={resetForm} />;
+    }
+
+    switch (currentView) {
+      case "signup":
+        return (
+          <>
+            <MainTabs
+              setCurrentTab={setCurrentTab}
+              setCurrentView={setCurrentView}
+              resetForm={resetForm}
+              AuthView={"signup"}
+            />
+            <SignUpForm
+              handleSignUp={handleSignUp}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              confirmPassword={confirmPassword}
+              setConfirmPassword={setConfirmPassword}
+              isSubmitting={isSubmitting}
+            />
+          </>
+        );
+      case "signin":
+        return (
+          <>
+            <MainTabs
+              setCurrentTab={setCurrentTab}
+              setCurrentView={setCurrentView}
+              resetForm={resetForm}
+              AuthView={"signin"}
+            />
+            <SignInForm
+              handleSignIn={handleSignIn}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              isSubmitting={isSubmitting}
+              setCurrentView={setCurrentView}
+            />
+          </>
+        );
+      case "confirm-email":
+        return (
+          <ConfirmEmail
+            goBack={goBack}
+            email={email}
+            confirmationCode={confirmationCode}
+            isSubmitting={isSubmitting}
+            setConfirmationCode={setConfirmationCode}
+            handleConfirmEmail={handleConfirmEmail}
+          />
+        );
+      case "reset-password":
+        return (
+          <ResetPassword
+            goBack={goBack}
+            email={email}
+            isSubmitting={isSubmitting}
+            handleRequestPasswordReset={handleRequestPasswordReset}
+            setEmail={setEmail}
+          />
+        );
+      case "new-password":
+        return (
+          <NewResetPassword
+            goBack={goBack}
+            email={email}
+            isSubmitting={isSubmitting}
+            confirmationCode={confirmationCode}
+            password={password}
+            setPassword={setPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            handlePasswordReset={handlePasswordReset}
+            setConfirmationCode={setConfirmationCode}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -146,182 +354,23 @@ export default function Page() {
           </div>
         </CardHeader>
         <CardContent>
-          {isSuccess ? (
-            <div className="space-y-2 py-4 text-center">
-              <div className="font-medium text-green-500">
-                {currentTab === "signup"
-                  ? "Account created successfully!"
-                  : "Signed in successfully!"}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {currentTab === "signup"
-                  ? "We've sent a confirmation to your email."
-                  : "Welcome back!"}
-              </p>
-              <Button variant="ghost" className="mt-2" onClick={resetForm}>
-                Return to form
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Tabs
-                defaultValue="signup"
-                className="w-full"
-                onValueChange={(value) => {
-                  setCurrentTab(value);
-                  resetForm();
-                }}
-              >
-                <TabsList className="mb-6 grid w-full grid-cols-2">
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                  <TabsTrigger value="signin">Sign In</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="signup" className="space-y-2">
-                  <h2 className="text-center text-2xl font-bold tracking-tight">
-                    Create an Account
-                  </h2>
-                  <p className="mb-6 text-center text-muted-foreground">
-                    Sign up to get started with our service
-                  </p>
-                </TabsContent>
-
-                <TabsContent value="signin" className="space-y-2">
-                  <h2 className="text-center text-2xl font-bold tracking-tight">
-                    Welcome Back
-                  </h2>
-                  <p className="mb-6 text-center text-muted-foreground">
-                    Sign in to access your account
-                  </p>
-                </TabsContent>
-              </Tabs>
-
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <form
-                onSubmit={currentTab === "signup" ? handleSignUp : handleSignIn}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="flex items-center gap-2"
-                    >
-                      <TwitterIcon className="h-4 w-4" />
-                      <span className="sr-only sm:not-sr-only sm:text-xs">
-                        Twitter
-                      </span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="flex items-center gap-2"
-                    >
-                      <GithubIcon className="h-4 w-4" />
-                      <span className="sr-only sm:not-sr-only sm:text-xs">
-                        GitHub
-                      </span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="relative flex h-full w-full items-center gap-2"
-                      disabled={isPending}
-                      onClick={handleGoogleLogin}
-                    >
-                      <div className="relative h-full w-full">
-                        {isPending ? (
-                          "Redirecting..."
-                        ) : (
-                          <Image
-                            src="/signin-assets/Web (mobile + desktop)/png@1x/neutral/web_neutral_rd_SU@1x.png"
-                            layout="fill"
-                            objectFit="contain"
-                            alt="Google"
-                          />
-                        )}
-                      </div>
-                    </Button>
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <Separator className="flex-1" />
-                    <span className="mx-2 text-xs text-muted-foreground">
-                      OR
-                    </span>
-                    <Separator className="flex-1" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {currentTab === "signup" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting
-                      ? currentTab === "signup"
-                        ? "Creating Account..."
-                        : "Signing In..."
-                      : currentTab === "signup"
-                        ? "Create Account"
-                        : "Sign In"}
-                  </Button>
-
-                  {currentTab === "signin" && (
-                    <div className="text-center">
-                      <Button variant="link" className="h-auto p-0 text-sm" asChild>
-                        <Link href="/(user)/forgot-password">Forgot password?</Link>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </form>
-            </>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
+
+          {successMessage && !isSuccess && (
+            <Alert className="mb-4 border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-700">
+                {successMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {renderCurrentView()}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 text-center text-sm text-muted-foreground">
           <div className="flex justify-center space-x-4">
@@ -336,7 +385,7 @@ export default function Page() {
             </a>
           </div>
           <p className="text-xs">
-            We respect your privacy. Unsubscribe at any time.
+            We respect your privacy and keep your data secure.
           </p>
         </CardFooter>
       </Card>

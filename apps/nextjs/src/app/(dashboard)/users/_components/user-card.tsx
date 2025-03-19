@@ -1,11 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { Skeleton } from "react-loading-skeleton";
+import { useRouter } from "next/navigation";
+import Skeleton from "react-loading-skeleton";
 
 import { Button } from "@acme/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@acme/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@acme/ui/card";
 
 export const UserCardSkeleton = () => {
   return (
@@ -38,7 +45,7 @@ export const UserCard = ({
   role: string;
 }) => {
   const router = useRouter();
-  
+
   const handleViewDetails = useCallback(() => {
     router.push(`/users/${id}`);
   }, [id, router]);
@@ -52,11 +59,11 @@ export const UserCard = ({
       <CardContent>
         <div className="flex items-center space-x-4">
           {image && (
-            <div className="relative h-12 w-12 rounded-full overflow-hidden">
-              <img 
-                src={image} 
-                alt={name} 
-                className="object-cover h-full w-full"
+            <div className="relative h-12 w-12 overflow-hidden rounded-full">
+              <img
+                src={image}
+                alt={name}
+                className="h-full w-full object-cover"
               />
             </div>
           )}

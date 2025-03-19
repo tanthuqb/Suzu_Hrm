@@ -2,17 +2,24 @@
 
 import "react-loading-skeleton/dist/skeleton.css";
 
-import { trpc } from "~/trpc/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+import { useTRPC } from "~/trpc/react";
 import { UserCard } from "./user-card";
 
 export function UserList() {
-  const { data: users } = trpc.user.all.useQuery();
+  const trpc = useTRPC();
+
+  const { data: users } = useSuspenseQuery(
+    trpc.post?.all.queryOptions() ?? {
+      queryKey: ["user.all"],
+      queryFn: () => [] as RouterOutputs["user"]["all"],
+    },
+  );
 
   if (!users?.length) {
     return (
-      <div className="mt-10 text-center text-gray-600">
-        No users found.
-      </div>
+      <div className="mt-10 text-center text-gray-600">No users found.</div>
     );
   }
 

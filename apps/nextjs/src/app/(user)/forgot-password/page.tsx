@@ -50,16 +50,22 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="items-center space-y-4 text-center">
-          <Link href="/(user)/login" className="flex items-center text-sm text-purple-600 hover:text-purple-800">
+          <Link
+            href="/(user)/login"
+            className="flex items-center text-sm text-purple-600 hover:text-purple-800"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Login
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight">Reset Your Password</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Reset Your Password
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your
+            password.
           </p>
         </CardHeader>
-        
+
         <CardContent>
           {isSuccess ? (
             <div className="space-y-2 py-4 text-center">
@@ -78,7 +84,7 @@ export default function ForgotPasswordPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
                 <Input
@@ -90,7 +96,7 @@ export default function ForgotPasswordPage() {
                   required
                 />
               </div>
-              
+
               <Button
                 type="submit"
                 className="w-full bg-purple-600 hover:bg-purple-700"
@@ -101,7 +107,7 @@ export default function ForgotPasswordPage() {
             </form>
           )}
         </CardContent>
-        
+
         <CardFooter className="flex justify-center text-center text-sm text-muted-foreground">
           <div className="flex items-center">
             Remember your password?{" "}
