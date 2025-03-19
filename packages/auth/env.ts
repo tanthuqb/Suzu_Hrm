@@ -6,6 +6,8 @@ export const env = createEnv({
     AUTH_DISCORD_ID: z.string().min(1),
     AUTH_DISCORD_SECRET: z.string().min(1),
     PUBLIC_APP_URL: z.string().min(1),
+    PUBLIC_SUPABASE_URL: z.string().min(1),
+    PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
     AUTH_SECRET:
       process.env.NODE_ENV === "production"
         ? z.string().min(1)

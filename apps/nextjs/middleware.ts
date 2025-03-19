@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { updateSession } from "../../packages/supabase/src";
+import { updateSession } from "@acme/supabase";
 
 export const config = {
   matcher: [

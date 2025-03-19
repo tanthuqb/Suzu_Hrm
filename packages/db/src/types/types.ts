@@ -6,17 +6,6 @@ import type { HRMUser, Post } from "../schema";
 export type UserRole = "ADMIN" | "USER" | "MANAGER";
 export type UserStatus = "ACTIVE" | "INACTIVE" | "PENDING";
 
-export interface IUser {
-  id: string;
-  supabaseUserId: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export type DBUser = InferSelectModel<typeof HRMUser>;
 
 // Post Types
@@ -68,3 +57,7 @@ export interface UpdatePostInput {
   title?: string;
   content?: string;
 }
+
+export type UserWithPassword = Pick<IUser, "id" | "name" | "email" | "role"> & {
+  password: string;
+};
