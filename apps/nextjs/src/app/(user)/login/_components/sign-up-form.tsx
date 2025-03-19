@@ -8,6 +8,7 @@ import { Separator } from "@acme/ui/separator";
 
 interface SignUpFormProps {
   handleSignUp: React.FormEventHandler<HTMLFormElement>;
+  handleGoogleLogin?: () => void;
   email: string;
   setEmail: (value: string) => void;
   password: string;
@@ -15,10 +16,12 @@ interface SignUpFormProps {
   confirmPassword: string;
   setConfirmPassword: (value: string) => void;
   isSubmitting: boolean;
+  isGoogleLoading?: boolean;
 }
 
 const SignUpForm = ({
   handleSignUp,
+  handleGoogleLogin,
   email,
   setEmail,
   password,
@@ -26,6 +29,7 @@ const SignUpForm = ({
   confirmPassword,
   setConfirmPassword,
   isSubmitting,
+  isGoogleLoading,
 }: SignUpFormProps) => {
   return (
     <form onSubmit={handleSignUp} className="space-y-6">
@@ -51,9 +55,21 @@ const SignUpForm = ({
             variant="outline"
             type="button"
             className="flex items-center gap-2"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
           >
-            <LinkedinIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:text-xs">LinkedIn</span>
+            {isGoogleLoading ? (
+              "Loading..."
+            ) : (
+              <>
+                <img 
+                  src="/signin-assets/Web (mobile + desktop)/png@1x/neutral/web_neutral_rd_SU@1x.png"
+                  alt="Google"
+                  className="h-4 w-4"
+                />
+                <span className="sr-only sm:not-sr-only sm:text-xs">Google</span>
+              </>
+            )}
           </Button>
         </div>
 

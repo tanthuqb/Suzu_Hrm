@@ -16,10 +16,12 @@ const MainTabs = ({
   setCurrentTab,
   setCurrentView,
   resetForm,
+  AuthView,
 }: MainTabsProps) => {
   return (
     <Tabs
-      defaultValue="signup"
+      defaultValue={AuthView}
+      value={AuthView}
       className="w-full"
       onValueChange={(value) => {
         setCurrentTab(value as "signup" | "signin");

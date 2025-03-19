@@ -6,10 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle,
   GithubIcon,
-  LinkedinIcon,
   TwitterIcon,
 } from "lucide-react";
 
@@ -48,8 +46,9 @@ export default function Page() {
   const [confirmationCode, setConfirmationCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [currentTab, setCurrentTab] = useState<"signup" | "signin">("signup");
-  const [currentView, setCurrentView] = useState<AuthView>("signup");
+  // Use 'signin' as the default tab for a better first-time user experience
+  const [currentTab, setCurrentTab] = useState<"signup" | "signin">("signin");
+  const [currentView, setCurrentView] = useState<AuthView>("signin");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -259,7 +258,7 @@ export default function Page() {
 
   const renderCurrentView = () => {
     if (isSuccess) {
-      <Success currentTab={currentTab} resetForm={resetForm} />;
+      return <Success currentTab={currentTab} resetForm={resetForm} />;
     }
 
     switch (currentView) {
@@ -274,6 +273,7 @@ export default function Page() {
             />
             <SignUpForm
               handleSignUp={handleSignUp}
+              handleGoogleLogin={handleGoogleLogin}
               email={email}
               setEmail={setEmail}
               password={password}
@@ -281,6 +281,7 @@ export default function Page() {
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
               isSubmitting={isSubmitting}
+              isGoogleLoading={isPending}
             />
           </>
         );
@@ -295,11 +296,13 @@ export default function Page() {
             />
             <SignInForm
               handleSignIn={handleSignIn}
+              handleGoogleLogin={handleGoogleLogin}
               email={email}
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
               isSubmitting={isSubmitting}
+              isGoogleLoading={isPending}
               setCurrentView={setCurrentView}
             />
           </>

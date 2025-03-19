@@ -11,21 +11,25 @@ import type { AuthView } from "../page";
 
 interface SignInFormProps {
   handleSignIn: React.FormEventHandler<HTMLFormElement>;
+  handleGoogleLogin?: () => void;
   email: string;
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
   isSubmitting: boolean;
+  isGoogleLoading?: boolean;
   setCurrentView: Dispatch<SetStateAction<AuthView>>;
 }
 
 const SignInForm = ({
   handleSignIn,
+  handleGoogleLogin,
   email,
   setEmail,
   password,
   setPassword,
   isSubmitting,
+  isGoogleLoading,
   setCurrentView,
 }: SignInFormProps) => {
   return (
@@ -52,9 +56,21 @@ const SignInForm = ({
             variant="outline"
             type="button"
             className="flex items-center gap-2"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
           >
-            <LinkedinIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:text-xs">LinkedIn</span>
+            {isGoogleLoading ? (
+              "Loading..."
+            ) : (
+              <>
+                <img 
+                  src="/signin-assets/Web (mobile + desktop)/png@1x/neutral/web_neutral_rd_SU@1x.png"
+                  alt="Google"
+                  className="h-4 w-4"
+                />
+                <span className="sr-only sm:not-sr-only sm:text-xs">Google</span>
+              </>
+            )}
           </Button>
         </div>
 
