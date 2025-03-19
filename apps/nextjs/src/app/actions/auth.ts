@@ -97,3 +97,114 @@ export const registerUser = async (
 
   return data.user;
 };
+
+/**
+ * Send password reset email to the user
+ */
+export const forgotPassword = async (email: string) => {
+  const supabase = await createServerClient();
+
+  // Determine redirect URL based on environment
+  const isLocalDev = process.env.NODE_ENV === "development";
+  const baseUrl = isLocalDev
+    ? "http://localhost:3000"
+    : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+  const redirectUrl = `${baseUrl}/(user)/reset-password`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
+  });
+
+  if (error) {
+    console.error("Password reset error:", error);
+    throw new Error(error.message);
+  }
+
+  return { success: true };
+};
+
+/**
+ * Update user's password (when logged in)
+ */
+export const updatePassword = async (
+  password: string,
+  confirmPassword: string,
+) => {
+  if (password !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.auth.updateUser({
+    password: password,
+  });
+
+  if (error) {
+    console.error("Password update error:", error);
+    throw new Error(error.message);
+  }
+
+  return { success: true };
+};
+
+/**
+ * Update user's email (when logged in)
+ */
+export const updateEmail = async (email: string) => {
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.auth.updateUser({
+    email: email,
+  });
+
+  if (error) {
+    console.error("Email update error:", error);
+    throw new Error(error.message);
+  }
+
+  return {
+    success: true,
+    message: "Verification email sent. Please check your inbox.",
+  };
+};
+
+/**
+ * Reset password with token (from reset password email)
+ */
+export const resetPassword = async (
+  password: string,
+  confirmPassword: string,
+) => {
+  if (password !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.auth.updateUser({
+    password: password,
+  });
+
+  if (error) {
+    console.error("Password reset error:", error);
+    throw new Error(error.message);
+  }
+
+  return { success: true };
+};
+
+/**
+ * Refresh Token Expires
+ */
+export const refreshSessionServer = async () => {
+  try {
+    const supabase = await createServerClient();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session;
+  } catch (error) {
+    console.error("Error refreshing session:", error);
+  }
+};

@@ -1,18 +1,18 @@
 import { Suspense } from "react";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { HydrateClient, prefetch, trpc } from "../../../trpc/server";
 import { UserCardSkeleton } from "./_components/user-card";
 import { UserList } from "./_components/user-list";
 
-export default function UserPage() {
+export default function UsersPage() {
   prefetch((trpc as any).user.all.queryOptions());
 
   return (
     <HydrateClient>
-      <main className="container h-screen py-16">
+      <main className="container py-16">
         <div className="flex flex-col items-center justify-center gap-4">
           <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Users
+            Users Management
           </h1>
 
           <div className="w-full max-w-2xl overflow-y-scroll">

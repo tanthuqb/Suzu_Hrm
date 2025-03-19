@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AlertCircle, GithubIcon, TwitterIcon } from "lucide-react";
 
 import { Alert, AlertDescription } from "@acme/ui/alert";
@@ -18,7 +19,7 @@ import {
   handleSignInWithGoogle,
   registerUser,
   signInEmail,
-} from "../actions/auth";
+} from "../../actions/auth";
 
 export default function Page() {
   const [email, setEmail] = useState("");
@@ -312,8 +313,8 @@ export default function Page() {
 
                   {currentTab === "signin" && (
                     <div className="text-center">
-                      <Button variant="link" className="h-auto p-0 text-sm">
-                        Forgot password?
+                      <Button variant="link" className="h-auto p-0 text-sm" asChild>
+                        <Link href="/(user)/forgot-password">Forgot password?</Link>
                       </Button>
                     </div>
                   )}
