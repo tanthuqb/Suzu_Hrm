@@ -1,23 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@acme/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@acme/ui/card";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 import { Separator } from "@acme/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
+import {
+  checkAuth,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@acme/ui/tabs";
 
 import { updateEmail, updatePassword } from "../../actions/auth";
-import { useAuth } from "../../_components/auth-provider";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const router = useRouter();
   const [currentTab, setCurrentTab] = useState("account");
-  
+  const [user, setUser] = useState<any>(null);
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const authUser = await checkAuth();
+        if (!authUser) {
+          router.push("/login");
+        } else {
+          setUser(authUser);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.log("Error", error.messge);
+      }
+    }
+    fetchUser();
+  }, [router]);
+
   // Password update state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -25,7 +54,7 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
-  
+
   // Email update state
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -49,7 +78,9 @@ export default function ProfilePage() {
 
     // Validate password strength
     if (!isStrongPassword(newPassword)) {
-      setPasswordError("Password must be at least 8 characters and contain at least 1 number");
+      setPasswordError(
+        "Password must be at least 8 characters and contain at least 1 number",
+      );
       return;
     }
 
@@ -124,11 +155,13 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
-          <CardDescription>Manage your account settings and preferences.</CardDescription>
+          <CardDescription>
+            Manage your account settings and preferences.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs 
-            defaultValue="account" 
+          <Tabs
+            defaultValue="account"
             className="w-full"
             onValueChange={(value) => setCurrentTab(value)}
           >
@@ -144,44 +177,45 @@ export default function ProfilePage() {
                   View and update your account details.
                 </p>
               </div>
-              
+
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 gap-2">
                   <Label htmlFor="current-email">Current Email</Label>
-                  <Input
-                    id="current-email"
-                    value={user.email ?? ""}
-                    disabled
-                  />
+                  <Input id="current-email" value={user.email ?? ""} disabled />
                 </div>
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               <form onSubmit={handleEmailUpdate} className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-medium">Change Email</h3>
                   <p className="text-sm text-muted-foreground">
-                    Update your email address. A verification email will be sent.
+                    Update your email address. A verification email will be
+                    sent.
                   </p>
                 </div>
-                
+
                 {emailError && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{emailError}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 {emailSuccess && (
-                  <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
+                  <Alert
+                    variant="default"
+                    className="border-green-200 bg-green-50 text-green-800"
+                  >
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Verification email sent to your new address. Please check your inbox.
+                      Verification email sent to your new address. Please check
+                      your inbox.
                     </AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-1 gap-2">
                     <Label htmlFor="new-email">New Email</Label>
@@ -195,9 +229,9 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="bg-purple-600 hover:bg-purple-700"
                   disabled={isEmailSubmitting}
                 >
@@ -213,23 +247,26 @@ export default function ProfilePage() {
                   Change your password to keep your account secure.
                 </p>
               </div>
-              
+
               {passwordError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{passwordError}</AlertDescription>
                 </Alert>
               )}
-              
+
               {passwordSuccess && (
-                <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
+                <Alert
+                  variant="default"
+                  className="border-green-200 bg-green-50 text-green-800"
+                >
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
                     Your password has been updated successfully.
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               <form onSubmit={handlePasswordUpdate} className="space-y-4">
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-1 gap-2">
@@ -243,7 +280,7 @@ export default function ProfilePage() {
                       required
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-2">
                     <Label htmlFor="new-password">New Password</Label>
                     <Input
@@ -255,12 +292,15 @@ export default function ProfilePage() {
                       required
                     />
                     <p className="text-xs text-muted-foreground">
-                      Password must be at least 8 characters and contain at least 1 number
+                      Password must be at least 8 characters and contain at
+                      least 1 number
                     </p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <Label htmlFor="confirm-password">
+                      Confirm New Password
+                    </Label>
                     <Input
                       id="confirm-password"
                       type="password"
@@ -271,9 +311,9 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="bg-purple-600 hover:bg-purple-700"
                   disabled={isPasswordSubmitting}
                 >

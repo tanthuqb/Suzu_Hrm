@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 import { Alert, AlertDescription } from "@acme/ui/alert";
@@ -12,7 +12,6 @@ import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 
 import { resetPassword } from "../../actions/auth";
-import { createClient } from "@acme/supabase";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -23,22 +22,22 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [isHashPresent, setIsHashPresent] = useState(false);
 
-  useEffect(() => {
-    // Check if hash fragment is present (Supabase adds it for password reset)
-    const hasHashFragment = window.location.hash && window.location.hash.includes("type=recovery");
-    setIsHashPresent(hasHashFragment);
+  // useEffect(() => {
+  //   // Check if hash fragment is present (Supabase adds it for password reset)
+  //   const hasHashFragment = window.location.hash && window.location.hash.includes("type=recovery");
+  //   setIsHashPresent(hasHashFragment);
 
-    if (hasHashFragment) {
-      // Handle the recovery hash
-      const supabase = createClient();
-      // This will handle the password recovery token
-      supabase.auth.onAuthStateChange(async (event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          console.log("Password recovery mode detected");
-        }
-      });
-    }
-  }, []);
+  //   if (hasHashFragment) {
+  //     // Handle the recovery hash
+  //     const supabase = createClient();
+  //     // This will handle the password recovery token
+  //     supabase.auth.onAuthStateChange(async (event) => {
+  //       if (event === "PASSWORD_RECOVERY") {
+  //         console.log("Password recovery mode detected");
+  //       }
+  //     });
+  //   }
+  // }, []);
 
   // Password strength validation
   const isStrongPassword = (password: string) => {
@@ -51,7 +50,9 @@ export default function ResetPasswordPage() {
 
     // Validate password strength
     if (!isStrongPassword(password)) {
-      setError("Password must be at least 8 characters and contain at least 1 number");
+      setError(
+        "Password must be at least 8 characters and contain at least 1 number",
+      );
       return;
     }
 
@@ -67,7 +68,7 @@ export default function ResetPasswordPage() {
       await resetPassword(password, confirmPassword);
       setIsSubmitting(false);
       setIsSuccess(true);
-      
+
       // Redirect to login after a short delay
       setTimeout(() => {
         router.push("/(user)/login");
@@ -87,12 +88,15 @@ export default function ResetPasswordPage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Invalid password reset link. Please request a new password reset link from the forgot password page.
+                Invalid password reset link. Please request a new password reset
+                link from the forgot password page.
               </AlertDescription>
             </Alert>
             <div className="mt-4 text-center">
               <Button asChild variant="ghost">
-                <Link href="/(user)/forgot-password">Go to Forgot Password</Link>
+                <Link href="/(user)/forgot-password">
+                  Go to Forgot Password
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -105,16 +109,21 @@ export default function ResetPasswordPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="items-center space-y-4 text-center">
-          <Link href="/(user)/login" className="flex items-center text-sm text-purple-600 hover:text-purple-800">
+          <Link
+            href="/(user)/login"
+            className="flex items-center text-sm text-purple-600 hover:text-purple-800"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Login
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight">Set New Password</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Set New Password
+          </h1>
           <p className="text-sm text-muted-foreground">
             Create a new password for your account
           </p>
         </CardHeader>
-        
+
         <CardContent>
           {isSuccess ? (
             <div className="space-y-2 py-4 text-center">
@@ -122,7 +131,8 @@ export default function ResetPasswordPage() {
                 Password updated successfully!
               </div>
               <p className="text-sm text-muted-foreground">
-                You can now use your new password to log in. Redirecting to login page...
+                You can now use your new password to log in. Redirecting to
+                login page...
               </p>
             </div>
           ) : (
@@ -133,7 +143,7 @@ export default function ResetPasswordPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <Input
@@ -145,7 +155,8 @@ export default function ResetPasswordPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Password must be at least 8 characters and contain at least 1 number
+                  Password must be at least 8 characters and contain at least 1
+                  number
                 </p>
               </div>
 
@@ -171,7 +182,7 @@ export default function ResetPasswordPage() {
             </form>
           )}
         </CardContent>
-        
+
         <CardFooter className="flex justify-center text-center text-sm text-muted-foreground">
           <div className="flex items-center">
             Remember your password?{" "}
