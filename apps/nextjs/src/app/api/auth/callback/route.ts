@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/auth/auth-code-error`);
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error("Missing Supabase environment variables");
@@ -66,18 +66,25 @@ export async function GET(request: NextRequest) {
 
     // Explicitly get and log all cookies for debugging
     const allCookies = response.cookies.getAll();
-    console.log("Cookies set in response:", allCookies.map(c => ({
-      name: c.name,
-      options: {
-        path: c.path,
-        sameSite: c.sameSite,
-        secure: c.secure,
-        httpOnly: c.httpOnly
-      }
-    })));
+    console.log(
+      "Cookies set in response:",
+      allCookies.map((c) => ({
+        name: c.name,
+        options: {
+          path: c.path,
+          sameSite: c.sameSite,
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+        },
+      })),
+    );
 
     // Ensure session is properly established
-    if (!allCookies.some(c => c.name === 'sb-access-token' || c.name === 'sb-refresh-token')) {
+    if (
+      !allCookies.some(
+        (c) => c.name === "sb-access-token" || c.name === "sb-refresh-token",
+      )
+    ) {
       console.warn("Warning: Session cookies not found in response");
     }
 

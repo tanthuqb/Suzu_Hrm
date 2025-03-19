@@ -4,6 +4,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { appRouter, createTRPCContext } from "@acme/api";
 import { validateToken } from "@acme/auth";
+
 import { env } from "~/env";
 
 const setCorsHeaders = (res: Response) => {
@@ -19,11 +20,11 @@ export const OPTIONS = () => {
   return response;
 };
 
-type CookieOptions = {
+interface CookieOptions {
   name: string;
   value?: string;
   [key: string]: unknown;
-};
+}
 
 const handler = async (req: NextRequest) => {
   try {
@@ -34,8 +35,8 @@ const handler = async (req: NextRequest) => {
 
     // Create Supabase client
     const supabase = createServerClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      env.PUBLIC_SUPABASE_URL,
+      env.PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           get(name: string) {
@@ -82,12 +83,12 @@ const handler = async (req: NextRequest) => {
         console.error(`>>> tRPC Error on '${path}'`, error);
       },
     });
-    
+
     const clientIp = req.headers.get("x-forwarded-for");
     if (clientIp) {
       console.log("IP HOSTING", clientIp);
     }
-    
+
     setCorsHeaders(response);
     return response;
   } catch (error) {
