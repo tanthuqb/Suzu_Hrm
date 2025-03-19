@@ -98,10 +98,8 @@ export default function Page() {
     try {
       await registerUser(email, password, confirmPassword);
       setIsSubmitting(false);
-      setIsSuccess(true);
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
+      setCurrentView("confirm-email");
+      setSuccessMessage("Please check your email for a confirmation code");
     } catch (error: any) {
       toast.error("SignUp in failed: " + error.message);
     } finally {
@@ -128,25 +126,17 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      const result = await signInEmail(email, password);
-      console.log("Sign in successful:", result);
-
-      // Set success state
+      await signInEmail(email, password);
       setIsSubmitting(false);
       setIsSuccess(true);
-
-      // Clear form
       setEmail("");
       setPassword("");
-      setConfirmPassword("");
-
-      // Redirect to home page after short delay to allow cookies to be set
       setTimeout(() => {
         window.location.href = "/";
       }, 1000);
-    } catch (error: any) {
-      console.error("Sign in error:", error);
-      toast.error("Sign in failed: " + error.message);
+    } catch (error) {
+      setIsSubmitting(false);
+      setError("Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }
@@ -232,6 +222,7 @@ export default function Page() {
       setConfirmPassword("");
     }, 1500);
   };
+
   const resetForm = () => {
     setIsSuccess(false);
     setEmail("");
