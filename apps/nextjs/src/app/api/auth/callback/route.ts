@@ -55,10 +55,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/auth/auth-code-error`);
     }
 
+    // Log complete session information for debugging
     console.log("Session exchange successful:", {
       userId: data.session.user.id,
       email: data.session.user.email,
+      expiresAt: data.session.expires_at,
+      tokenType: data.session.token_type,
+      hasCookies: response.cookies.getAll().length > 0,
     });
+
+    // Explicitly get and log all cookies for debugging
+    const allCookies = response.cookies.getAll();
+    console.log("Cookies set in response:", allCookies.map(c => ({
+      name: c.name,
+      options: {
+        path: c.path,
+        sameSite: c.sameSite,
+        secure: c.secure,
+        httpOnly: c.httpOnly
+      }
+    })));
+
+    // Ensure session is properly established
+    if (!allCookies.some(c => c.name === 'sb-access-token' || c.name === 'sb-refresh-token')) {
+      console.warn("Warning: Session cookies not found in response");
+    }
 
     return response;
   } catch (error) {

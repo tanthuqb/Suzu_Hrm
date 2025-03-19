@@ -21,15 +21,30 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
+        // First set cookies on the request object
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
+        
+        // Create a new response
         supabaseResponse = NextResponse.next({
           request,
         });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
+        
+        // Set cookies on the response with their full options
+        cookiesToSet.forEach(({ name, value, options }) => {
+          console.log(`Setting cookie: ${name} with options:`, options);
+          supabaseResponse.cookies.set({
+            name,
+            value,
+            ...options,
+            // Ensure cookies are properly secured
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            ...options,
+          });
+        });
       },
     },
   });

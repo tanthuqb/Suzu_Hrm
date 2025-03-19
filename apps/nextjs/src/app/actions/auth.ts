@@ -2,8 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-import type { Session } from "@acme/auth";
-import { validateToken } from "@acme/auth";
 import { createServerClient } from "@acme/supabase";
 
 export const handleSignInWithGoogle = async () => {
@@ -16,7 +14,7 @@ export const handleSignInWithGoogle = async () => {
         access_type: "offline",
         prompt: "consent",
       },
-      skipBrowserRedirect: false,
+      skipBrowserRedirect: false, // Ensure browser handles the redirect
     },
   });
 
@@ -37,17 +35,34 @@ export const handleSignInWithGoogle = async () => {
 /** Supabase Sign In (Email & Password hoặc OAuth) */
 export async function signInEmail(email: string, password: string) {
   const supabase = await createServerClient();
-  console.log("email ", email);
-  console.log("password", password);
+
+  // Sign in with password
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-  console.log("error", error);
 
   if (error) {
+    console.error("Sign in error:", error);
     throw new Error(error.message);
   }
+
+  // Ensure that session is refreshed and cookies are set properly
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+
+  if (sessionError) {
+    console.error("Session retrieval error:", sessionError);
+    throw new Error(sessionError.message);
+  }
+
+  // Log the session details to help debugging
+  console.log("Session established:", {
+    userId: sessionData.session?.user.id,
+    email: sessionData.session?.user.email,
+    hasSession: !!sessionData.session,
+  });
+
   return data;
 }
 

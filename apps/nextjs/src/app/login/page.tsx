@@ -99,13 +99,24 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      await signInEmail(email, password);
+      const result = await signInEmail(email, password);
+      console.log("Sign in successful:", result);
+
+      // Set success state
       setIsSubmitting(false);
       setIsSuccess(true);
+
+      // Clear form
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+
+      // Redirect to home page after short delay to allow cookies to be set
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     } catch (error: any) {
+      console.error("Sign in error:", error);
       toast.error("Sign in failed: " + error.message);
     } finally {
       setIsSubmitting(false);
