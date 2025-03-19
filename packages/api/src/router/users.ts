@@ -6,6 +6,12 @@ import { HRMUser } from "@acme/db/schema";
 
 import { protectedProcedure } from "../trpc";
 
+// Support both string ID directly and object with ID property
+const idSchema = z.union([
+  z.string(),
+  z.object({ id: z.string() })
+]);
+
 export const userRouter: TRPCRouterRecord = {
   create: protectedProcedure
     .input(
@@ -23,15 +29,17 @@ export const userRouter: TRPCRouterRecord = {
     return ctx.db.query.HRMUser.findMany();
   }),
   byId: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(idSchema)
     .query(async ({ ctx, input }) => {
+      const id = typeof input === 'string' ? input : input.id;
       return ctx.db.query.HRMUser.findFirst({
-        where: eq(HRMUser.id, input.id),
+        where: eq(HRMUser.id, id),
       });
     }),
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(idSchema)
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.delete(HRMUser).where(eq(HRMUser.id, input.id));
+      const id = typeof input === 'string' ? input : input.id;
+      return ctx.db.delete(HRMUser).where(eq(HRMUser.id, id));
     }),
 };

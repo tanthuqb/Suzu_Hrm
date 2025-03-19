@@ -1,7 +1,7 @@
 // filepath: c:\CongLoc\hrm\apps\nextjs\src\app\api\auth\route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-import { createServerClient } from "../../../../../../packages/supabase/src";
+import { createServerClient } from "@acme/supabase";
 
 const EXPO_COOKIE_NAME = "__acme-expo-redirect-state";
 

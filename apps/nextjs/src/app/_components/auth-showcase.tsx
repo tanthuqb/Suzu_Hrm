@@ -1,7 +1,6 @@
-import { handleSignInWithGoogle, signOut } from "@acme/auth";
+// import { handleSignInWithGoogle, signOut } from "@acme/auth";
+import { createServerClient } from "@acme/supabase";
 import { Button } from "@acme/ui/button";
-
-import { createServerClient } from "../../../../../packages/supabase/src";
 
 export async function AuthShowcase() {
   const supabase = await createServerClient();
@@ -30,7 +29,7 @@ export async function AuthShowcase() {
           size="lg"
           formAction={async () => {
             "use server";
-            await handleSignInWithGoogle();
+            // await handleSignInWithGoogle();
           }}
         >
           Sign in with Google
@@ -50,7 +49,7 @@ export async function AuthShowcase() {
           size="lg"
           formAction={async () => {
             "use server";
-            await signOut();
+            // await signOut();
           }}
         >
           Sign out
