@@ -8,6 +8,7 @@ export const env = createEnv({
     PUBLIC_APP_URL: z.string().min(1),
     PUBLIC_SUPABASE_URL: z.string().min(1),
     PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     AUTH_SECRET:
       process.env.APP_ENV === "production"
         ? z.string().min(1)
