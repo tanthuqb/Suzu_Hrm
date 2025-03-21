@@ -89,42 +89,64 @@ export const registerUser = async (
   }
 
   const supabase = await createServerClient();
+  
+  // Enable email confirmation by including the email redirect option
   const { data, error } = await supabase.auth.signUp({
     email,
-    password: password,
+    password,
+    options: {
+      emailRedirectTo: `${process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/callback`,
+    }
   });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data.user;
+  // Check if email confirmation is needed
+  const isEmailConfirmationNeeded = data?.user?.identities?.[0]?.identity_data?.email_verified === false;
+
+  return {
+    user: data.user,
+    needsEmailConfirmation: isEmailConfirmationNeeded
+  };
 };
 
 /**
  * Send password reset email to the user
  */
+// Import the API client to use tRPC
+import { trpc } from "~/trpc/react";
+
 export const forgotPassword = async (email: string) => {
-  const supabase = await createServerClient();
+  try {
+    // Note: This will be replaced by the tRPC implementation
+    // In a real application, you would use the tRPC client, but since this is 
+    // a server action, we're still using the direct Supabase client
+    const supabase = await createServerClient();
+    
+    // Determine redirect URL based on environment
+    const isLocalDev = process.env.APP_ENV === "development";
+    const baseUrl = isLocalDev
+      ? "http://localhost:3000"
+      : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
-  // Determine redirect URL based on environment
-  const isLocalDev = process.env.APP_ENV === "development";
-  const baseUrl = isLocalDev
-    ? "http://localhost:3000"
-    : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+    const redirectUrl = `${baseUrl}/(user)/reset-password`;
 
-  const redirectUrl = `${baseUrl}/(user)/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: redirectUrl,
-  });
+    if (error) {
+      console.error("Password reset error:", error);
+      throw new Error(error.message);
+    }
 
-  if (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error("Password reset error:", error);
-    throw new Error(error.message);
+    throw new Error(error.message || "Failed to send password reset email");
   }
-
-  return { success: true };
 };
 
 /**

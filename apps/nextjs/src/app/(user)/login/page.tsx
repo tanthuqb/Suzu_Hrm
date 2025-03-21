@@ -96,12 +96,22 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      await registerUser(email, password, confirmPassword);
+      const result = await registerUser(email, password, confirmPassword);
       setIsSubmitting(false);
-      setCurrentView("confirm-email");
-      setSuccessMessage("Please check your email for a confirmation code");
+      
+      if (result.needsEmailConfirmation) {
+        setCurrentView("confirm-email");
+        setSuccessMessage("Please check your email for a confirmation link");
+      } else {
+        // If email is already verified, show success and redirect to login
+        setIsSuccess(true);
+        setSuccessMessage("Account created successfully! You can now sign in.");
+        setTimeout(() => {
+          setCurrentView("signin");
+        }, 2000);
+      }
     } catch (error: any) {
-      toast.error("SignUp in failed: " + error.message);
+      toast.error("SignUp failed: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,28 +152,25 @@ export default function Page() {
     }
   };
 
-  const handleConfirmEmail = (e: React.FormEvent) => {
+  const handleConfirmEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!confirmationCode || confirmationCode.length < 6) {
-      setError("Please enter a valid confirmation code");
-      return;
-    }
-
+    
     setIsSubmitting(true);
-
-    // Simulate API call for email confirmation
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setSuccessMessage("Email confirmed successfully! You can now sign in.");
-      // Clear form fields
-      setConfirmationCode("");
-    }, 1500);
+    
+    // Note: Supabase sends a confirmation link via email, not a code
+    // This section would be for manually entering a code if needed
+    // but with Supabase the flow is to follow the email link instead.
+    
+    setSuccessMessage(
+      "Please check your email and click the confirmation link we sent you. " +
+      "You do not need to enter a code here."
+    );
+    
+    setIsSubmitting(false);
   };
 
-  const handleRequestPasswordReset = (e: React.FormEvent) => {
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -175,15 +182,24 @@ export default function Page() {
 
     setIsSubmitting(true);
 
-    // Simulate API call for password reset request
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // In a client component, we would use the tRPC client directly:
+      // const result = await trpc.auth.forgotPassword.mutate({ email });
+      
+      // For now, we'll continue using the simulated behavior
+      // This is where you would integrate with the tRPC client
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       setCurrentView("new-password");
       setSuccessMessage("Reset code sent to your email");
-    }, 1500);
+    } catch (error: any) {
+      setError(error.message || "Failed to send password reset email");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -209,18 +225,30 @@ export default function Page() {
 
     setIsSubmitting(true);
 
-    // Simulate API call for password reset
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // In a client component, we would use the tRPC client directly:
+      // const result = await trpc.auth.resetPassword.mutate({ 
+      //   password, 
+      //   token: confirmationCode
+      // });
+      
+      // For now, we'll continue using the simulated behavior
+      // This is where you would integrate with the tRPC client
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       setIsSuccess(true);
       setSuccessMessage(
-        "Password reset successfully! You can now sign in with your new password.",
+        "Password reset successfully! You can now sign in with your new password."
       );
       // Clear form fields
       setConfirmationCode("");
       setPassword("");
       setConfirmPassword("");
-    }, 1500);
+    } catch (error: any) {
+      setError(error.message || "Failed to reset password");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
