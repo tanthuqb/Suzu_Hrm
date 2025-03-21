@@ -5,7 +5,7 @@ import * as schema from "./schema";
 
 // Xác định connection string phù hợp môi trường
 const connectionString =
-  process.env.NODE_ENV === "production"
+  process.env.APP_ENV === "production"
     ? process.env.POSTGRES_URL
     : process.env.SUPABASE_DB_POOL_URL;
 

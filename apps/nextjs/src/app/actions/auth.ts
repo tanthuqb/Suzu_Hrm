@@ -108,7 +108,7 @@ export const forgotPassword = async (email: string) => {
   const supabase = await createServerClient();
 
   // Determine redirect URL based on environment
-  const isLocalDev = process.env.NODE_ENV === "development";
+  const isLocalDev = process.env.APP_ENV === "development";
   const baseUrl = isLocalDev
     ? "http://localhost:3000"
     : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;

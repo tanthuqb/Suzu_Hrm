@@ -40,7 +40,7 @@ export async function updateSession(request: NextRequest) {
             ...options,
             // Ensure cookies are properly secured
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.APP_ENV === "production",
             sameSite: "lax",
             ...options,
           });

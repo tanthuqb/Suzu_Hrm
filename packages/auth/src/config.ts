@@ -28,7 +28,7 @@ export interface Session {
   expires: string;
 }
 
-export const isSecureContext = env.NODE_ENV !== "development";
+export const isSecureContext = env.APP_ENV !== "development";
 
 /** Validate Supabase JWT Token and map to HRM User */
 export const validateToken = async (

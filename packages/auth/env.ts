@@ -9,10 +9,10 @@ export const env = createEnv({
     PUBLIC_SUPABASE_URL: z.string().min(1),
     PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
     AUTH_SECRET:
-      process.env.NODE_ENV === "production"
+      process.env.APP_ENV === "production"
         ? z.string().min(1)
         : z.string().min(1).optional(),
-    NODE_ENV: z.enum(["development", "production"]).optional(),
+    APP_ENV: z.enum(["development", "staging", "production"]).optional(),
   },
   client: {},
   experimental__runtimeEnv: {},

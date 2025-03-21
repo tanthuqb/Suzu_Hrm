@@ -17,14 +17,14 @@ import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 import { Separator } from "@acme/ui/separator";
 import {
-  checkAuth,
+  ,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@acme/ui/tabs";
 
-import { updateEmail, updatePassword } from "../../actions/auth";
+import {checkAuth, updateEmail, updatePassword } from "../../actions/auth";
 
 export default function ProfilePage() {
   const router = useRouter();

@@ -68,7 +68,7 @@
     "PUBLIC_APP_CLIENT_URL"
   ],
   "globalPassThroughEnv": [
-    "NODE_ENV",
+    "APP_ENV",
     "CI",
     "VERCEL",
     "VERCEL_ENV",

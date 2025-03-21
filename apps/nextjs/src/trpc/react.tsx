@@ -37,7 +37,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
       links: [
         loggerLink({
           enabled: (op) =>
-            env.NODE_ENV === "development" ||
+            env.APP_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
         unstable_httpBatchStreamLink({
@@ -67,5 +67,3 @@ const getBaseUrl = () => {
   if (env.VERCEL_URL) return `https://${env.VERCEL_URL}`;
   return `http://localhost:${env.PORT ?? 3000}`;
 };
-
-console.log("getBaseUrl", getBaseUrl());
