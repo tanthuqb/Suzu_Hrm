@@ -96,16 +96,26 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      const result = await registerUser(email, password, confirmPassword);
+      // Always auto-confirm email to prevent "Email not confirmed" errors
+      const autoConfirmEmail = true;
+      
+      const result = await registerUser(email, password, confirmPassword, autoConfirmEmail);
       setIsSubmitting(false);
       
       if (result.needsEmailConfirmation) {
+        // Regular flow - user needs to confirm email
         setCurrentView("confirm-email");
         setSuccessMessage("Please check your email for a confirmation link");
       } else {
-        // If email is already verified, show success and redirect to login
+        // Auto-confirmed or already verified email
         setIsSuccess(true);
-        setSuccessMessage("Account created successfully! You can now sign in.");
+        
+        if (result.autoConfirmed) {
+          setSuccessMessage("Account created and email automatically verified! You can now sign in.");
+        } else {
+          setSuccessMessage("Account created successfully! You can now sign in.");
+        }
+        
         setTimeout(() => {
           setCurrentView("signin");
         }, 2000);
