@@ -86,7 +86,15 @@ export default function ProfilePage() {
     setIsPasswordSubmitting(true);
 
     try {
+      // In a client component, we would use the tRPC client directly:
+      // const result = await trpc.auth.updatePassword.mutate({ 
+      //   currentPassword: currentPassword,
+      //   newPassword: newPassword 
+      // });
+      
+      // Using existing server action for now
       await updatePassword(newPassword, confirmPassword);
+      
       setPasswordSuccess(true);
       setCurrentPassword("");
       setNewPassword("");

@@ -345,6 +345,9 @@ importers:
       '@acme/db':
         specifier: workspace:*
         version: link:../db
+      '@acme/supabase':
+        specifier: workspace:^
+        version: link:../supabase
       '@acme/validators':
         specifier: workspace:*
         version: link:../validators
