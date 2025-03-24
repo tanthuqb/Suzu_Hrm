@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import { env } from "~/env";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams, origin } = new URL(request.url);
@@ -16,8 +18,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/auth/auth-code-error`);
     }
 
-    const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = env.PUBLIC_SUPABASE_URL;
+    const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error("Missing Supabase environment variables");

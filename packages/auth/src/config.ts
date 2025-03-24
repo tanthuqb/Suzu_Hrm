@@ -1,22 +1,9 @@
-import { eq } from "drizzle-orm";
-
+import type { DBUser } from "@acme/db";
 import { db } from "@acme/db/client";
 import { HRMUser } from "@acme/db/schema";
 
 import { createBrowserClient, createServerClient } from "../../supabase/src";
 import { env } from "../env";
-
-// Define type for HRM User row
-export interface HRMUserRow {
-  id: string;
-  supabaseUserId: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 export interface Session {
   user: {
@@ -33,7 +20,7 @@ export const isSecureContext = env.APP_ENV !== "development";
 /** Validate Supabase JWT Token and map to HRM User */
 export const validateToken = async (
   token: string,
-): Promise<{ user: HRMUserRow; expires: string } | null> => {
+): Promise<{ user: DBUser; expires: string } | null> => {
   const supabaseBrowser = createBrowserClient();
   try {
     // First verify the token with Supabase
@@ -51,7 +38,6 @@ export const validateToken = async (
     const hrmUser = await db
       .select()
       .from(HRMUser)
-      .where(eq(HRMUser.supabaseUserId, user.id))
       .limit(1)
       .execute()
       .then((rows) => rows[0] || null);

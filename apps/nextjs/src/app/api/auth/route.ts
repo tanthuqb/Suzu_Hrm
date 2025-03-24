@@ -3,13 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServerClient } from "@acme/supabase";
 
+import { env } from "~/env";
+
 const EXPO_COOKIE_NAME = "__acme-expo-redirect-state";
 
 /**
  * Rewrite URL to localhost in dev to avoid IP issues with Expo.
  */
 function rewriteRequestUrlInDevelopment(req: NextRequest) {
-  if (process.env.APP_ENV === "production") return req;
+  if (env.APP_ENV === "production") return req;
 
   const host = req.headers.get("host");
   const newURL = new URL(req.url);
