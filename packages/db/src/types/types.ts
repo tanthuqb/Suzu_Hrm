@@ -36,13 +36,13 @@ export interface UpdateUserInput {
   status?: UserStatus;
 }
 
-export interface CreatePostInput {
-  title: string;
-  content: string;
-  authorId: string;
-}
-
-export interface UpdatePostInput {
-  title?: string;
-  content?: string;
+export interface HRMUserInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

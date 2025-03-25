@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     if (!code) {
       console.error("No code provided in callback");
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      return NextResponse.redirect(`${origin}/auth-code-error`);
     }
 
     const supabaseUrl = env.PUBLIC_SUPABASE_URL;
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseKey) {
       console.error("Missing Supabase environment variables");
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      return NextResponse.redirect(`${origin}/auth-code-error`);
     }
 
     // Create a response object
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Session exchange error:", error);
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      return NextResponse.redirect(`${origin}/auth-code-error`);
     }
 
     // Log complete session information for debugging
@@ -93,6 +93,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Callback error:", error);
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    return NextResponse.redirect(`${origin}/auth-code-error`);
   }
 }

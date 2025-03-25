@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
 import React from "react";
-import { GithubIcon, LinkedinIcon, TwitterIcon } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
@@ -11,77 +10,29 @@ import type { AuthView } from "../page";
 
 interface SignInFormProps {
   handleSignIn: React.FormEventHandler<HTMLFormElement>;
-  handleGoogleLogin?: () => void;
   email: string;
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
   isSubmitting: boolean;
-  isGoogleLoading?: boolean;
   setCurrentView: Dispatch<SetStateAction<AuthView>>;
 }
 
 const SignInForm = ({
   handleSignIn,
-  handleGoogleLogin,
   email,
   setEmail,
   password,
   setPassword,
   isSubmitting,
-  isGoogleLoading,
   setCurrentView,
 }: SignInFormProps) => {
   return (
     <form onSubmit={handleSignIn} className="space-y-6">
+      <div className="relative flex items-center"></div>
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant="outline"
-            type="button"
-            className="flex items-center gap-2"
-          >
-            <TwitterIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:text-xs">Twitter</span>
-          </Button>
-          <Button
-            variant="outline"
-            type="button"
-            className="flex items-center gap-2"
-          >
-            <GithubIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:text-xs">GitHub</span>
-          </Button>
-          <Button
-            variant="outline"
-            type="button"
-            className="flex items-center gap-2"
-            onClick={handleGoogleLogin}
-            disabled={isGoogleLoading}
-          >
-            {isGoogleLoading ? (
-              "Loading..."
-            ) : (
-              <>
-                <img 
-                  src="/signin-assets/Web (mobile + desktop)/png@1x/neutral/web_neutral_rd_SU@1x.png"
-                  alt="Google"
-                  className="h-4 w-4"
-                />
-                <span className="sr-only sm:not-sr-only sm:text-xs">Google</span>
-              </>
-            )}
-          </Button>
-        </div>
-
-        <div className="relative flex items-center">
-          <Separator className="flex-1" />
-          <span className="mx-2 text-xs text-muted-foreground">OR</span>
-          <Separator className="flex-1" />
-        </div>
-
         <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="email">Email Address</Label>
           <Input
             id="email"
             type="email"

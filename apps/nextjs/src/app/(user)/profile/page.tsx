@@ -18,7 +18,7 @@ import { Label } from "@acme/ui/label";
 import { Separator } from "@acme/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
 
-import { checkAuth, updateEmail, updatePassword } from "../../actions/auth";
+import { checkAuth, updateEmail, updatePassword } from "~/app/actions/auth";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function ProfilePage() {
         } else {
           setUser(authUser);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log("Error", error.messge);
       }
     }
@@ -86,15 +86,8 @@ export default function ProfilePage() {
     setIsPasswordSubmitting(true);
 
     try {
-      // In a client component, we would use the tRPC client directly:
-      // const result = await trpc.auth.updatePassword.mutate({ 
-      //   currentPassword: currentPassword,
-      //   newPassword: newPassword 
-      // });
-      
-      // Using existing server action for now
       await updatePassword(newPassword, confirmPassword);
-      
+
       setPasswordSuccess(true);
       setCurrentPassword("");
       setNewPassword("");

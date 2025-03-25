@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut, User, Users } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 import { Separator } from "@acme/ui/separator";
 
-import { checkAuth, signOut } from "../actions/auth";
+import { signOut } from "~/app/actions/auth";
+import { useAuth } from "~/app/hooks/useAuth";
 
 export default function DashboardLayout({
   children,
@@ -17,25 +18,11 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [user, setUser] = useState<any>(null);
   const [isLoading, setLoading] = useState(true);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const authUser = await checkAuth();
-        if (!authUser) {
-          router.push("/login");
-        } else {
-          setUser(authUser);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.log("Error", error.messge);
-      }
-    }
-    fetchUser();
-  }, [router]);
+  const isActive = (href: string) => pathname === href;
+  const { user, isAdmin } = useAuth();
 
   if (!user) {
     // We'll redirect in the useEffect above, but return null for SSR
@@ -61,17 +48,35 @@ export default function DashboardLayout({
 
         <nav className="space-y-2">
           <Button variant="ghost" className="w-full justify-start" asChild>
-            <Link href="/(user)/profile">
+            <Link href="/profile">
               <User className="mr-2 h-4 w-4" />
               My Profile
             </Link>
           </Button>
-          <Button variant="ghost" className="w-full justify-start" asChild>
-            <Link href="/(dashboard)/users">
-              <Users className="mr-2 h-4 w-4" />
-              Users
-            </Link>
-          </Button>
+          {isAdmin ? (
+            <Button
+              variant={isActive("/profile") ? "primary" : "ghost"}
+              className="w-full justify-start"
+              asChild
+            >
+              <Link href="">
+                <Users className="mr-2 h-4 w-4" />
+                Users
+              </Link>
+            </Button>
+          ) : null}
+          {isAdmin ? (
+            <Button
+              variant={isActive("/imports") ? "primary" : "ghost"}
+              className="w-full justify-start"
+              asChild
+            >
+              <Link href="/imports">
+                <Users className="mr-2 h-4 w-4" />
+                Import Suzu
+              </Link>
+            </Button>
+          ) : null}
         </nav>
 
         <div className="absolute bottom-4 left-4 md:bottom-8">

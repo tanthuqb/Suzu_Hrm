@@ -94,8 +94,8 @@ export const authRouter = {
         // Check if confirmEmail is needed - if we auto-confirmed, this will still be false,
         // but we'll override it in the response
         const isEmailConfirmationNeeded =
-          data?.user?.identities?.[0]?.identity_data?.email_verified ===
-            false && !autoConfirmEmail;
+          data.user?.identities?.[0]?.identity_data?.email_verified === false &&
+          !autoConfirmEmail;
 
         return {
           user: data.user,
@@ -133,7 +133,7 @@ export const authRouter = {
         // Option 1: Regular user confirming via token from email
         if (input.token && !input.adminConfirm) {
           // Verify the email confirmation token
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           const { error } = await supabase.auth.verifyOtp({
             token_hash: input.token,
             type: "signup",
@@ -195,50 +195,11 @@ export const authRouter = {
       }
     }),
 
-  // Request password reset
-  forgotPassword: publicProcedure
-    .input(z.object({ email: z.string().email() }))
-    .mutation(async ({ input }) => {
-      const supabase = await createServerClient();
-
-      try {
-        // Determine redirect URL based on environment
-        const isLocalDev = process.env.APP_ENV === "development";
-        const baseUrl = isLocalDev
-          ? "http://localhost:3000"
-          : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-
-        const redirectUrl = `${baseUrl}/(user)/reset-password`;
-
-        const { error } = await supabase.auth.resetPasswordForEmail(
-          input.email,
-          {
-            redirectTo: redirectUrl,
-          },
-        );
-
-        if (error) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: error.message,
-          });
-        }
-
-        return { success: true };
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to send password reset email",
-        });
-      }
-    }),
-
   // Reset password with token
   resetPassword: publicProcedure
     .input(
       z.object({
         password: z.string().min(8),
-        token: z.string(),
       }),
     )
     .mutation(async ({ input }) => {

@@ -49,7 +49,7 @@ function CreatePost() {
       async onSuccess() {
         setTitle("");
         setContent("");
-        await queryClient.invalidateQueries(trpc.post.all.queryFilter());
+        ///await queryClient.invalidateQueries(trpc.post.all.queryFilter());
       },
     }),
   );
@@ -120,14 +120,14 @@ function MobileAuth() {
 export default function Index() {
   const queryClient = useQueryClient();
 
-  const postQuery = useQuery(trpc.post.all.queryOptions());
+  // const postQuery = useQuery(trpc.post.all.queryOptions());
 
-  const deletePostMutation = useMutation(
-    trpc.post.delete.mutationOptions({
-      onSettled: () =>
-        queryClient.invalidateQueries(trpc.post.all.queryFilter()),
-    }),
-  );
+  // const deletePostMutation = useMutation(
+  //   trpc.post.delete.mutationOptions({
+  //     onSettled: () =>
+  //       queryClient.invalidateQueries(trpc.post.all.queryFilter()),
+  //   }),
+  // );
 
   return (
     <SafeAreaView className="bg-background">
