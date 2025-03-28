@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc ",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
@@ -35,11 +35,13 @@
     "drizzle-orm": "^0.38.4",
     "drizzle-zod": "^0.6.1",
     "postgres": "^3.4.5",
+    "xlsx": "^0.18.5",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/prettier-config": "workspace:*",
+    "@acme/supabase": "workspace:^",
     "@acme/tsconfig": "workspace:*",
     "dotenv-cli": "^8.0.0",
     "drizzle-kit": "^0.30.2",

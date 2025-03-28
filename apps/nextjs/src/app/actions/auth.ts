@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 
 import { createServerClient } from "@acme/supabase";
 
+import { isValidEmail } from "~/app/libs/index";
+
 /**
  * Send password reset email to the user
  */
 // Import the API client to use tRPC
-import { trpc } from "~/trpc/react";
 
 export const handleSignInWithGoogle = async () => {
   const supabase = await createServerClient();
@@ -49,7 +50,10 @@ export async function signInEmail(email: string, password: string) {
 
   if (error) {
     // If error is "Email not confirmed", try to auto-confirm it
-    if (error.message.includes("Email not confirmed") && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (
+      error.message.includes("Email not confirmed") &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
       try {
         // Get user by email to get the user ID
         // Create admin client with service role for privileged operations
@@ -67,7 +71,7 @@ export async function signInEmail(email: string, password: string) {
 
         // Get user by email to find their ID
         const { data: userData } = await adminAuthClient.auth.admin.listUsers();
-        const user = userData?.users?.find(u => u.email === email);
+        const user = userData.users.find((u) => u.email === email);
 
         if (user?.id) {
           // Use admin API to update user (mark email as confirmed)
@@ -77,18 +81,23 @@ export async function signInEmail(email: string, password: string) {
           console.log("Email auto-confirmed for user:", user.id);
 
           // Try signin again after confirmation
-          const { data: confirmedData, error: confirmedError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+          const { data: confirmedData, error: confirmedError } =
+            await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
 
           if (confirmedError) {
-            console.error("Sign in error after email confirmation:", confirmedError);
+            console.error(
+              "Sign in error after email confirmation:",
+              confirmedError,
+            );
             throw new Error(confirmedError.message);
           }
 
           // Refresh session
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          const { data: sessionData, error: sessionError } =
+            await supabase.auth.getSession();
           if (sessionError) {
             console.error("Session retrieval error:", sessionError);
             throw new Error(sessionError.message);
@@ -101,7 +110,7 @@ export async function signInEmail(email: string, password: string) {
         // Continue with original error
       }
     }
-    
+
     console.error("Sign in error:", error);
     throw new Error(error.message);
   }
@@ -122,11 +131,25 @@ export const checkAuth = async () => {
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("email", data.user?.email)
+    .single();
+
+  if (userError || !userData) {
+    console.error("Lỗi truy vấn role từ bảng user:", userError);
+    return null;
+  }
+
   if (error || !data.user) {
     return null;
   }
 
-  return data.user;
+  return {
+    ...data.user,
+    role: userData.role,
+  };
 };
 
 /** Supabase Sign Out */
@@ -170,7 +193,11 @@ export const registerUser = async (
     data.user?.identities?.[0]?.identity_data?.email_verified === false;
 
   // Implement auto-confirmation when requested
-  if (autoConfirmEmail && data.user?.id && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (
+    autoConfirmEmail &&
+    data.user?.id &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     try {
       // Create admin client with service role for privileged operations
       const { createClient } = await import("@supabase/supabase-js");
@@ -203,37 +230,6 @@ export const registerUser = async (
   };
 };
 
-export const forgotPassword = async (email: string) => {
-  try {
-    // Note: This will be replaced by the tRPC implementation
-    // In a real application, you would use the tRPC client, but since this is
-    // a server action, we're still using the direct Supabase client
-    const supabase = await createServerClient();
-
-    // Determine redirect URL based on environment
-    const isLocalDev = process.env.APP_ENV === "development";
-    const baseUrl = isLocalDev
-      ? "http://localhost:3000"
-      : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-
-    const redirectUrl = `${baseUrl}/(user)/reset-password`;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-
-    if (error) {
-      console.error("Password reset error:", error);
-      throw new Error(error.message);
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Password reset error:", error);
-    throw new Error(error.message || "Failed to send password reset email");
-  }
-};
-
 /**
  * Update user's password (when logged in)
  */
@@ -257,6 +253,32 @@ export const updatePassword = async (
   }
 
   return { success: true };
+};
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const supabase = await createServerClient();
+    const isLocalDev = process.env.APP_ENV === "development";
+    const baseUrl = isLocalDev
+      ? "http://localhost:3000"
+      : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+    const redirectUrl = `${baseUrl}/callback?next=/reset-password&type=recovery`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+
+    if (error) {
+      console.error("Password reset error:", error);
+      throw new Error(error.message);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Password reset error:", error);
+    throw new Error(error.message || "Failed to send password reset email");
+  }
 };
 
 /**
@@ -317,4 +339,76 @@ export const refreshSessionServer = async () => {
   } catch (error) {
     console.error("Error refreshing session:", error);
   }
+};
+
+export const verifyRecoveryToken = async (code: string) => {
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    },
+    body: JSON.stringify({
+      grant_type: "recovery",
+      code,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    console.error("🛑 Recovery token exchange failed:", data);
+    throw new Error(data.error_description || "Recovery failed");
+  }
+
+  const supabase = await createServerClient();
+
+  await supabase.auth.setSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+  });
+
+  return true;
+};
+
+/**
+ * check email in databaes (when logged in)
+ */
+const checkEmail = async (email: string) => {
+  if (!isValidEmail(email)) {
+    console.log("Email adress not valid");
+    throw new Error("Email adress not valid");
+  }
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", email)
+    .single();
+  if (error) {
+    throw new Error("Có lỗi xảy ra " + error.message);
+  }
+  return data;
+};
+
+/**
+ * Update user's status (when logged in)
+ */
+export const updateStatus = async (email: string, newStatus: string) => {
+  const supabase = await createServerClient();
+
+  const user = await checkEmail(email);
+  const { error } = await supabase
+    .from("users")
+    .update({ status: newStatus })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Status update error:", error);
+    throw new Error(error.message);
+  }
+
+  return { success: true };
 };

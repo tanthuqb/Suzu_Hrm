@@ -1,15 +1,15 @@
 import type { Dispatch, SetStateAction } from "react";
 import React from "react";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
+import { Tabs, TabsContent } from "@acme/ui/tabs";
 
 import type { AuthView } from "../page";
 
 interface MainTabsProps {
-  setCurrentTab: Dispatch<SetStateAction<"signup" | "signin">>;
+  setCurrentTab: Dispatch<SetStateAction<"signin">>;
   setCurrentView: Dispatch<SetStateAction<AuthView>>;
   AuthView: AuthView;
-  resetForm: () => void; // Nếu `resetForm` là async
+  resetForm: () => void;
 }
 
 const MainTabs = ({
@@ -24,16 +24,11 @@ const MainTabs = ({
       value={AuthView}
       className="w-full"
       onValueChange={(value) => {
-        setCurrentTab(value as "signup" | "signin");
+        setCurrentTab(value as "signin");
         setCurrentView(value as AuthView);
         resetForm();
       }}
     >
-      <TabsList className="mb-6 grid w-full grid-cols-2">
-        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-        <TabsTrigger value="signin">Sign In</TabsTrigger>
-      </TabsList>
-
       <TabsContent value="signup" className="space-y-2">
         <h2 className="text-center text-2xl font-bold tracking-tight">
           Create an Account
@@ -49,9 +44,6 @@ const MainTabs = ({
         </h2>
         <p className="mb-6 text-center text-muted-foreground">
           Sign in to access your account
-        </p>
-        <p className="mb-2 text-center text-xs text-muted-foreground">
-          Demo credentials: demo@example.com / password123
         </p>
       </TabsContent>
     </Tabs>

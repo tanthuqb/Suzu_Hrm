@@ -11,29 +11,6 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const Post = pgTable("post", (t) => ({
-  id: t.uuid().notNull().primaryKey().defaultRandom(),
-  title: t.varchar({ length: 256 }).notNull(),
-  content: t.text().notNull(),
-  createdAt: t
-    .timestamp("created_at", { mode: "date", withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: t
-    .timestamp("updated_at", { mode: "date", withTimezone: true })
-    .defaultNow()
-    .notNull(),
-}));
-
-export const CreatePostSchema = createInsertSchema(Post, {
-  title: z.string().max(256),
-  content: z.string().max(256),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 /** Supabase Auth Schema **/
 const auth = pgSchema("auth");
 
@@ -48,12 +25,11 @@ export const SupabaseUser = auth.table("users", {
 /** USERS TABLE **/
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().defaultRandom().notNull(),
-  supabaseUserId: uuid("supabase_user_id")
-    .references(() => SupabaseUser.id)
-    .notNull(),
-  name: t.varchar("name", { length: 255 }).notNull(),
+  firstName: t.varchar("firstName", { length: 255 }).notNull(),
+  lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
   role: t.varchar("role", { length: 255 }).notNull(),
+  phone: t.varchar("phone", { length: 255 }).notNull(),
   status: t.varchar("status", { length: 255 }).default("active"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -62,17 +38,6 @@ export const HRMUser = pgTable("users", (t) => ({
     .defaultNow()
     .notNull(),
 }));
-
-export const CreateHRMUserSchema = createInsertSchema(HRMUser, {
-  name: z.string().max(255),
-  email: z.string().email().max(255),
-  role: z.string().max(255),
-  status: z.string().max(255),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 /** SALARY SLIP TABLE **/
 export const SalarySlip = pgTable("salary_slips", (t) => ({
@@ -141,26 +106,6 @@ export const CreateTransactionSchema = createInsertSchema(Transaction, {
   transactionDate: true,
 });
 
-/** ACCOUNTS TABLE **/
-export const Account = pgTable("accounts", (t) => ({
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-  userId: uuid("user_id")
-    .references(() => HRMUser.id)
-    .notNull(),
-  accountType: varchar("account_type", { length: 255 }).notNull(),
-  balance: integer("balance").default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}));
-
-export const CreateAccountSchema = createInsertSchema(Account, {
-  userId: z.string(),
-  accountType: z.string().max(255),
-  balance: z.number().int(),
-}).omit({
-  id: true,
-  createdAt: true,
-});
-
 /** WORKFLOW TABLE **/
 export const Workflow = pgTable("workflows", (t) => ({
   id: uuid("id").primaryKey().defaultRandom().notNull(),
@@ -198,15 +143,10 @@ export const CreateWorkflowStepSchema = createInsertSchema(WorkflowStep, {
 });
 
 /** RELATIONS **/
-export const HRMUserRelations = relations(HRMUser, ({ many, one }) => ({
+export const HRMUserRelations = relations(HRMUser, ({ many }) => ({
   salarySlips: many(SalarySlip),
   assets: many(Asset),
   transactions: many(Transaction),
-  accounts: many(Account),
-  supabaseUser: one(SupabaseUser, {
-    fields: [HRMUser.supabaseUserId],
-    references: [SupabaseUser.id],
-  }),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({
@@ -227,10 +167,6 @@ export const TransactionRelations = relations(Transaction, ({ one }) => ({
   }),
 }));
 
-export const AccountRelations = relations(Account, ({ one }) => ({
-  user: one(HRMUser, { fields: [Account.userId], references: [HRMUser.id] }),
-}));
-
 export const WorkflowRelations = relations(Workflow, ({ many }) => ({
   steps: many(WorkflowStep),
 }));
@@ -247,7 +183,6 @@ export default {
   SalarySlipRelations,
   AssetRelations,
   TransactionRelations,
-  AccountRelations,
   WorkflowRelations,
   WorkflowStepRelations,
 };
