@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import type { AuthUser } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -127,28 +128,30 @@ export async function signInEmail(email: string, password: string) {
   return data;
 }
 
-export const checkAuth = async () => {
+export const checkAuth = async (): Promise<AuthUser | null> => {
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
-  const { data: userData, error: userError } = await supabase
-    .from("users")
-    .select("role")
-    .eq("email", data.user?.email)
-    .single();
-
-  if (userError || !userData) {
-    console.error("Lỗi truy vấn role từ bảng user:", userError);
+  if (error || !data.user) {
     return null;
   }
 
-  if (error || !data.user) {
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("role,firstName,lastName")
+    .eq("email", data.user.email)
+    .single();
+
+  if (userError || !userData) {
+    console.error("Error fetching user data:", userError);
     return null;
   }
 
   return {
     ...data.user,
     role: userData.role,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
   };
 };
 

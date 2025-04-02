@@ -1,10 +1,20 @@
+import type { User } from "@supabase/supabase-js";
 import type { InferSelectModel } from "drizzle-orm";
 
 import type { HRMUser } from "../schema";
 
 // User Types
-export type UserRole = "ADMIN" | "USER" | "MANAGER";
-export type UserStatus = "ACTIVE" | "INACTIVE" | "PENDING";
+export type UserRole =
+  | "ADMIN"
+  | "USER"
+  | "MANAGER"
+  | "user"
+  | "admin"
+  | "Admin";
+export type UserStatus = "Active" | "Suspended";
+
+// Notication Types
+export type NotificationType = "Email" | "Sms" | "Important";
 
 export type DBUser = InferSelectModel<typeof HRMUser>;
 
@@ -19,6 +29,12 @@ export interface IUser {
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+// User With Role
+export interface AuthUser extends User {
+  role: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 // Request/Response Types
@@ -42,7 +58,7 @@ export interface HRMUserInput {
   email: string;
   phone: string;
   role: string;
-  status: string;
+  status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
 }

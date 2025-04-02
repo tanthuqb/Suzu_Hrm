@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import type { IUser, UserRole, UserStatus } from "@acme/db";
 import { HRMUser } from "@acme/db/schema";
-import { adminAuthClient, createServerClient } from "@acme/supabase";
+import { adminAuthClient } from "@acme/supabase";
 
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 // Support both string ID directly and object with ID property
 const idSchema = z.union([z.string(), z.object({ id: z.string() })]);
@@ -99,7 +99,6 @@ export const userRouter: TRPCRouterRecord = {
       const id = typeof input === "string" ? input : input.id;
       return ctx.db.delete(HRMUser).where(eq(HRMUser.id, id));
     }),
-
   imports: protectedProcedure
     .input(
       z.array(

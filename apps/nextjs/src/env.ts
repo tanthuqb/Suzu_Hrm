@@ -26,6 +26,8 @@ export const env = createEnv({
     PORT: z.string().optional(),
     PUBLIC_SUPABASE_URL: z.string().optional(),
     PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_TO: z.string().optional(),
   },
 
   /**
@@ -42,6 +44,8 @@ export const env = createEnv({
     APP_ENV: process.env.APP_ENV,
     PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
     PUBLIC_SUPABASE_ANON_KEY: process.env.PUBLIC_SUPABASE_ANON_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_TO: process.env.EMAIL_TO,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   } as unknown as RuntimeEnv,
 

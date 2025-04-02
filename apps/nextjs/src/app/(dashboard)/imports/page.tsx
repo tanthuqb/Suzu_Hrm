@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
@@ -33,6 +33,15 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (!isAdmin) {
+      toast.error("Bạn không có quyền vào phần này");
+      router.replace("/users");
+    }
+  }, [user, isAdmin, router]);
 
   const importMutation = useMutation<
     { insertedCount: number; ignoredCount: number },
@@ -102,7 +111,9 @@ export default function ImportPage() {
               phone: formatPhone(row["Work Phone"]),
               role: row.Role?.trim() || "user",
               status:
-                row["Status [READ ONLY]"]?.trim()?.toLowerCase() || "active",
+                row["Status [READ ONLY]"]?.trim()?.toLowerCase() == "active"
+                  ? "Active"
+                  : "Suspended",
               createdAt: new Date(),
               updatedAt: new Date(),
             };
@@ -142,11 +153,6 @@ export default function ImportPage() {
     setError(null);
     importMutation.mutate(fileData);
   };
-
-  if (!user || isAdmin) {
-    toast.error("Ban khong co quyen vao phan nay");
-    router.replace("/users");
-  }
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">
@@ -214,7 +220,4 @@ export default function ImportPage() {
       </Card>
     </div>
   );
-}
-function userRouter() {
-  throw new Error("Function not implemented.");
 }
