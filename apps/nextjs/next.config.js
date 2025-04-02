@@ -22,8 +22,8 @@ const config = {
     "@acme/ui",
     "@acme/validators",
     "@acme/supabase",
+    "drizzle-orm",
   ],
-  externalPackages: ["drizzle-orm"],
 
   /** We already do linting and typechecking as separate tasks in CI */
   eslint: { ignoreDuringBuilds: true },
