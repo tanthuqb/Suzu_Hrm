@@ -1,5 +1,8 @@
 import { fileURLToPath } from "url";
+import * as dotenv from "dotenv";
 import createJiti from "jiti";
+
+dotenv.config({ path: `.env.${process.env.NODE_ENV || "development"}` });
 
 // Import env files to validate at build time. Use jiti so we can load .ts files in here.
 createJiti(fileURLToPath(import.meta.url))("./src/env");

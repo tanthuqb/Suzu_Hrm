@@ -3,7 +3,5 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log("🔷 Studys Layout loaded");
-
   return <div>{children}</div>;
 }
