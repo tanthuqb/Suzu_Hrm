@@ -32,17 +32,17 @@ import {
 import { useAuth } from "~/app/hooks/useAuth";
 
 export function AppSidebar() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-border">
         <h1 className="px-4 py-3 text-xl font-bold text-purple-600">
-          HRM Admin
+          <Link href={"/"}>HRM Admin</Link>
         </h1>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {user && isAdmin ? (
+          {user?.role == "admin" ? (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive>
                 <Link href="/users">
@@ -52,7 +52,7 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ) : null}
-          {user && isAdmin ? (
+          {user?.role === "admin" ? (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/imports">

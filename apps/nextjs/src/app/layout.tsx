@@ -12,7 +12,11 @@ import "~/app/globals.css";
 
 import { Suspense } from "react";
 
+import { SidebarProvider } from "@acme/ui/sidebar";
+
 import { env } from "~/env";
+import { AppSidebar } from "./(dashboard)/users/_components/app-sidebar";
+import { Header } from "./(dashboard)/users/_components/header";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -54,11 +58,23 @@ export default function RootLayout(props: { children: React.ReactNode }) {
       >
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <TRPCReactProvider>{props.children}</TRPCReactProvider>
-            <div className="absolute bottom-4 right-4">
-              <ThemeToggle />
-            </div>
-            <Toaster />
+            <SidebarProvider>
+              <TRPCReactProvider>
+                <div className="flex h-[100dvh] w-full overflow-hidden">
+                  <AppSidebar />
+                  <div className="flex flex-1 flex-col overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-y-auto p-6">
+                      {props.children}
+                    </main>
+                  </div>
+                </div>
+              </TRPCReactProvider>
+              <div className="absolute bottom-4 right-4">
+                <ThemeToggle />
+              </div>
+              <Toaster />
+            </SidebarProvider>
           </ThemeProvider>
         </Suspense>
       </body>

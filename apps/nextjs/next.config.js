@@ -24,6 +24,11 @@ const config = {
     "@acme/supabase",
     "drizzle-orm",
   ],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
+  },
 
   /** We already do linting and typechecking as separate tasks in CI */
   eslint: { ignoreDuringBuilds: true },
