@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ImportIcon as FileImport,
   Send,
-  User,
   UserPen,
   Users,
 } from "lucide-react";

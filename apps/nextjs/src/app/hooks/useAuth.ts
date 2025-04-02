@@ -2,7 +2,6 @@
 
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { checkAuth } from "~/app/actions/auth";
 
