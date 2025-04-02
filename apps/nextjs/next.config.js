@@ -22,6 +22,7 @@ const config = {
     "@acme/ui",
     "@acme/validators",
     "@acme/supabase",
+    "drizzle-orm",
   ],
 
   experimental: {
