@@ -36,7 +36,7 @@ export function UserStatusModal() {
               Kích hoạt
             </Button>
             <Button
-              onClick={() => updateUserStatus(selectedUser.email, "Inactive")}
+              onClick={() => updateUserStatus(selectedUser.email, "Suspended")}
               variant="destructive"
             >
               Vô hiệu hoá

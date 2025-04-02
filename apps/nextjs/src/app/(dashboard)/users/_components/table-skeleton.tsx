@@ -1,51 +1,37 @@
-"use client";
-
-import Skeleton from "react-loading-skeleton";
-
-import "react-loading-skeleton/dist/skeleton.css";
-
+import { Skeleton } from "@acme/ui/skeleton";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@acme/ui/table";
 
-export function TableSkeleton() {
+export function UserTableSkeleton() {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {Array.from({ length: 5 }).map((_, index) => (
-          <TableRow key={index}>
-            <TableCell>
-              <Skeleton width={80} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={120} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={180} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={80} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={60} height={32} />
-            </TableCell>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <TableCell key={i}>
+                <Skeleton className="h-4 w-full" />
+              </TableCell>
+            ))}
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <TableRow key={i}>
+              {Array.from({ length: 6 }).map((_, j) => (
+                <TableCell key={j}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

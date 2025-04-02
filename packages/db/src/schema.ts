@@ -1,8 +1,10 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   integer,
   pgSchema,
   pgTable,
+  serial,
   text,
   timestamp,
   uuid,
@@ -84,6 +86,9 @@ export const CreateAssetSchema = createInsertSchema(Asset, {
 /** TRANSACTIONS TABLE **/
 export const Transaction = pgTable("transactions", (t) => ({
   id: uuid("id").primaryKey().defaultRandom().notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id),
   transactionType: varchar("transaction_type", { length: 255 }).notNull(),
   amount: integer("amount").notNull(),
   transactionDate: timestamp("transaction_date", {
@@ -142,11 +147,63 @@ export const CreateWorkflowStepSchema = createInsertSchema(WorkflowStep, {
   createdAt: true,
 });
 
+/** NOTIFICATION */
+export const Notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id, { onDelete: "cascade" }),
+
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(),
+  read: boolean("read").default(false).notNull(),
+  time: timestamp("time", { mode: "string" }).defaultNow().notNull(),
+});
+
+/** LEAVE REQUEST */
+export const LeaveRequests = pgTable("leave_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: text("name").notNull(),
+  userId: uuid("user_id").notNull(), // vì HRMUser.id là uuid
+  department: text("department").notNull(),
+
+  startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+  endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+
+  reason: text("reason").notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const CreateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
+  name: z.string().max(255),
+  userId: z.string().uuid(),
+  department: z.string().max(255),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  reason: z.string().max(255),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
 /** RELATIONS **/
+export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
+  user: one(HRMUser, {
+    fields: [LeaveRequests.userId],
+    references: [HRMUser.id],
+  }),
+}));
+
 export const HRMUserRelations = relations(HRMUser, ({ many }) => ({
   salarySlips: many(SalarySlip),
   assets: many(Asset),
   transactions: many(Transaction),
+  leaveRequests: many(LeaveRequests),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({
@@ -162,7 +219,7 @@ export const AssetRelations = relations(Asset, ({ one }) => ({
 
 export const TransactionRelations = relations(Transaction, ({ one }) => ({
   user: one(HRMUser, {
-    fields: [Transaction.id],
+    fields: [Transaction.userId],
     references: [HRMUser.id],
   }),
 }));

@@ -1,7 +1,7 @@
 import type { Config } from "drizzle-kit";
 import * as dotenv from "dotenv";
 
-dotenv.config({ path: "../../.env  " });
+dotenv.config({ path: "../../.env" });
 
 const nonPoolingUrl = process.env.SUPABASE_DB_POOL_URL!;
 
@@ -14,4 +14,5 @@ export default {
   dialect: "postgresql",
   dbCredentials: { url: nonPoolingUrl },
   casing: "snake_case",
+  schemaFilter: ["public"],
 } satisfies Config;
