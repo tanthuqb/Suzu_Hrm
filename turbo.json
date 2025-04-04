@@ -2,6 +2,10 @@
   "$schema": "https://turborepo.org/schema.json",
   "ui": "tui",
   "tasks": {
+    "generate": {
+      "cache": false,
+      "persistent": false
+    },
     "topo": {
       "dependsOn": ["^topo"]
     },

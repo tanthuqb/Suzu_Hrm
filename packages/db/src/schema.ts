@@ -2,8 +2,10 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  pgEnum,
   pgSchema,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -13,6 +15,24 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+import { AttendanceStatus } from "./constants/attendance";
+
+/** Helper convert enum */
+
+function enumValues<E extends Record<string, string>>(
+  e: E,
+): [string, ...string[]] {
+  if (!e || typeof e !== "object") {
+    throw new Error("Invalid enum object passed");
+  }
+
+  const values = Object.values(e);
+  if (values.length === 0) {
+    throw new Error("Enum must have at least one value");
+  }
+
+  return values as [string, ...string[]];
+}
 /** Supabase Auth Schema **/
 const auth = pgSchema("auth");
 
@@ -191,6 +211,28 @@ export const CreateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
   createdAt: true,
 });
 
+/**  ATTENDANCES  */
+export const attendanceStatusEnum = pgEnum(
+  "attendance_status",
+  enumValues(AttendanceStatus),
+);
+
+export const Attendance = pgTable(
+  "attendances",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => HRMUser.id),
+    date: timestamp("start_date", { withTimezone: true }).notNull(),
+    status: attendanceStatusEnum("status").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.date] }),
+  }),
+);
+
+export const CreateAttendanceSchema = createInsertSchema(Attendance).omit({});
+
 /** RELATIONS **/
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   user: one(HRMUser, {
@@ -204,6 +246,7 @@ export const HRMUserRelations = relations(HRMUser, ({ many }) => ({
   assets: many(Asset),
   transactions: many(Transaction),
   leaveRequests: many(LeaveRequests),
+  attendances: many(Attendance),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({
@@ -235,6 +278,13 @@ export const WorkflowStepRelations = relations(WorkflowStep, ({ one }) => ({
   }),
 }));
 
+export const AttendanceRelations = relations(Attendance, ({ one }) => ({
+  user: one(HRMUser, {
+    fields: [Attendance.userId],
+    references: [HRMUser.id],
+  }),
+}));
+
 export default {
   HRMUserRelations,
   SalarySlipRelations,
@@ -242,4 +292,5 @@ export default {
   TransactionRelations,
   WorkflowRelations,
   WorkflowStepRelations,
+  AttendanceRelations,
 };

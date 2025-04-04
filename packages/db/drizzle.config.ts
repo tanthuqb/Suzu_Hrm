@@ -11,8 +11,10 @@ if (!nonPoolingUrl) {
 
 export default {
   schema: "./src/schema.ts",
+  out: "./drizzle/migrations",
   dialect: "postgresql",
   dbCredentials: { url: nonPoolingUrl },
   casing: "snake_case",
   schemaFilter: ["public"],
+  strict: true,
 } satisfies Config;

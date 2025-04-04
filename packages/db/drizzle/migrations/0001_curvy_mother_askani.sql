@@ -1,0 +1,1 @@
+CREATE TYPE "public"."attendance_status" AS ENUM('1', 'P', 'P1', 'P2', 'BH', 'Rk', 'x/2', 'L', 'Nb', 'Nb1', 'Nb2', 'CT', 'BD', 'BC', 'BC1', 'BC2');
