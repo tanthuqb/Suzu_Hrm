@@ -13,7 +13,8 @@ import {
 import { checkAuth } from "~/app/actions/auth";
 
 const WorkFromHomeForm = dynamic(
-  () => import("~/app/(dashboard)/eForms/_components/form-work-from-home"),
+  () =>
+    import("~/app/(app)/(dashboard)/eForms/_components/form-work-from-home"),
 );
 
 export default async function Page() {

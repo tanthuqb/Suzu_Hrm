@@ -9,8 +9,8 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 
+import { signInEmail } from "~/app/actions/auth";
 import { isStrongPassword, isValidEmail } from "~/app/libs";
-import { signInEmail } from "../../actions/auth";
 import MainTabs from "./_components/main-tab";
 import NewResetPassword from "./_components/new-reset-password";
 import ResetPassword from "./_components/reset-password";
@@ -32,8 +32,12 @@ export default function Page() {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const view = searchParams.get("view");
+  const message = searchParams.get("message");
 
   useEffect(() => {
+    if (message) {
+      setError(message);
+    }
     if (view === "new-password") {
       setCurrentView("new-password");
     }

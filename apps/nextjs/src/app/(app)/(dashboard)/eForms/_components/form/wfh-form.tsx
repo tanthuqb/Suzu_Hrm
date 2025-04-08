@@ -24,7 +24,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@acme/ui/popover";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
-import { checkAuth } from "~/app/actions/auth";
 import { sendLeaveRequest } from "~/app/actions/eForm";
 
 const formSchema = z.object({
