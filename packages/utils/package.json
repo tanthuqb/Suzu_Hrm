@@ -25,6 +25,7 @@
   },
   "prettier": "@acme/prettier-config",
   "dependencies": {
+    "@acme/db": "workspace:^",
     "@acme/supabase": "workspace:^"
   }
 }

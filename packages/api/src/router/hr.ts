@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import type { AttendanceInput } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
-import { getEmailToUserIdMap } from "@acme/utils";
+import { getEmailToUserIdMap, normalizeStatus } from "@acme/utils";
 
 import { protectedProcedure } from "../trpc";
 
@@ -41,6 +41,12 @@ export const hrRouter: TRPCRouterRecord = {
 
       for (let i = 1; i < input.length; i++) {
         const row = input[i];
+        if (!row) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Dữ liệu file không hợp lệ.",
+          });
+        }
         const email = row["Email Address [Required]"]?.trim().toLowerCase();
         const userId = emailToIdMap.get(email);
         if (!userId) continue;
@@ -110,10 +116,22 @@ export const hrRouter: TRPCRouterRecord = {
 
       for (let i = 1; i < input.length; i++) {
         const row = input[i];
+        if (!row) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Dữ liệu file không hợp lệ.",
+          });
+        }
         const email = row["Email Address [Required]"]?.trim().toLowerCase();
         const userId = emailToIdMap.get(email);
         if (!userId) continue;
         for (const key of validDayKeys) {
+          if (!row) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Dữ liệu file không hợp lệ.",
+            });
+          }
           const rawValue = row[key];
           if (!rawValue) continue;
 
