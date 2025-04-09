@@ -22,6 +22,7 @@
     "@acme/db": "workspace:*",
     "@acme/supabase": "workspace:^",
     "@acme/ui": "workspace:*",
+    "@acme/utils": "workspace:^",
     "@acme/validators": "workspace:*",
     "@react-email/components": "0.0.34",
     "@t3-oss/env-nextjs": "^0.12.0",

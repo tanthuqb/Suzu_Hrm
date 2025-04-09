@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import type { InferSelectModel } from "drizzle-orm";
 
-import type { HRMUser } from "../schema";
+import type { Attendance, HRMUser } from "../schema";
 
 // User Types
 export type UserRole =
@@ -11,6 +11,7 @@ export type UserRole =
   | "user"
   | "admin"
   | "Admin";
+
 export type UserStatus = "Active" | "Suspended";
 
 // Notication Types
@@ -61,4 +62,10 @@ export interface HRMUserInput {
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AttendanceInput {
+  userId: string;
+  status: string;
+  date: string;
 }

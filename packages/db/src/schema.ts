@@ -18,10 +18,9 @@ import { z } from "zod";
 import { AttendanceStatus } from "./constants/attendance";
 
 /** Helper convert enum */
-
-function enumValues<E extends Record<string, string>>(
+export const enumValues = <E extends Record<string, string>>(
   e: E,
-): [string, ...string[]] {
+): [string, ...string[]] => {
   if (!e || typeof e !== "object") {
     throw new Error("Invalid enum object passed");
   }
@@ -32,7 +31,8 @@ function enumValues<E extends Record<string, string>>(
   }
 
   return values as [string, ...string[]];
-}
+};
+
 /** Supabase Auth Schema **/
 const auth = pgSchema("auth");
 
@@ -230,8 +230,6 @@ export const Attendance = pgTable(
     pk: primaryKey({ columns: [table.userId, table.date] }),
   }),
 );
-
-export const CreateAttendanceSchema = createInsertSchema(Attendance).omit({});
 
 /** RELATIONS **/
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
