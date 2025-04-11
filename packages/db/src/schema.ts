@@ -47,6 +47,8 @@ export const SupabaseUser = auth.table("users", {
 /** USERS TABLE **/
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().defaultRandom().notNull(),
+  employeeCode: t.varchar("employee_code", { length: 255 }).notNull(),
+  name: t.varchar("name", { length: 255 }).notNull(),
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),

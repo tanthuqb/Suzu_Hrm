@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { IUser, UserRole, UserStatus } from "@acme/db";
 import { HRMUser } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
+import { name } from "@acme/utils";
 
 import { protectedProcedure } from "../trpc";
 
@@ -23,6 +24,8 @@ export const userRouter: TRPCRouterRecord = {
       z.object({
         firstName: z.string(),
         lastName: z.string(),
+        name: z.string(),
+        employeeCode: z.string(),
         email: z.string(),
         phone: z.string(),
         role: z.string(),
@@ -105,7 +108,9 @@ export const userRouter: TRPCRouterRecord = {
         z.object({
           firstName: z.string(),
           lastName: z.string(),
+          name: z.string().optional(),
           email: z.string().email(),
+          employeeCode: z.string().optional(),
           phone: z.string(),
           role: z.string(),
           status: z.string(),
@@ -125,6 +130,8 @@ export const userRouter: TRPCRouterRecord = {
       await ctx.db.insert(HRMUser).values(
         validUsers.map((u) => ({
           ...u,
+          employeeCode: u.employeeCode ?? "",
+          name: u.name ?? "",
           createdAt: new Date(),
           updatedAt: new Date(),
         })),

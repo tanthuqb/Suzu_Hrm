@@ -56,6 +56,8 @@ export interface UpdateUserInput {
 export interface HRMUserInput {
   firstName: string;
   lastName: string;
+  name: string;
+  employeeCode: string;
   email: string;
   phone: string;
   role: string;

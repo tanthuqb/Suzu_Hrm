@@ -15,6 +15,13 @@
       "when": 1743738470802,
       "tag": "0001_curvy_mother_askani",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744356135127,
+      "tag": "0002_young_grey_gargoyle",
+      "breakpoints": true
     }
   ]
 }
