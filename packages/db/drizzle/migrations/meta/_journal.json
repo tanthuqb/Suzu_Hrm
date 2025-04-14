@@ -22,6 +22,13 @@
       "when": 1744356135127,
       "tag": "0002_young_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744620021082,
+      "tag": "0003_slim_captain_marvel",
+      "breakpoints": true
     }
   ]
 }

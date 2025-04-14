@@ -67,7 +67,7 @@ export interface HRMUserInput {
 }
 
 export interface AttendanceInput {
-  userId: string;
+  user_id: string;
   status: string;
   date: string;
 }

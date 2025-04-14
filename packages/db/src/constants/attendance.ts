@@ -1,5 +1,6 @@
 export enum AttendanceStatus {
   WorkDay = "1", // ngày công có lương
+  WorkFromHome = "W", // ngày công làm việc tại nhà có lương
   PaidLeaveFull = "P", // nghỉ Phép cả ngày có lương
   PaidLeaveHalfWork = "P1", // nghỉ Phép nửa ngày có lương (nửa ngày có đi làm)
   PaidLeaveHalfUnpaid = "P2", // nghỉ Phép nửa ngày có lương (nửa ngày nghỉ ko lương)

@@ -222,14 +222,13 @@ export const attendanceStatusEnum = pgEnum(
 export const Attendance = pgTable(
   "attendances",
   {
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => HRMUser.id),
-    date: timestamp("start_date", { withTimezone: true }).notNull(),
-    status: attendanceStatusEnum("status").notNull(),
+    id: serial("id").primaryKey(),
+    user_id: uuid("user_id").notNull(),
+    date: timestamp("date", { withTimezone: true }).notNull(),
+    status: text("status").notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.date] }),
+  (t) => ({
+    unique: uniqueIndex("uniq_user_date").on(t.user_id, t.date),
   }),
 );
 

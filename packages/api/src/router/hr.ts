@@ -4,153 +4,133 @@ import { z } from "zod";
 
 import type { AttendanceInput } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
-import { getEmailToUserIdMap, normalizeStatus } from "@acme/utils";
+import {
+  getCurrentVietnamMonth,
+  getEmployCodeToUserIdMap,
+  parseStatusSymbols,
+} from "@acme/utils";
 
 import { protectedProcedure } from "../trpc";
 
 export const hrRouter: TRPCRouterRecord = {
-  importAttendances: protectedProcedure
-    .input(z.array(z.record(z.any()))) // raw Excel JSON
-    .mutation(async ({ input }) => {
-      const supabase = await createServerClient();
-      const results: AttendanceInput[] = [];
-
-      const emailToIdMap = await getEmailToUserIdMap(supabase);
-      if (!emailToIdMap) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Không thể lấy danh sách người dùng từ Supabase",
-        });
-      }
-
-      const headerRow = input[0];
-      if (!headerRow) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Header row is missing or invalid.",
-        });
-      }
-      const validDayKeys = Object.keys(headerRow).filter((key) =>
-        /^\d+$/.test(key),
-      );
-
-      const now = new Date();
-      const baseMonth = `${now.getFullYear()}-${String(
-        now.getMonth() + 1,
-      ).padStart(2, "0")}`;
-
-      for (let i = 1; i < input.length; i++) {
-        const row = input[i];
-        if (!row) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Dữ liệu file không hợp lệ.",
-          });
-        }
-        const email = row["Email Address [Required]"]?.trim().toLowerCase();
-        const userId = emailToIdMap.get(email);
-        if (!userId) continue;
-
-        for (const key of validDayKeys) {
-          const rawValue = row[key];
-          if (!rawValue) continue;
-
-          const normalized = normalizeStatus(String(rawValue));
-          if (!normalized) continue;
-
-          const day = key.padStart(2, "0");
-          const dateStr = `${baseMonth}-${day}T00:00:00+07:00`;
-          const date = new Date(dateStr);
-          if (isNaN(date.getTime())) continue;
-
-          results.push({
-            userId,
-            date: date.toISOString(),
-            status: normalized,
-          });
-        }
-      }
-
-      // Ghi vào database
-      const { data, error: insertError } = await supabase
-        .from("attendances")
-        .insert(results);
-
-      if (insertError) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: insertError.message,
-        });
-      }
-
-      return {
-        insertedCount: results.length,
-      };
-    }),
   previewAttendances: protectedProcedure
     .input(z.array(z.record(z.any())))
     .mutation(async ({ input }) => {
       const supabase = await createServerClient();
-      const emailToIdMap = await getEmailToUserIdMap(supabase);
-      console.log("Preview results:", emailToIdMap);
+      const EmployCodeToIdMap = await getEmployCodeToUserIdMap(supabase);
+
       const headerRow = input[0];
-      if (!headerRow) {
+      if (!headerRow)
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Dữ liệu file không hợp lệ.",
+          message: "Dữ liệu không hợp lệ.",
         });
-      }
 
       const validDayKeys = Object.keys(headerRow).filter((key) =>
         /^\d+$/.test(key),
       );
-
-      const now = new Date();
-      const baseMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-      const results: {
-        userId: string;
-        date: string;
-        status: string;
-      }[] = [];
+      const baseMonth = getCurrentVietnamMonth();
+      const results: AttendanceInput[] = [];
 
       for (let i = 1; i < input.length; i++) {
         const row = input[i];
         if (!row) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Dữ liệu file không hợp lệ.",
+            message: "Dữ liệu không hợp lệ.",
           });
         }
-        const email = row["Email Address [Required]"]?.trim().toLowerCase();
-        const userId = emailToIdMap.get(email);
-        if (!userId) continue;
+        const employCode = row["Mã NV"]?.trim().toLowerCase();
+        const user_id = EmployCodeToIdMap.get(employCode);
+        if (!user_id) continue;
+
         for (const key of validDayKeys) {
-          if (!row) {
+          if (!row)
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "Dữ liệu file không hợp lệ.",
+              message: "Dữ liệu không hợp lệ.",
             });
-          }
-          const rawValue = row[key];
+          const rawValue = String(row[key] || "").trim();
           if (!rawValue) continue;
+          const statuses = parseStatusSymbols(rawValue);
+          for (const status of statuses) {
+            const date = new Date(
+              `${baseMonth}-${key.padStart(2, "0")}T00:00:00+07:00`,
+            );
+            if (!isNaN(date.getTime())) {
+              results.push({ user_id, date: date.toISOString(), status });
+            }
+          }
+        }
+      }
 
-          const normalized = normalizeStatus(String(rawValue));
-          if (!normalized) continue;
+      return results;
+    }),
 
-          const date = new Date(
-            `${baseMonth}-${key.padStart(2, "0")}T00:00:00+07:00`,
-          );
-          if (isNaN(date.getTime())) continue;
+  importAttendances: protectedProcedure
+    .input(
+      z.array(
+        z.object({
+          user_id: z.string().uuid(),
+          date: z.string().datetime(),
+          status: z.string(),
+        }),
+      ),
+    )
+    .mutation(async ({ input }) => {
+      const supabase = await createServerClient();
 
-          results.push({
-            userId,
-            date: date.toISOString(),
-            status: normalized,
+      // Lấy danh sách dữ liệu đã có để so sánh
+      const { data: existing, error: fetchError } = await supabase
+        .from("attendances")
+        .select("user_id, date, status")
+        .in(
+          "user_id",
+          input.map((i) => i.user_id),
+        );
+
+      if (fetchError) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: fetchError.message,
+        });
+      }
+
+      // Tạo map từ user_id + date => status
+      const existingMap = new Map(
+        existing.map((row) => [`${row.user_id}_${row.date}`, row.status]) || [],
+      );
+
+      // Lọc ra bản ghi thực sự cần insert/update
+      const toUpsert = input.filter((item) => {
+        const key = `${item.user_id}_${item.date}`;
+        return existingMap.get(key) !== item.status;
+      });
+
+      // Thực hiện upsert nếu có dòng cần thiết
+      if (toUpsert.length > 0) {
+        const { error } = await supabase.from("attendances").upsert(toUpsert, {
+          onConflict: "user_id, date",
+        });
+
+        if (error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error.message,
           });
         }
       }
-      console.log("Preview result:", results);
-      return results;
+
+      return {
+        insertedCount: toUpsert.length,
+        skippedCount: input.length - toUpsert.length,
+        skippedRows:
+          input.length === toUpsert.length
+            ? []
+            : input.filter((item) => {
+                const key = `${item.user_id}_${item.date}`;
+                return existingMap.get(key) === item.status;
+              }),
+      };
     }),
 };

@@ -1,13 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import type { AttendanceInput } from "@acme/db";
-import { createBrowserClient, createServerClient } from "@acme/supabase";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
 import {
@@ -21,10 +19,7 @@ import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
-import { getEmailToUserIdMap } from "@acme/utils";
 
-import { useAuth } from "~/app/hooks/useAuth";
-import { normalizeStatus } from "~/app/libs/hr";
 import { useTRPC } from "~/trpc/react";
 
 export default function Page() {
@@ -32,8 +27,6 @@ export default function Page() {
   const [textPreview, setTextPreview] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, isAdmin } = useAuth();
-  const router = useRouter();
   const trpc = useTRPC();
 
   const importMutation = useMutation<
@@ -42,27 +35,37 @@ export default function Page() {
     AttendanceInput[]
   >(
     trpc.hr?.importAttendances.mutationOptions({
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         toast.success(`✅ Đã import ${data.insertedCount} dòng`);
+        setFileData([]);
+        setTextPreview("");
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.message || "❌ Lỗi import");
+      },
+      onSettled: () => {
+        setIsLoading(false);
       },
     }),
   );
+
+  console.log("fileData", fileData);
 
   const previewMutation = useMutation(
     trpc.hr.previewAttendances.mutationOptions({
       async onMutate() {
         setIsLoading(true);
       },
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         setFileData(data);
         setTextPreview(JSON.stringify(data, null, 2));
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error(err.message || "Không thể preview dữ liệu.");
         setError(err.message || "Không thể preview dữ liệu.");
+      },
+      onSettled: () => {
+        setIsLoading(false);
       },
     }),
   );
@@ -82,10 +85,36 @@ export default function Page() {
         let rawJson: any[] = [];
 
         if (ext === "json") {
+          if (!rawData) {
+            setError("❌ Không thể đọc file JSON.");
+            return;
+          }
           rawJson = JSON.parse(rawData as string);
         } else if (ext === "xlsx" || ext === "xls") {
+          if (!rawData) {
+            setError("❌ Không thể đọc file Excel.");
+            return;
+          }
+
           const workbook = XLSX.read(rawData, { type: "binary" });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            setError("❌ File Excel không chứa sheet nào.");
+            return;
+          }
+
+          const firstSheetName = workbook.SheetNames[0];
+          if (!firstSheetName) {
+            setError("❌ Sheet đầu tiên không hợp lệ.");
+            return;
+          }
+
+          const sheet = workbook.Sheets[firstSheetName];
+          if (!sheet) {
+            setError("❌ Sheet đầu tiên không hợp lệ.");
+            return;
+          }
+
           rawJson = XLSX.utils.sheet_to_json(sheet);
         } else {
           setError("❌ Chỉ hỗ trợ file .json, .xlsx hoặc .xls");
@@ -99,9 +128,15 @@ export default function Page() {
         previewMutation.mutate(rawJson);
       } catch (err) {
         console.error(err);
-        setError(
-          "❌ Không thể đọc file. Vui lòng kiểm tra định dạng và nội dung.",
-        );
+
+        // Handle error safely
+        if (err instanceof Error) {
+          setError(`❌ Không thể đọc file: ${err.message}`);
+        } else {
+          setError(
+            "❌ Không thể đọc file. Vui lòng kiểm tra định dạng và nội dung.",
+          );
+        }
       }
     };
 
@@ -113,12 +148,13 @@ export default function Page() {
   };
 
   const handleImport = () => {
+    setIsLoading(true);
     if (!fileData.length) {
       setError("Chưa có dữ liệu!");
       return;
     }
     console.log("fileData", fileData);
-    //importMutation.mutate(fileData); // ✅ Phải là array
+    importMutation.mutate(fileData); // ✅ Phải là array
   }; //
 
   return (
