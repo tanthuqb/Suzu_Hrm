@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import type { InferSelectModel } from "drizzle-orm";
 
-import type { Attendance, HRMUser } from "../schema";
+import type { HRMUser, SalarySlipRecord } from "../schema";
 
 // User Types
 export type UserRole =
@@ -22,10 +22,12 @@ export type DBUser = InferSelectModel<typeof HRMUser>;
 // User Types
 export interface IUser {
   id: string;
+  name: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+  employeeCode: string;
   role: UserRole;
   status: UserStatus;
   createdAt: Date;
@@ -71,3 +73,8 @@ export interface AttendanceInput {
   status: string;
   date: string;
 }
+
+export type SalarySlipWithUser = HRMUserInput & {
+  role: UserRole;
+  status: UserStatus;
+};

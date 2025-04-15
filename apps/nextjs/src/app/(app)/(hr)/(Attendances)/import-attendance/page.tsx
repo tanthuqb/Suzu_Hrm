@@ -49,10 +49,8 @@ export default function Page() {
     }),
   );
 
-  console.log("fileData", fileData);
-
   const previewMutation = useMutation(
-    trpc.hr.previewAttendances.mutationOptions({
+    trpc.hr?.previewAttendances.mutationOptions({
       async onMutate() {
         setIsLoading(true);
       },
@@ -153,9 +151,8 @@ export default function Page() {
       setError("Chưa có dữ liệu!");
       return;
     }
-    console.log("fileData", fileData);
-    importMutation.mutate(fileData); // ✅ Phải là array
-  }; //
+    importMutation.mutate(fileData);
+  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-4">

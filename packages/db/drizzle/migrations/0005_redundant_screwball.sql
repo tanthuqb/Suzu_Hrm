@@ -1,0 +1,1 @@
+ALTER TABLE "attendances" ALTER COLUMN "status" SET DATA TYPE attendance_status;

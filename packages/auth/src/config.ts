@@ -1,4 +1,4 @@
-import type { DBUser } from "@acme/db";
+import type { DBUser, IUser } from "@acme/db";
 import { db } from "@acme/db/client";
 import { HRMUser } from "@acme/db/schema";
 

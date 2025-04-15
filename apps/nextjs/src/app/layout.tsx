@@ -17,15 +17,15 @@ export const metadata: Metadata = {
   title: "Suzu Admin Dashboard",
   description: "Suzu Human Resource Management Admin Dashboard",
   openGraph: {
-    title: "Create T3 Turbo",
-    description: "Simple monorepo with shared backend for web & mobile apps",
-    url: "https://create-t3-turbo.vercel.app",
-    siteName: "Create T3 Turbo",
+    title: "Suzu HRM",
+    description: "Simple monorepo for HRM web app",
+    url: "https://suzu-dashboard.vercel.app",
+    siteName: "SUZU HRM",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@jullerino",
-    creator: "@jullerino",
+    site: "@suzuhrm",
+    creator: "@suzuhrm",
   },
 };
 
@@ -50,7 +50,7 @@ export default function RootLayout({
           GeistMono.variable,
         )}
       >
-        <>{children}</>
+        {children}
       </body>
     </html>
   );

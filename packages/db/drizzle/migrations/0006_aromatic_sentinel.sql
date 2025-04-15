@@ -1,0 +1,1 @@
+DROP INDEX "uniq_user_date";

@@ -8,7 +8,11 @@ import { createServerClient } from "@acme/supabase";
 import type { InputLeaveRequest } from "~/app/types/index";
 import { renderWFHEmail } from "~/app/_components/EmailTemplates/work-form-home.render";
 import { env } from "~/env";
-import { checkAuth } from "./auth";
+
+if (!env.RESEND_API_KEY) {
+  throw new Error("Resend api not correct");
+}
+const resend = new Resend(env.RESEND_API_KEY);
 
 export const sendLeaveRequest = async (
   leaveRequestsInput: InputLeaveRequest,
@@ -26,12 +30,9 @@ export const sendLeaveRequest = async (
   if (error) {
     throw new Error(error.message);
   }
-
-  //send email
-  if (!env.RESEND_API_KEY) {
-    throw new Error("Resend api not correct");
+  if (!data) {
+    throw new Error("No data returned from Supabase");
   }
-  const resend = new Resend(env.RESEND_API_KEY);
 
   const htmlContent = await renderWFHEmail({
     name: leaveRequestsInput.name,
@@ -41,7 +42,7 @@ export const sendLeaveRequest = async (
 
   //const AuthUser = await checkAuth();
 
-  const sendEmail = await resend.emails.send({
+  await resend.emails.send({
     from: "HR System <delivered@resend.dev>",
     to: env.EMAIL_TO!,
     subject: `Đơn xin làm việc tại nhà - ${leaveRequestsInput.name}`,

@@ -1,26 +1,23 @@
-import type { TRPCRouterRecord } from "@trpc/server";
 import { createClient } from "@supabase/supabase-js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { createServerClient } from "@acme/supabase";
 
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
-export const authRouter = {
-  // Register a new user
+export const authRouter = createTRPCRouter({
   register: publicProcedure
     .input(
       z.object({
         email: z.string().email(),
         password: z.string().min(8),
         confirmPassword: z.string().min(8),
-        autoConfirmEmail: z.boolean().optional().default(false), // Add flag to auto-confirm email
+        autoConfirmEmail: z.boolean().optional().default(false),
       }),
     )
     .mutation(async ({ input }) => {
       const { email, password, confirmPassword, autoConfirmEmail } = input;
-
       if (password !== confirmPassword) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -29,95 +26,50 @@ export const authRouter = {
       }
 
       const supabase = await createServerClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback`,
+        },
+      });
 
-      try {
-        // For normal signups with email verification
-        const signUpOptions = {
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback`,
-          },
-        };
-
-        // When autoConfirmEmail is true, disable email verification for testing or admin-created accounts
-        if (autoConfirmEmail) {
-          // In Supabase, the actual confirmation happens server-side through admin APIs
-          // Since we can't directly auto-confirm through the client SDK, we'll just do the standard signup
-          // then make a note that we need to handle the confirmation separately through admin API
-          console.log("Auto-confirm email requested for:", email);
-        }
-
-        // Perform the signup
-        const { data, error } = await supabase.auth.signUp(signUpOptions);
-
-        if (error) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: error.message,
-          });
-        }
-
-        // If auto-confirm is enabled, we need to confirm the email through admin API
-        // This requires the Supabase service role key and should be done with caution
-        if (
-          autoConfirmEmail &&
-          data.user &&
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        ) {
-          // Create admin client with service role for privileged operations
-          const adminAuthClient = createClient(
-            process.env.PUBLIC_SUPABASE_URL || "",
-            process.env.SUPABASE_SERVICE_ROLE_KEY,
-            {
-              auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-              },
-            },
-          );
-
-          // Use admin API to update user (mark email as confirmed)
-          if (data.user.id) {
-            try {
-              await adminAuthClient.auth.admin.updateUserById(data.user.id, {
-                email_confirm: true,
-              });
-              console.log("Email auto-confirmed for user:", data.user.id);
-            } catch (adminError: any) {
-              console.error("Failed to auto-confirm email:", adminError);
-              // We don't throw here because the signup was still successful
-            }
-          }
-        }
-
-        // Check if confirmEmail is needed - if we auto-confirmed, this will still be false,
-        // but we'll override it in the response
-        const isEmailConfirmationNeeded =
-          data.user?.identities?.[0]?.identity_data?.email_verified === false &&
-          !autoConfirmEmail;
-
-        return {
-          user: data.user,
-          needsEmailConfirmation: isEmailConfirmationNeeded,
-          autoConfirmed: autoConfirmEmail,
-        };
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to register user",
-        });
+      if (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
       }
+
+      if (
+        autoConfirmEmail &&
+        data.user &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        const adminClient = createClient(
+          process.env.PUBLIC_SUPABASE_URL || "",
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { autoRefreshToken: false, persistSession: false } },
+        );
+        await adminClient.auth.admin
+          .updateUserById(data.user.id, { email_confirm: true })
+          .catch(() => {});
+      }
+
+      const needsEmailConfirmation =
+        data.user?.identities?.[0]?.identity_data?.email_verified === false &&
+        !autoConfirmEmail;
+
+      return {
+        user: data.user,
+        needsEmailConfirmation,
+        autoConfirmed: autoConfirmEmail,
+      };
     }),
-  getSession: publicProcedure.query(async ({ ctx }) => {
-    return { session: ctx.session };
-  }),
 
-  getSecretMessage: protectedProcedure.query(() => {
-    return "you can see this secret message!";
-  }),
+  getSession: publicProcedure.query(({ ctx }) => ({ session: ctx.session })),
 
-  // Confirm email with confirmation token
+  getSecretMessage: protectedProcedure.query(
+    () => "you can see this secret message!",
+  ),
+
   confirmEmail: publicProcedure
     .input(
       z.object({
@@ -129,167 +81,71 @@ export const authRouter = {
     .mutation(async ({ input }) => {
       const supabase = await createServerClient();
 
-      try {
-        // Option 1: Regular user confirming via token from email
-        if (input.token && !input.adminConfirm) {
-          // Verify the email confirmation token
-
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: input.token,
-            type: "signup",
-          });
-
-          if (error) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: error.message,
-            });
-          }
-
-          return { success: true };
-        }
-        // Option 2: Admin confirmation of a user's email
-        else if (
-          input.userId &&
-          input.adminConfirm &&
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        ) {
-          // Create admin client with service role for privileged operations
-          const adminAuthClient = createClient(
-            process.env.PUBLIC_SUPABASE_URL || "",
-            process.env.SUPABASE_SERVICE_ROLE_KEY,
-            {
-              auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-              },
-            },
-          );
-
-          // Use admin API to confirm email for the user
-          const { error } = await adminAuthClient.auth.admin.updateUserById(
-            input.userId,
-            { email_confirm: true },
-          );
-
-          if (error) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: error.message,
-            });
-          }
-
-          return { success: true, adminConfirmed: true };
-        } else {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Invalid confirmation request. Provide either token or userId with adminConfirm flag.",
-          });
-        }
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to confirm email",
+      if (input.token && !input.adminConfirm) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: input.token,
+          type: "signup",
         });
+        if (error)
+          throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+        return { success: true };
       }
+
+      if (
+        input.userId &&
+        input.adminConfirm &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        const admin = createClient(
+          process.env.PUBLIC_SUPABASE_URL || "",
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { autoRefreshToken: false, persistSession: false } },
+        );
+        const { error } = await admin.auth.admin.updateUserById(input.userId, {
+          email_confirm: true,
+        });
+        if (error)
+          throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+        return { success: true, adminConfirmed: true };
+      }
+
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid confirmation request.",
+      });
     }),
 
-  // Reset password with token
   resetPassword: publicProcedure
-    .input(
-      z.object({
-        password: z.string().min(8),
-      }),
-    )
+    .input(z.object({ password: z.string().min(8) }))
     .mutation(async ({ input }) => {
       const supabase = await createServerClient();
-
-      try {
-        // Update the user's password
-        const { error } = await supabase.auth.updateUser({
-          password: input.password,
-        });
-
-        if (error) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: error.message,
-          });
-        }
-
-        return { success: true };
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to reset password",
-        });
-      }
+      const { error } = await supabase.auth.updateUser({
+        password: input.password,
+      });
+      if (error)
+        throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+      return { success: true };
     }),
 
-  // Update user's password (when logged in)
   updatePassword: protectedProcedure
     .input(
-      z.object({
-        currentPassword: z.string(),
-        newPassword: z.string().min(8),
-      }),
+      z.object({ currentPassword: z.string(), newPassword: z.string().min(8) }),
     )
     .mutation(async ({ input, ctx }) => {
-      if (!ctx.session?.user) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You must be logged in to update your password",
-        });
-      }
-
       const supabase = await createServerClient();
-
-      try {
-        // We don't have a direct way to verify current password with Supabase,
-        // but we can implement this check if needed
-
-        // Update the user's password
-        const { error } = await supabase.auth.updateUser({
-          password: input.newPassword,
-        });
-
-        if (error) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: error.message,
-          });
-        }
-
-        return { success: true };
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to update password",
-        });
-      }
+      const { error } = await supabase.auth.updateUser({
+        password: input.newPassword,
+      });
+      if (error)
+        throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+      return { success: true };
     }),
 
-  // Sign out the user
   signOut: protectedProcedure.mutation(async () => {
     const supabase = await createServerClient();
-
-    try {
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: error.message,
-        });
-      }
-
-      return { success: true };
-    } catch (error: any) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: error.message || "Failed to sign out",
-      });
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error)
+      throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    return { success: true };
   }),
-} satisfies TRPCRouterRecord;
+});
