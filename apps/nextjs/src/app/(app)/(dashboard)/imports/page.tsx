@@ -85,6 +85,11 @@ export default function ImportPage() {
           rawJson = JSON.parse(rawData as string);
         } else if (ext === "xlsx" || ext === "xls") {
           const workbook = XLSX.read(rawData, { type: "binary" });
+          if (!workbook.SheetNames.length) {
+            setError("❌ Không tìm thấy sheet trong file Excel");
+            return;
+          }
+
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           rawJson = XLSX.utils.sheet_to_json(sheet);
         } else {
@@ -108,6 +113,7 @@ export default function ImportPage() {
                 ? row["Last Name [Required]"]?.trim()
                 : "",
               email,
+              employeeCode: row["Mã NV"]?.trim() || "",
               phone: formatPhone(row["Work Phone"]),
               role: row.Role?.trim() || "user",
               status:

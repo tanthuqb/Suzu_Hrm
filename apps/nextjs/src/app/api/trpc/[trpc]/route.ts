@@ -84,11 +84,7 @@ const handler = async (req: NextRequest) => {
       },
     });
 
-    const clientIp = req.headers.get("x-forwarded-for");
-    if (clientIp) {
-      console.log("IP HOSTING", clientIp);
-    }
-
+    // Set CORS headers
     setCorsHeaders(response);
     return response;
   } catch (error) {

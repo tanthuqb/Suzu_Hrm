@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import type { RouterInputs, RouterOutputs } from "@acme/api";
-import type { IUser } from "@acme/db";
+import type { SalarySlipWithUser } from "@acme/db";
+import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 import {
@@ -131,11 +133,12 @@ export function UserTable() {
               </TableHead>
               <TableHead onClick={() => toggleSort("role")}>Role</TableHead>
               <TableHead onClick={() => toggleSort("status")}>Status</TableHead>
+              <TableHead>Salary</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.users?.map((user: IUser) => (
+            {data?.users?.map((user: SalarySlipWithUser) => (
               <TableRow key={user.id}>
                 <TableCell>{user.id}</TableCell>
                 <TableCell className="font-medium">{user.firstName}</TableCell>
@@ -152,6 +155,26 @@ export function UserTable() {
                     {user.status}
                   </span>
                 </TableCell>
+                <TableCell>
+                  <Link
+                    href={
+                      user.latestSalarySlip?.id
+                        ? `/salary-slip/${user.latestSalarySlip.id}`
+                        : `/salary-slip/create?userId=${user.id}`
+                    }
+                    className={cn(
+                      "text-sm font-medium underline underline-offset-2 transition-all duration-200",
+                      user.latestSalarySlip?.id
+                        ? "text-blue-600 hover:text-blue-800 hover:underline-offset-4"
+                        : "text-green-600 hover:text-green-800 hover:underline-offset-4",
+                    )}
+                  >
+                    {user.latestSalarySlip?.id
+                      ? "View salary"
+                      : "Create salary"}
+                  </Link>
+                </TableCell>
+
                 <TableCell className="text-right">
                   <Button
                     size="sm"

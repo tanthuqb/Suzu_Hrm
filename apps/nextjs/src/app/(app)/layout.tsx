@@ -1,24 +1,20 @@
+import { Suspense } from "react";
+
+import { SidebarProvider } from "@acme/ui/sidebar";
 import { ThemeProvider, ThemeToggle } from "@acme/ui/theme";
 import { Toaster } from "@acme/ui/toast";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { AppSidebar } from "./(dashboard)/users/_components/app-sidebar";
+import { Header } from "./(dashboard)/users/_components/header";
 
-import "~/app/globals.css";
-
-import { Suspense } from "react";
-
-import { SidebarProvider } from "@acme/ui/sidebar";
-
-import { AppSidebar } from "~/app/(app)/(dashboard)/users/_components/app-sidebar";
-import { Header } from "~/app/(app)/(dashboard)/users/_components/header";
-
-export default function RootLayout(props: { children: React.ReactNode }) {
+export default function AppLayout(props: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <SidebarProvider>
           <TRPCReactProvider>
-            <div className="flex h-[100dvh] w-full overflow-hidden">
+            <div className="flex h-screen w-full overflow-hidden">
               <AppSidebar />
               <div className="flex flex-1 flex-col overflow-hidden">
                 <Header />
@@ -27,11 +23,13 @@ export default function RootLayout(props: { children: React.ReactNode }) {
                 </main>
               </div>
             </div>
+
+            <div className="absolute bottom-4 right-4">
+              <ThemeToggle />
+            </div>
+
+            <Toaster />
           </TRPCReactProvider>
-          <div className="absolute bottom-4 right-4">
-            <ThemeToggle />
-          </div>
-          <Toaster />
         </SidebarProvider>
       </ThemeProvider>
     </Suspense>

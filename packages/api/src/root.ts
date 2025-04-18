@@ -1,12 +1,14 @@
 import { authRouter } from "./router/auth";
 import { hrRouter } from "./router/hr";
+import { salaryRouter } from "./router/salary";
 import { userRouter } from "./router/users";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter: ReturnType<typeof createTRPCRouter> = createTRPCRouter({
+  salary: salaryRouter,
   auth: authRouter,
   user: userRouter,
-  hr: createTRPCRouter(hrRouter),
+  hr: hrRouter,
 });
 
 // export type definition of API
