@@ -11,6 +11,7 @@ import { createCallerFactory, createTRPCContext } from "./trpc";
  * const res = await trpc.post.all();
  *       ^? Post[]
  */
+
 const createCaller = createCallerFactory(appRouter);
 
 /**

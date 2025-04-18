@@ -26,6 +26,7 @@
   "prettier": "@acme/prettier-config",
   "dependencies": {
     "@acme/db": "workspace:^",
-    "@acme/supabase": "workspace:^"
+    "@acme/supabase": "workspace:^",
+    "@react-pdf/renderer": "^4.3.0"
   }
 }

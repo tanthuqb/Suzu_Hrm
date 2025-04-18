@@ -1,3 +1,4 @@
+import type { InferSelectModel } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import {
   boolean,
@@ -5,7 +6,6 @@ import {
   pgEnum,
   pgSchema,
   pgTable,
-  primaryKey,
   serial,
   text,
   timestamp,
@@ -33,7 +33,7 @@ export const enumValues = <E extends Record<string, string>>(
   return values as [string, ...string[]];
 };
 
-/** Supabase Auth Schema **/
+/** Supabase Auth Schema */
 const auth = pgSchema("auth");
 
 export const SupabaseUser = auth.table("users", {
@@ -44,9 +44,11 @@ export const SupabaseUser = auth.table("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-/** USERS TABLE **/
+/** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  id: uuid("id").primaryKey().notNull(),
+  employeeCode: t.varchar("employee_code", { length: 255 }).notNull(),
+  name: t.varchar("name", { length: 255 }).notNull(),
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
@@ -61,22 +63,82 @@ export const HRMUser = pgTable("users", (t) => ({
     .notNull(),
 }));
 
+export const CreateUserSchemaInput = createInsertSchema(HRMUser, {
+  id: z.string().uuid().optional(),
+  employeeCode: z.string().max(255),
+  name: z.string().max(255),
+  firstName: z.string().max(255),
+  lastName: z.string().max(255),
+  email: z.string().email().max(255),
+  role: z.string().max(255),
+  phone: z.string().max(255),
+  status: z.string().max(255),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
 /** SALARY SLIP TABLE **/
-export const SalarySlip = pgTable("salary_slips", (t) => ({
+export const SalarySlip = pgTable("salary_slips", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   userId: uuid("user_id")
     .references(() => HRMUser.id)
     .notNull(),
   month: varchar("month", { length: 10 }).notNull(),
-  totalAmount: integer("total_amount").notNull(),
+
+  // Thu nhập
+  basicSalary: integer("basic_salary").notNull(),
+  workingSalary: integer("working_salary").notNull(),
+  bonus: integer("bonus").default(0),
+  allowance: integer("allowance").default(0),
+  otherIncome: integer("other_income").default(0),
+  totalIncome: integer("total_income").notNull(),
+
+  // Khấu trừ
+  socialInsuranceBase: integer("social_insurance_base"),
+  socialInsuranceDeducted: integer("social_insurance_deduction"),
+  unionFee: integer("union_fee"),
+  taxableIncome: integer("taxable_income"),
+  personalDeduction: integer("personal_deduction"),
+  familyDeduction: integer("family_deduction"),
+  taxIncomeFinal: integer("tax_income_final"),
+  personalIncomeTax: integer("personal_income_tax"),
+  advance: integer("advance"),
+  otherDeductions: integer("other_deductions"),
+  totalDeductions: integer("total_deductions"),
+
+  // Thực lãnh
+  netIncome: integer("net_income").notNull(),
+
+  // Trạng thái, tạo lúc nào
   status: varchar("status", { length: 255 }).default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}));
+});
+
+export type SalarySlipRecord = InferSelectModel<typeof SalarySlip>;
 
 export const CreateSalarySlipSchema = createInsertSchema(SalarySlip, {
   userId: z.string(),
   month: z.string().max(10),
-  totalAmount: z.number().int(),
+  basicSalary: z.number().int(),
+  workingSalary: z.number().int(),
+  bonus: z.number().int(),
+  allowance: z.number().int(),
+  otherIncome: z.number().int(),
+  totalIncome: z.number().int(),
+  socialInsuranceBase: z.number().int(),
+  // optional
+  socialInsuranceDeducted: z.number().int().optional(),
+  unionFee: z.number().int().optional(),
+  taxableIncome: z.number().int().optional(),
+  personalDeduction: z.number().int().optional(),
+  familyDeduction: z.number().int().optional(),
+  taxIncomeFinal: z.number().int().optional(),
+  personalIncomeTax: z.number().int().optional(),
+  advance: z.number().int().optional(),
+  otherDeductions: z.number().int().optional(),
+  totalDeductions: z.number().int().optional(),
+  netIncome: z.number().int(),
   status: z.string().max(255),
 }).omit({
   id: true,
@@ -217,19 +279,12 @@ export const attendanceStatusEnum = pgEnum(
   enumValues(AttendanceStatus),
 );
 
-export const Attendance = pgTable(
-  "attendances",
-  {
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => HRMUser.id),
-    date: timestamp("start_date", { withTimezone: true }).notNull(),
-    status: attendanceStatusEnum("status").notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.date] }),
-  }),
-);
+export const Attendance = pgTable("attendances", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  status: attendanceStatusEnum("status").notNull(),
+});
 
 /** RELATIONS **/
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
