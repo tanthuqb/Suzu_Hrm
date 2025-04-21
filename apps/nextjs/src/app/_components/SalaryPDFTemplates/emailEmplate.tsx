@@ -12,7 +12,7 @@ export const generateFullSalaryEmailHtml = (data: any): string => {
     <p style="color: #880e4f;">
       Nếu có thắc mắc, vui lòng liên hệ Đinh Khánh qua Facebook / Zalo / SĐT 0905085606.
     </p>
-    <p>---Thanks & regards!</p>
+    <p style="color: #880e4f;" >---Thanks & regards!</p>
 
     <hr style="margin: 20px 0;" />
 

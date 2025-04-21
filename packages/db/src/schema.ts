@@ -127,7 +127,6 @@ export const CreateSalarySlipSchema = createInsertSchema(SalarySlip, {
   otherIncome: z.number().int(),
   totalIncome: z.number().int(),
   socialInsuranceBase: z.number().int(),
-  // optional
   socialInsuranceDeducted: z.number().int().optional(),
   unionFee: z.number().int().optional(),
   taxableIncome: z.number().int().optional(),
