@@ -1,18 +1,28 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
+import { isUUID } from "@acme/validators";
+
 import { checkAuth } from "~/app/actions/auth";
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { HydrateClient } from "~/trpc/server";
 import SalarySlipSmartForm from "../../_components/SalarySlipForm";
 
-export default async function Page(props: { params: { id?: string } }) {
-  const { id } = props.params;
+export default async function SalaryPage(props: {
+  params: { id?: string };
+  searchParams: { userId?: string };
+}) {
+  const { params, searchParams } = await props;
+  const rawId = params.id;
+  const userId = searchParams.userId;
 
   const data = await checkAuth();
 
-  if (!data || !id) notFound();
+  if (!data) notFound();
 
-  await prefetch(trpc.salary?.getById.queryOptions({ id }));
+  if (rawId !== "create" && (!rawId || !isUUID(rawId))) {
+    notFound();
+  }
+  const id = rawId !== "create" ? rawId : undefined;
 
   const fullName = `${data.lastName} ${data.firstName}`;
 
@@ -23,7 +33,7 @@ export default async function Page(props: { params: { id?: string } }) {
       >
         <SalarySlipSmartForm
           id={id}
-          userId={data.id}
+          userId={userId ?? data.id}
           name={fullName || "guest"}
         />
       </Suspense>

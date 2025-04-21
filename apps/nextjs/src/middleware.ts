@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { createServerClient, updateSession } from "@acme/supabase"; // thủ công ✅
+import { createServerClient, updateSession } from "@acme/supabase";
 
 export const config = {
   matcher: [

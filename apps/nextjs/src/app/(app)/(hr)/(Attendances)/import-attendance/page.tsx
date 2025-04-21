@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import type { AttendanceInput } from "@acme/db";
+import type { AttendanceInput, AttendanceStatus } from "@acme/db";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
 import {
@@ -29,18 +29,14 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const trpc = useTRPC();
 
-  const importMutation = useMutation<
-    { insertedCount: number },
-    Error,
-    AttendanceInput[]
-  >(
-    trpc.hr?.importAttendances.mutationOptions({
-      onSuccess: (data: any) => {
+  const importMutation = useMutation(
+    trpc.hr.importAttendances.mutationOptions({
+      onSuccess: (data) => {
         toast.success(`✅ Đã import ${data.insertedCount} dòng`);
         setFileData([]);
         setTextPreview("");
       },
-      onError: (err: any) => {
+      onError: (err) => {
         toast.error(err.message || "❌ Lỗi import");
       },
       onSettled: () => {
@@ -50,8 +46,8 @@ export default function Page() {
   );
 
   const previewMutation = useMutation(
-    trpc.hr?.previewAttendances.mutationOptions({
-      async onMutate() {
+    trpc.hr.previewAttendances.mutationOptions({
+      onMutate() {
         setIsLoading(true);
       },
       onSuccess: (data: any) => {
@@ -68,7 +64,7 @@ export default function Page() {
     }),
   );
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -76,7 +72,7 @@ export default function Page() {
     const ext = file.name.split(".").pop()?.toLowerCase();
     const reader = new FileReader();
 
-    reader.onload = async () => {
+    reader.onload = () => {
       const rawData = reader.result;
 
       try {
@@ -151,7 +147,12 @@ export default function Page() {
       setError("Chưa có dữ liệu!");
       return;
     }
-    importMutation.mutate(fileData);
+    importMutation.mutate(
+      fileData.map((d) => ({
+        ...d,
+        status: d.status as AttendanceStatus,
+      })),
+    );
   };
 
   return (

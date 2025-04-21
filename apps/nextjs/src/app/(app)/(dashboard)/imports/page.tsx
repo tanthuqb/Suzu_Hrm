@@ -25,11 +25,22 @@ import { toast } from "@acme/ui/toast";
 import { useAuth } from "~/app/hooks/useAuth";
 import { useTRPC } from "~/trpc/react";
 
+interface UserRow {
+  "Email Address [Required]": string;
+  "First Name [Required]": string;
+  "Last Name [Required]": string;
+  "Mã NV"?: string;
+  "Work Phone"?: string;
+  Role?: string;
+  "Status [READ ONLY]"?: string;
+}
+
 export default function ImportPage() {
   const trpc = useTRPC();
-  const [fileData, setFileData] = useState<any[]>([]);
+
+  const [fileData, setFileData] = useState<HRMUserInput[]>([]);
   const [textPreview, setTextPreview] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
   const router = useRouter();
@@ -43,30 +54,29 @@ export default function ImportPage() {
     }
   }, [user, isAdmin, router]);
 
-  const importMutation = useMutation<
-    { insertedCount: number; ignoredCount: number },
-    Error,
-    HRMUserInput[]
-  >(
-    trpc.user?.imports.mutationOptions({
-      onSuccess: (data: any) => {
-        alert(`✅ Đã import ${data.insertedCount} người dùng`);
+  const importUsers = useMutation(
+    trpc.user.imports.mutationOptions({
+      onSuccess: ({ insertedCount, ignoredCount }) => {
+        toast.success(
+          `✅ Đã import ${insertedCount} va ${ignoredCount} người dùng`,
+        );
       },
-      onError: (err: any) => {
-        alert(err.message || "❌ Lỗi import");
+      onError(err) {
+        toast.error(err.message);
       },
     }),
   );
 
   function formatPhone(raw: unknown): string {
-    if (!raw) return "";
+    if (!raw || (typeof raw !== "string" && typeof raw !== "number")) return "";
+
     const str = String(raw).trim();
     if (str.toLowerCase() === "undefined") return "";
 
     return str.length === 9 ? "0" + str : str;
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -79,18 +89,30 @@ export default function ImportPage() {
       const rawData = reader.result;
 
       try {
-        let rawJson: any[] = [];
+        let rawJson: UserRow[] = [];
 
         if (ext === "json") {
-          rawJson = JSON.parse(rawData as string);
+          rawJson = JSON.parse(rawData as string) as UserRow[];
         } else if (ext === "xlsx" || ext === "xls") {
           const workbook = XLSX.read(rawData, { type: "binary" });
-          if (!workbook.SheetNames.length) {
+
+          if (workbook.SheetNames.length === 0) {
             setError("❌ Không tìm thấy sheet trong file Excel");
             return;
           }
 
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const sheetName = workbook.SheetNames[0];
+          if (!sheetName) {
+            setError("❌ Không thể tìm thấy sheet đầu tiên trong file Excel");
+            return;
+          }
+
+          const sheet = workbook.Sheets[sheetName];
+          if (!sheet) {
+            setError("❌ Không thể tìm thấy sheet đầu tiên trong file Excel");
+            return;
+          }
+
           rawJson = XLSX.utils.sheet_to_json(sheet);
         } else {
           setError("❌ Chỉ hỗ trợ file .json, .xlsx hoặc .xls");
@@ -107,17 +129,17 @@ export default function ImportPage() {
 
             return {
               firstName: row["First Name [Required]"]
-                ? row["First Name [Required]"]?.trim()
+                ? row["First Name [Required]"].trim()
                 : "",
               lastName: row["Last Name [Required]"]
-                ? row["Last Name [Required]"]?.trim()
+                ? row["Last Name [Required]"].trim()
                 : "",
               email,
-              employeeCode: row["Mã NV"]?.trim() || "",
+              employeeCode: row["Mã NV"]?.trim() ?? "",
               phone: formatPhone(row["Work Phone"]),
-              role: row.Role?.trim() || "user",
+              role: row.Role?.trim() ?? "user",
               status:
-                row["Status [READ ONLY]"]?.trim()?.toLowerCase() == "active"
+                row["Status [READ ONLY]"]?.trim().toLowerCase() == "active"
                   ? "Active"
                   : "Suspended",
               createdAt: new Date(),
@@ -157,7 +179,7 @@ export default function ImportPage() {
     }
 
     setError(null);
-    importMutation.mutate(fileData);
+    importUsers.mutate(fileData);
   };
 
   return (

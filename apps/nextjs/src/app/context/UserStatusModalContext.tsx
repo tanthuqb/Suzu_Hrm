@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import type { IUser } from "@acme/db";
 import { toast } from "@acme/ui/toast";
@@ -27,7 +26,6 @@ export const UserStatusModalProvider = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
-  const router = useRouter();
   const openModal = (user: IUser) => {
     setSelectedUser(user);
     setIsOpen(true);

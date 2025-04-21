@@ -6,8 +6,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
-import type { RouterInputs, RouterOutputs } from "@acme/api";
-import type { SalarySlipWithUser } from "@acme/db";
+import type { RouterInputs } from "@acme/api";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
@@ -27,16 +26,17 @@ import {
   TableRow,
 } from "@acme/ui/table";
 
+import type { UserAllOutput } from "~/app/types/index";
 import { useUserStatusModal } from "~/app/context/UserStatusModalContext";
 import { useTRPC } from "~/trpc/react";
 
-type UserListOutput = RouterOutputs["user"]["all"];
+type SortField = "email" | "firstName" | "status" | "role" | undefined;
+
 export function UserTable() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] =
-    useState<RouterInputs["user"]["all"]["sortBy"]>("email");
+  const [sortBy, setSortBy] = useState<SortField>("email");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
   const debouncedSearch = useDebounce(search, 300);
@@ -48,14 +48,14 @@ export function UserTable() {
     page,
     pageSize,
     search: debouncedSearch,
-    sortBy,
+    sortBy: sortBy,
     order,
   };
 
   const { data, refetch, isFetching } = useSuspenseQuery(
-    trpc.user?.all.queryOptions(input),
+    trpc.user.all.queryOptions(input),
   ) as {
-    data: UserListOutput;
+    data: UserAllOutput;
     refetch: () => void;
     isFetching: boolean;
   };
@@ -138,11 +138,11 @@ export function UserTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.users?.map((user: SalarySlipWithUser) => (
+            {data.users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>{user.id}</TableCell>
                 <TableCell className="font-medium">{user.firstName}</TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.email ? user.email : null}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
                   <span

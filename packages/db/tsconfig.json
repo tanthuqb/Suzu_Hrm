@@ -1,12 +1,8 @@
 {
   "extends": "@acme/tsconfig/internal-package.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "@db/*": ["packages/db/src/*"]
-    }
+    "rootDir": "src",
+    "outDir": "dist"
   },
   "include": ["src"],
   "exclude": ["node_modules"]

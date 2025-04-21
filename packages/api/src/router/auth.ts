@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { env } from "@acme/auth/env";
 import { createServerClient } from "@acme/supabase";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -30,7 +31,7 @@ export const authRouter = createTRPCRouter({
         email,
         password,
         options: {
-          emailRedirectTo: `${process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback`,
+          emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL ? env.NEXT_PUBLIC_APP_URL : "http://localhost:3000"}/api/auth/callback`,
         },
       });
 
@@ -38,19 +39,17 @@ export const authRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
       }
 
-      if (
-        autoConfirmEmail &&
-        data.user &&
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      ) {
+      if (autoConfirmEmail && data.user && env.SUPABASE_SERVICE_ROLE_KEY) {
         const adminClient = createClient(
-          process.env.PUBLIC_SUPABASE_URL || "",
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          env.PUBLIC_SUPABASE_URL,
+          env.SUPABASE_SERVICE_ROLE_KEY,
           { auth: { autoRefreshToken: false, persistSession: false } },
         );
         await adminClient.auth.admin
           .updateUserById(data.user.id, { email_confirm: true })
-          .catch(() => {});
+          .catch((error: TRPCError) => {
+            return Error(error.message);
+          });
       }
 
       const needsEmailConfirmation =
@@ -91,14 +90,10 @@ export const authRouter = createTRPCRouter({
         return { success: true };
       }
 
-      if (
-        input.userId &&
-        input.adminConfirm &&
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      ) {
+      if (input.userId && input.adminConfirm && env.SUPABASE_SERVICE_ROLE_KEY) {
         const admin = createClient(
-          process.env.PUBLIC_SUPABASE_URL || "",
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          env.PUBLIC_SUPABASE_URL,
+          env.SUPABASE_SERVICE_ROLE_KEY,
           { auth: { autoRefreshToken: false, persistSession: false } },
         );
         const { error } = await admin.auth.admin.updateUserById(input.userId, {
@@ -131,7 +126,7 @@ export const authRouter = createTRPCRouter({
     .input(
       z.object({ currentPassword: z.string(), newPassword: z.string().min(8) }),
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const supabase = await createServerClient();
       const { error } = await supabase.auth.updateUser({
         password: input.newPassword,

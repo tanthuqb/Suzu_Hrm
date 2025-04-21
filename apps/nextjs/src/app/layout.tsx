@@ -6,7 +6,10 @@ import { cn } from "@acme/ui";
 
 import "./globals.css";
 
+import { ThemeProvider, ThemeToggle } from "@acme/ui/theme";
+
 import { env } from "~/env";
+import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -50,7 +53,12 @@ export default function RootLayout({
           GeistMono.variable,
         )}
       >
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <div className="absolute bottom-4 right-4">
+            <ThemeToggle />
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -20,8 +20,8 @@ export default function WorkFromHomeForm() {
       }
       setUser(u);
     };
-    fetchUser();
-  }, []);
+    void fetchUser();
+  }, [router]);
 
   if (!user) return <p className="text-muted-foreground">Đang tải...</p>;
 

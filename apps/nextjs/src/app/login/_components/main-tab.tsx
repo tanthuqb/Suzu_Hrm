@@ -3,7 +3,7 @@ import React from "react";
 
 import { Tabs, TabsContent } from "@acme/ui/tabs";
 
-import type { AuthView } from "../page";
+import type { AuthView } from "./page-client";
 
 interface MainTabsProps {
   setCurrentTab: Dispatch<SetStateAction<"signin">>;

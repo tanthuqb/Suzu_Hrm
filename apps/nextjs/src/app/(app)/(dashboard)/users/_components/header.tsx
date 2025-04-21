@@ -23,7 +23,7 @@ import { ModeToggle } from "./mode-toggle";
 export function Header() {
   const router = useRouter();
 
-  const [notifications, setNotifications] = useState<Notification[]>([
+  const [notifications] = useState<Notification[]>([
     {
       id: "sfd96f6de-f447-4562-8d0e-cfcc6e205b29",
       userId: "sfd96f6de-f447-4562-8d0e-cfcc6e205b29",
@@ -54,7 +54,7 @@ export function Header() {
   ]);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     startTransition(async () => {
       await signOut();
       router.push("/login");

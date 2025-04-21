@@ -32,29 +32,3 @@ export const generateFullSalaryEmailHtml = (data: any): string => {
   </div>
   `;
 };
-
-const renderLine = (label: string, value: any, highlight = false) => {
-  return `
-    <tr>
-      <td style="width: 70%; padding: 4px 0;">${label}</td>
-      <td style="width: 30%; text-align: right; padding: 4px 0; font-weight: ${highlight ? "bold" : "normal"};">
-        ${formatCurrency(value)}
-      </td>
-    </tr>
-  `;
-};
-
-const renderGroup = (rows: [string, any, boolean?][]) => {
-  return `
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
-      ${rows.map(([label, value, highlight]) => renderLine(label, value, highlight)).join("")}
-    </table>
-  `;
-};
-
-const formatCurrency = (value: any) => {
-  if (!value || value === "-") return "-";
-  const number = Number(value);
-  if (isNaN(number)) return value;
-  return number.toLocaleString("vi-VN") + " ₫";
-};

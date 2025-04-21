@@ -29,19 +29,24 @@ export default function Page() {
   const [currentView, setCurrentView] = useState<AuthView>("signin");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const view = searchParams.get("view");
   const message = searchParams.get("message");
+  const nextRaw = searchParams.get("next");
 
   useEffect(() => {
+    let view: string | null = null;
     if (message) {
       setError(message);
     }
-    if (view === "new-password") {
-      setCurrentView("new-password");
+    if (nextRaw) {
+      const innerParams = new URLSearchParams(nextRaw.split("?")[1]);
+      view = innerParams.get("view");
+      if (view === "new-password") {
+        setCurrentView("new-password");
+      }
     }
-  }, [view]);
+  }, [view, message, nextRaw]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

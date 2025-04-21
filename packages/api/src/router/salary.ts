@@ -1,34 +1,32 @@
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { eq } from "@acme/db";
-import { db } from "@acme/db/client";
 import { CreateSalarySlipSchema, SalarySlip } from "@acme/db/schema";
-import { isUUID } from "@acme/validators";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const salaryRouter = createTRPCRouter({
   create: protectedProcedure
     .input(CreateSalarySlipSchema)
-    .mutation(async ({ input }) => {
-      const [inserted] = await db.insert(SalarySlip).values(input).returning();
+    .mutation(async ({ input, ctx }) => {
+      const [inserted] = await ctx.db
+        .insert(SalarySlip)
+        .values(input)
+        .returning();
       return inserted;
     }),
 
-  getAll: protectedProcedure.query(async () => {
-    return await db.select().from(SalarySlip).orderBy(SalarySlip.createdAt);
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.db.select().from(SalarySlip).orderBy(SalarySlip.createdAt);
   }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string().optional() }))
+    .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      if (!isUUID(input.id)) {
-        return null;
-      }
-
-      const result = await db.query.SalarySlip.findFirst({
-        where: eq(SalarySlip.id, input.id!),
+      const { id } = input;
+      const result = await ctx.db.query.SalarySlip.findFirst({
+        where: (fields, { eq }) => eq(fields.id, id),
       });
 
       return result ?? null;
@@ -36,8 +34,8 @@ export const salaryRouter = createTRPCRouter({
 
   getByUser: protectedProcedure
     .input(z.object({ userId: z.string().uuid() }))
-    .query(async ({ input }) => {
-      return await db
+    .query(async ({ input, ctx }) => {
+      return await ctx.db
         .select()
         .from(SalarySlip)
         .where(eq(SalarySlip.userId, input.userId));
@@ -49,9 +47,9 @@ export const salaryRouter = createTRPCRouter({
         id: z.string().uuid(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const { id, ...rest } = input;
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(SalarySlip)
         .set(rest)
         .where(eq(SalarySlip.id, id))
@@ -69,8 +67,8 @@ export const salaryRouter = createTRPCRouter({
 
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const deleted = await db
+    .mutation(async ({ input, ctx }) => {
+      const deleted = await ctx.db
         .delete(SalarySlip)
         .where(eq(SalarySlip.id, input.id))
         .returning();

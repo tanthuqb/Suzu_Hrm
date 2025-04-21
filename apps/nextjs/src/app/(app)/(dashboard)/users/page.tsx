@@ -14,19 +14,25 @@ export default async function UsersPage() {
     redirect("/login?message=You must be logged in to access this page.");
   }
 
-  if (AuthUser && AuthUser.role !== "admin") {
+  if (AuthUser.role !== "admin") {
     redirect("/login?message=You do not have permission to access this page.");
   }
 
-  const input = {
+  const input: {
+    page: number;
+    pageSize: number;
+    search: string;
+    sortBy: string;
+    order: "asc" | "desc";
+  } = {
     page: 1,
     pageSize: 10,
     search: "",
-    sortBy: "email",
+    sortBy: "",
     order: "desc",
   };
 
-  await prefetch(trpc.user?.all.queryOptions(input));
+  prefetch(trpc.user.all.queryOptions(input));
   return (
     <HydrateClient>
       <UserStatusModalProvider>
