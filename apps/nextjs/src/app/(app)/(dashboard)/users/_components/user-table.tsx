@@ -138,7 +138,7 @@ export function UserTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.users?.map((user: SalarySlipWithUser) => (
+            {data?.users?.map((user: any) => (
               <TableRow key={user.id}>
                 <TableCell>{user.id}</TableCell>
                 <TableCell className="font-medium">{user.firstName}</TableCell>
