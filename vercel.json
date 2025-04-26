@@ -1,4 +1,0 @@
-{
-  "buildCommand": "pnpm --filter @acme/db... run build && pnpm build:prod",
-  "outputDirectory": ".next"
-}

@@ -12,12 +12,11 @@ import {
 
 export const handleSignInWithGoogle = async () => {
   const supabase = await createServerClient();
-  const { PUBLIC_APP_URL } = env;
-  console.log("PUBLIC_APP_URL", PUBLIC_APP_URL);
+  const { NEXT_PUBLIC_APP_URL } = env;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${PUBLIC_APP_URL}/api/auth/callback`,
+      redirectTo: `${NEXT_PUBLIC_APP_URL}/api/auth/callback`,
       queryParams: {
         access_type: "offline",
         prompt: "consent",
@@ -74,7 +73,7 @@ export const auth = cache(async (): Promise<Session | null> => {
 
   const { data: userData, error } = await supabase.auth.getUser();
 
-  if (error || !userData.user) {
+  if (error) {
     return null;
   }
 
@@ -82,8 +81,8 @@ export const auth = cache(async (): Promise<Session | null> => {
     user: {
       id: userData.user.id,
       email: userData.user.email ?? undefined,
-      name: userData.user.user_metadata.full_name,
-      image: userData.user.user_metadata.avatar_url,
+      name: userData.user.user_metadata.full_name as string,
+      image: userData.user.user_metadata.avatar_url as string,
     },
     expires:
       session.expires_at?.toString() ??

@@ -9,11 +9,7 @@ createJiti(fileURLToPath(import.meta.url))("./src/env");
 
 /** @type {import("next").NextConfig} */
 const config = {
-  env: {
-    PUBLIC_APP_CLIENT_URL: process.env.PUBLIC_APP_URL,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.PUBLIC_SUPABASE_ANON_KEY,
-  },
+  productionBrowserSourceMaps: true,
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [
     "@acme/api",
@@ -22,7 +18,6 @@ const config = {
     "@acme/ui",
     "@acme/validators",
     "@acme/supabase",
-    "drizzle-orm",
   ],
   experimental: {
     serverActions: {

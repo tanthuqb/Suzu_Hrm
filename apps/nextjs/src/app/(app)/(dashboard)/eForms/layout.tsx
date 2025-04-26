@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@acme/ui/card";
-
 export const metadata: Metadata = {
   title: "Work From Home Request",
   description: "Submit a request to work from home",

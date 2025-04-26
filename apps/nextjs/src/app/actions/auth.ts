@@ -2,10 +2,11 @@
 
 import { redirect } from "next/navigation";
 
-import type { AuthUser } from "@acme/db";
+import type { AuthUser, UserRole } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
+import { env } from "~/env";
 
 /**
  * Send password reset email to the user
@@ -17,7 +18,7 @@ export const handleSignInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.PUBLIC_APP_CLIENT_URL}/api/auth/callback`,
+      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback`,
       queryParams: {
         access_type: "offline",
         prompt: "consent",
@@ -42,7 +43,6 @@ export const handleSignInWithGoogle = async () => {
 /** Supabase Sign In (Email & Password hoặc OAuth) */
 export async function signInEmail(email: string, password: string) {
   const supabase = await createServerClient();
-
   // Sign in with password
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -53,15 +53,15 @@ export async function signInEmail(email: string, password: string) {
     // If error is "Email not confirmed", try to auto-confirm it
     if (
       error.message.includes("Email not confirmed") &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      env.SUPABASE_SERVICE_ROLE_KEY
     ) {
       try {
         // Get user by email to get the user ID
         // Create admin client with service role for privileged operations
         const { createClient } = await import("@supabase/supabase-js");
         const adminAuthClient = createClient(
-          process.env.PUBLIC_SUPABASE_URL || "",
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          env.PUBLIC_SUPABASE_URL || "",
+          env.SUPABASE_SERVICE_ROLE_KEY,
           {
             auth: {
               autoRefreshToken: false,
@@ -97,8 +97,7 @@ export async function signInEmail(email: string, password: string) {
           }
 
           // Refresh session
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.getSession();
+          const { error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
             console.error("Session retrieval error:", sessionError);
             throw new Error(sessionError.message);
@@ -106,7 +105,7 @@ export async function signInEmail(email: string, password: string) {
 
           return confirmedData;
         }
-      } catch (adminError: any) {
+      } catch (adminError) {
         console.error("Failed to auto-confirm email during login:", adminError);
         // Continue with original error
       }
@@ -117,8 +116,7 @@ export async function signInEmail(email: string, password: string) {
   }
 
   // Ensure that session is refreshed and cookies are set properly
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
+  const { error: sessionError } = await supabase.auth.getSession();
 
   if (sessionError) {
     console.error("Session retrieval error:", sessionError);
@@ -132,7 +130,7 @@ export const checkAuth = async (): Promise<AuthUser | null> => {
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
-  if (error || !data.user) {
+  if (error) {
     return null;
   }
 
@@ -142,14 +140,14 @@ export const checkAuth = async (): Promise<AuthUser | null> => {
     .eq("email", data.user.email)
     .single();
 
-  if (userError || !userData) {
+  if (userError) {
     console.error("Error fetching user data:", userError);
     return null;
   }
 
   return {
     ...data.user,
-    role: userData.role,
+    role: userData.role as UserRole,
     firstName: userData.firstName,
     lastName: userData.lastName,
   };
@@ -183,7 +181,7 @@ export const registerUser = async (
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback`,
+      emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback`,
     },
   });
 
@@ -196,17 +194,13 @@ export const registerUser = async (
     data.user?.identities?.[0]?.identity_data?.email_verified === false;
 
   // Implement auto-confirmation when requested
-  if (
-    autoConfirmEmail &&
-    data.user?.id &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
+  if (autoConfirmEmail && data.user?.id && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       // Create admin client with service role for privileged operations
       const { createClient } = await import("@supabase/supabase-js");
       const adminAuthClient = createClient(
-        process.env.PUBLIC_SUPABASE_URL || "",
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        env.PUBLIC_SUPABASE_ANON_KEY || "",
+        env.SUPABASE_SERVICE_ROLE_KEY,
         {
           auth: {
             autoRefreshToken: false,
@@ -220,7 +214,7 @@ export const registerUser = async (
         email_confirm: true,
       });
       console.log("Email auto-confirmed for user:", data.user.id);
-    } catch (adminError: any) {
+    } catch (adminError) {
       console.error("Failed to auto-confirm email:", adminError);
       // We don't throw here because the signup was still successful
     }
@@ -261,10 +255,10 @@ export const updatePassword = async (
 export const forgotPassword = async (email: string) => {
   try {
     const supabase = await createServerClient();
-    const isLocalDev = process.env.APP_ENV === "development";
+    const isLocalDev = env.APP_ENV === "development";
     const baseUrl = isLocalDev
       ? "http://localhost:3000"
-      : process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+      : env.NEXT_PUBLIC_APP_URL || env.NEXT_PUBLIC_APP_URL;
 
     const redirectUrl = `${baseUrl}/callback?next=/reset-password&type=recovery`;
 
@@ -280,7 +274,7 @@ export const forgotPassword = async (email: string) => {
     return { success: true };
   } catch (error: any) {
     console.error("Password reset error:", error);
-    throw new Error(error.message || "Failed to send password reset email");
+    throw new Error(error?.message || "Failed to send password reset email");
   }
 };
 
@@ -345,13 +339,13 @@ export const refreshSessionServer = async () => {
 };
 
 export const verifyRecoveryToken = async (code: string) => {
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token`;
+  const url = `${env.PUBLIC_SUPABASE_ANON_KEY}/auth/v1/token`;
 
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      apikey: env.PUBLIC_SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({
       grant_type: "recovery",

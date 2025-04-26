@@ -6,6 +6,9 @@ import { env as authEnv } from "@acme/auth/env";
 
 type RuntimeEnv = {
   APP_ENV: string | undefined;
+  NEXT_PUBLIC_APP_URL: string;
+  NEXT_PUBLIC_SUPABASE_URL: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
   PUBLIC_SUPABASE_URL: string;
   PUBLIC_SUPABASE_ANON_KEY: string;
 };
@@ -23,11 +26,13 @@ export const env = createEnv({
    */
   server: {
     POSTGRES_URL: z.string().url(),
-    PORT: z.string().optional(),
-    PUBLIC_SUPABASE_URL: z.string().optional(),
-    PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_TO: z.string().optional(),
+    PORT: z.string().optional(),
+    PUBLIC_SUPABASE_URL: z.string(),
+    PUBLIC_SUPABASE_ANON_KEY: z.string(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    SUPABASE_JWT_SECRET: z.string().min(1),
   },
 
   /**
@@ -35,7 +40,9 @@ export const env = createEnv({
    * For them to be exposed to the client, prefix them with `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_APP_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   },
   /**
    * Destructure all variables from `process.env` to make sure they aren't tree-shaken away.
@@ -44,11 +51,10 @@ export const env = createEnv({
     APP_ENV: process.env.APP_ENV,
     PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
     PUBLIC_SUPABASE_ANON_KEY: process.env.PUBLIC_SUPABASE_ANON_KEY,
-    RESEND_API_KEY: process.env.RESEND_API_KEY,
-    EMAIL_TO: process.env.EMAIL_TO,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   } as unknown as RuntimeEnv,
-
   skipValidation:
     !!process.env.CI || process.env.npm_lifecycle_event === "lint",
 });

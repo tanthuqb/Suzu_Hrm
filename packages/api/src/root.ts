@@ -4,7 +4,7 @@ import { salaryRouter } from "./router/salary";
 import { userRouter } from "./router/users";
 import { createTRPCRouter } from "./trpc";
 
-export const appRouter: ReturnType<typeof createTRPCRouter> = createTRPCRouter({
+export const appRouter = createTRPCRouter({
   salary: salaryRouter,
   auth: authRouter,
   user: userRouter,

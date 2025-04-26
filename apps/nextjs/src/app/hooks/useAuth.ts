@@ -26,8 +26,8 @@ export function useAuth() {
       }
     };
 
-    fetchUser();
-  }, []);
+    void fetchUser();
+  }, [router]);
 
   const isAdmin = user?.role === "admin";
 

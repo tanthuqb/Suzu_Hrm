@@ -42,12 +42,18 @@ export const hrRouter = createTRPCRouter({
           });
         }
 
-        const employCode = row["Mã NV"]?.trim().toLowerCase();
-        const user_id = EmployCodeToIdMap.get(employCode);
+        let employCode: string | undefined;
+        if (typeof row["Mã NV"] === "string") {
+          employCode = row["Mã NV"].trim().toLowerCase();
+        }
+
+        const user_id = employCode
+          ? EmployCodeToIdMap.get(employCode)
+          : undefined;
         if (!user_id) continue;
 
         for (const key of validDayKeys) {
-          const rawValue = String(row[key] || "").trim();
+          const rawValue = String(row[key] ?? "").trim();
           if (!rawValue) continue;
 
           const statuses = parseStatusSymbols(rawValue);

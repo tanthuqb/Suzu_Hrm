@@ -21,7 +21,7 @@ import { AttendanceStatus } from "./constants/attendance";
 export const enumValues = <E extends Record<string, string>>(
   e: E,
 ): [string, ...string[]] => {
-  if (!e || typeof e !== "object") {
+  if (typeof e !== "object") {
     throw new Error("Invalid enum object passed");
   }
 
@@ -127,7 +127,6 @@ export const CreateSalarySlipSchema = createInsertSchema(SalarySlip, {
   otherIncome: z.number().int(),
   totalIncome: z.number().int(),
   socialInsuranceBase: z.number().int(),
-  // optional
   socialInsuranceDeducted: z.number().int().optional(),
   unionFee: z.number().int().optional(),
   taxableIncome: z.number().int().optional(),
@@ -144,6 +143,8 @@ export const CreateSalarySlipSchema = createInsertSchema(SalarySlip, {
   id: true,
   createdAt: true,
 });
+
+export type CreateSalarySlipInput = z.infer<typeof CreateSalarySlipSchema>;
 
 /** ASSETS TABLE **/
 export const Asset = pgTable("assets", (t) => ({
@@ -166,7 +167,7 @@ export const CreateAssetSchema = createInsertSchema(Asset, {
 });
 
 /** TRANSACTIONS TABLE **/
-export const Transaction = pgTable("transactions", (t) => ({
+export const Transaction = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   userId: uuid("user_id")
     .notNull()
@@ -179,7 +180,7 @@ export const Transaction = pgTable("transactions", (t) => ({
   description: text("description"),
   status: varchar("status", { length: 255 }).default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}));
+});
 
 export const CreateTransactionSchema = createInsertSchema(Transaction, {
   transactionType: z.string().max(255),
@@ -194,13 +195,13 @@ export const CreateTransactionSchema = createInsertSchema(Transaction, {
 });
 
 /** WORKFLOW TABLE **/
-export const Workflow = pgTable("workflows", (t) => ({
+export const Workflow = pgTable("workflows", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   type: varchar("type", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}));
+});
 
 export const CreateWorkflowSchema = createInsertSchema(Workflow).omit({
   id: true,
@@ -208,7 +209,7 @@ export const CreateWorkflowSchema = createInsertSchema(Workflow).omit({
 });
 
 /** WORKFLOW STEPS **/
-export const WorkflowStep = pgTable("workflow_steps", (t) => ({
+export const WorkflowStep = pgTable("workflow_steps", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   workflowId: uuid("workflow_id")
     .references(() => Workflow.id)
@@ -217,7 +218,7 @@ export const WorkflowStep = pgTable("workflow_steps", (t) => ({
   description: text("description"),
   stepOrder: integer("step_order").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}));
+});
 
 export const CreateWorkflowStepSchema = createInsertSchema(WorkflowStep, {
   workflowId: z.string(),
@@ -337,6 +338,18 @@ export const AttendanceRelations = relations(Attendance, ({ one }) => ({
     references: [HRMUser.id],
   }),
 }));
+
+export const schema = {
+  HRMUser,
+  SalarySlip,
+  Asset,
+  Transaction,
+  Workflow,
+  WorkflowStep,
+  Attendance,
+  Notifications,
+  LeaveRequests,
+};
 
 export default {
   HRMUserRelations,

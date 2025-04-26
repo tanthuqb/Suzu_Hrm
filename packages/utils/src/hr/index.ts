@@ -1,6 +1,5 @@
 import { AttendanceStatus } from "@acme/db";
 
-// Chuyển đổi các trạng thái chấm công từ file import về dạng enum
 export function normalizeStatus(input: string): AttendanceStatus | null {
   const raw = input.trim().toUpperCase();
 
@@ -58,7 +57,7 @@ export function normalizeStatusValue(value: string): string | null {
 
 // parse rawValue như "1p", "rw" thành array trạng thái chuẩn
 export function parseStatusSymbols(raw: string): string[] {
-  const symbols = raw.match(/[a-z]+|[0-9]+/gi) || [];
+  const symbols = raw.match(/[a-z]+|[0-9]+/gi) ?? [];
   return symbols
     .map((s) => normalizeStatusValue(s.trim().toLowerCase()))
     .filter(Boolean) as string[];

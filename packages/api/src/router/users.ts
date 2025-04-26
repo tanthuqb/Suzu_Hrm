@@ -1,11 +1,11 @@
 import { asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import type { SalarySlipWithUser, UserRole, UserStatus } from "@acme/db";
-import type { SalarySlipRecord } from "@acme/db/schema";
+import type { SalarySlipWithTableUser, UserRole, UserStatus } from "@acme/db";
 import { HRMUser, SalarySlip } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
+import type { ImportUsersResult } from "../types/index";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 const idSchema = z.union([z.string(), z.object({ id: z.string() })]);
@@ -22,10 +22,16 @@ export const userRouter = createTRPCRouter({
           page: z.number().default(1),
           pageSize: z.number().default(10),
           search: z.string().optional(),
-          sortBy: z.string().optional().default(""),
+          sortBy: z.string().optional(),
           order: z.enum(["asc", "desc"]).optional().default("asc"),
         })
-        .default({ page: 1, sortBy: "", pageSize: 10, order: "asc" }),
+        .default({
+          page: 1,
+          pageSize: 10,
+          search: "",
+          sortBy: "",
+          order: "desc",
+        }),
     )
     .query(async ({ input, ctx }) => {
       const { page, pageSize, search, sortBy, order } = input;
@@ -39,7 +45,14 @@ export const userRouter = createTRPCRouter({
           )
         : undefined;
 
-      const sortColumn = sortBy ? HRMUser.lastName : HRMUser.email;
+      const sortColumn =
+        sortBy === "firstName"
+          ? HRMUser.firstName
+          : sortBy === "lastName"
+            ? HRMUser.lastName
+            : sortBy === "role"
+              ? HRMUser.role
+              : HRMUser.email;
 
       const joined = await ctx.db
         .select({
@@ -54,20 +67,15 @@ export const userRouter = createTRPCRouter({
           desc(SalarySlip.createdAt),
         );
 
-      const userMap = new Map<
-        string,
-        SalarySlipWithUser & {
-          latestSalarySlip?: SalarySlipRecord;
-        }
-      >();
+      const userMap = new Map<string, SalarySlipWithTableUser>();
 
       for (const { user, salary } of joined) {
         if (!userMap.has(user.id)) {
           userMap.set(user.id, {
             ...user,
+            role: user.role as UserRole,
+            status: user.status as UserStatus,
             latestSalarySlip: salary ?? undefined,
-          } as unknown as SalarySlipWithUser & {
-            latestSalarySlip?: SalarySlipRecord;
           });
         }
       }
@@ -80,9 +88,7 @@ export const userRouter = createTRPCRouter({
         users,
         total,
       } satisfies {
-        users: (SalarySlipWithUser & {
-          latestSalarySlip?: SalarySlipRecord;
-        })[];
+        users: SalarySlipWithTableUser[];
         total: number;
       };
     }),
@@ -114,10 +120,14 @@ export const userRouter = createTRPCRouter({
         }),
       ),
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }): Promise<ImportUsersResult> => {
       const supabase = adminAuthClient();
 
-      if (input.length === 0) return [];
+      if (input.length === 0)
+        return {
+          insertedCount: 0,
+          ignoredCount: 0,
+        };
 
       const validUsers = input.filter((user) => isAllowedEmail(user.email));
       if (validUsers.length === 0) {
@@ -143,9 +153,8 @@ export const userRouter = createTRPCRouter({
           );
           continue;
         }
-
         if (existingUser?.id) {
-          authId = existingUser.id;
+          authId = existingUser.id as string;
         } else {
           const password =
             "Suzu@" + Math.floor(100000 + Math.random() * 900000);
@@ -174,10 +183,10 @@ export const userRouter = createTRPCRouter({
             lastName: user.lastName,
             name: user.name ?? `${user.firstName} ${user.lastName}`,
             email: user.email,
-            phone: user.phone ?? "",
+            phone: user.phone,
             role: user.role as UserRole,
             status: user.status as UserStatus,
-            employeeCode: user.employeeCode || "",
+            employeeCode: user.employeeCode ?? "",
             createdAt: new Date(),
             updatedAt: new Date(),
           });
@@ -191,7 +200,10 @@ export const userRouter = createTRPCRouter({
         ),
       );
 
-      await ctx.db.insert(HRMUser).values(importedUsers);
+      if (importedUsers.length > 0) {
+        console.warn("⚠️ Không có người dùng nào được import vào DB.");
+        await ctx.db.insert(HRMUser).values(importedUsers);
+      }
 
       return {
         insertedCount: importedUsers.length,

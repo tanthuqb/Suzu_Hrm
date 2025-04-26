@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -30,8 +29,18 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   userId: z.string().min(1, { message: "User ID is required." }),
   department: z.string().min(1, { message: "Department is required." }),
-  startDate: z.date({ required_error: "Start date is required." }),
-  endDate: z.date({ required_error: "End date is required." }),
+  startDate: z
+    .date()
+    .optional()
+    .refine((val) => val instanceof Date, {
+      message: "Start date is required when field is not empty.",
+    }),
+  endDate: z
+    .date()
+    .optional()
+    .refine((val) => val instanceof Date, {
+      message: "End date is required when field is not empty.",
+    }),
   reason: z
     .string()
     .min(10, { message: "Reason must be at least 10 characters." }),
@@ -78,7 +87,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
                   <Input
                     placeholder="John Doe"
                     {...field}
-                    value={field.value ?? ""}
+                    value={!field.value ? field.value : ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -95,7 +104,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
                   <Input
                     placeholder="EMP123"
                     {...field}
-                    value={field.value ?? ""}
+                    value={!field.value ? field.value : ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -114,7 +123,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
                 <Input
                   placeholder="Engineering"
                   {...field}
-                  value={field.value ?? ""}
+                  value={!field.value ? field.value : ""}
                 />
               </FormControl>
               <FormMessage />
@@ -126,40 +135,43 @@ export default function WFHForm({ user }: { user: AuthUser }) {
           <FormField
             control={form.control}
             name="startDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Start Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ?? undefined}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              return (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            field.value instanceof Date &&
+                              "text-muted-foreground",
+                          )}
+                        >
+                          {field.value instanceof Date ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
           <FormField
             control={form.control}
@@ -174,10 +186,11 @@ export default function WFHForm({ user }: { user: AuthUser }) {
                         variant={"outline"}
                         className={cn(
                           "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground",
+                          field.value instanceof Date &&
+                            "text-muted-foreground",
                         )}
                       >
-                        {field.value ? (
+                        {field.value instanceof Date ? (
                           format(field.value, "PPP")
                         ) : (
                           <span>Pick a date</span>
@@ -189,7 +202,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value ?? undefined}
+                      selected={field.value}
                       onSelect={field.onChange}
                       initialFocus
                     />

@@ -7,15 +7,15 @@ import type { createServerClient } from "@acme/supabase";
 export async function getEmailToUserIdMap(
   supabase: ReturnType<typeof createServerClient>,
 ) {
-  const { data: users, error } = await supabase
+  const { data: users, error } = await (await supabase)
     .from("users")
-    .select("id, email");
+    .select("id,email");
 
-  if (error || !users) {
+  if (error) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        error?.message ?? "Không thể lấy danh sách người dùng từ Supabase",
+        error.message ?? "Không thể lấy danh sách người dùng từ Supabase",
     });
   }
 

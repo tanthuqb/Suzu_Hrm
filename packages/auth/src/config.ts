@@ -1,4 +1,4 @@
-import type { DBUser, IUser } from "@acme/db";
+import type { DBUser } from "@acme/db";
 import { db } from "@acme/db/client";
 import { HRMUser } from "@acme/db/schema";
 
@@ -40,7 +40,7 @@ export const validateToken = async (
       .from(HRMUser)
       .limit(1)
       .execute()
-      .then((rows) => rows[0] || null);
+      .then((rows) => rows[0] ?? null);
 
     if (!hrmUser) {
       console.error("User not found in HRM system");
@@ -90,15 +90,10 @@ export const getCurrentUser = async () => {
 
 export const auth = async (): Promise<Session | null> => {
   const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { error } = await supabase.auth.getUser();
 
   if (error) {
     console.error("Failed to get user:", error);
-    return null;
-  }
-
-  if (!data.user) {
-    console.error("No user found in the session");
     return null;
   }
 

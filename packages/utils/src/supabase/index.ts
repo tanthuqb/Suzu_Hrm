@@ -11,18 +11,19 @@ export async function getEmployCodeToUserIdMap(
     .from("users")
     .select("id, employee_code");
 
-  if (error || !users) {
+  if (error) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message:
-        error.message ?? "Không thể lấy danh sách người dùng từ Supabase",
+      message: error.message
+        ? error.message
+        : "Không thể lấy danh sách người dùng từ Supabase",
     });
   }
 
   const map = new Map<string, string>();
   for (const user of users) {
-    if (user.employee_code) {
-      map.set(user.employee_code.toLowerCase(), user.id);
+    if (typeof user.employee_code === "string") {
+      map.set(user.employee_code.toLowerCase(), user.id as string);
     }
   }
 

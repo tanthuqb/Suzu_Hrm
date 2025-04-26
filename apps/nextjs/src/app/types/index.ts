@@ -1,4 +1,4 @@
-import type { NotificationType } from "@acme/db";
+import type { NotificationType, SalarySlipWithTableUser } from "@acme/db";
 
 export interface Notification {
   id: string;
@@ -17,4 +17,9 @@ export interface InputLeaveRequest {
   startDate: Date;
   endDate: Date;
   reason: string;
+}
+
+export interface UserAllOutput {
+  users: SalarySlipWithTableUser[];
+  total: number;
 }

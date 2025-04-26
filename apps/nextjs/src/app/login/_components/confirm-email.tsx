@@ -1,4 +1,4 @@
-import type { ChangeEvent, FormEventHandler, MouseEventHandler } from "react";
+import type { FormEventHandler, MouseEventHandler } from "react";
 import React from "react";
 import { ArrowLeft } from "lucide-react";
 
@@ -16,9 +16,7 @@ interface ConfirmEmailProps {
 const ConfirmEmail = ({
   goBack,
   email,
-  confirmationCode,
   isSubmitting,
-  setConfirmationCode,
   handleConfirmEmail,
 }: ConfirmEmailProps) => {
   return (
@@ -76,12 +74,7 @@ const ConfirmEmail = ({
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Didn't receive the email? Check your spam folder or{" "}
-          <Button
-            variant="link"
-            className="h-auto p-0"
-            onClick={handleConfirmEmail}
-            disabled={isSubmitting}
-          >
+          <Button variant="link" className="h-auto p-0" disabled={isSubmitting}>
             {isSubmitting ? "Sending..." : "request a new link"}
           </Button>
         </p>

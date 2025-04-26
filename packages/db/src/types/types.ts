@@ -78,3 +78,9 @@ export type SalarySlipWithUser = HRMUserInput & {
   role: UserRole;
   status: UserStatus;
 };
+
+export type SalarySlipWithTableUser = DBUser & {
+  role: UserRole;
+  status?: UserStatus;
+  latestSalarySlip?: SalarySlipRecord;
+};

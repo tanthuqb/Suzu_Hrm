@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-import * as schema from "./schema";
+import { schema } from "./schema";
 
 // Xác định connection string phù hợp môi trường
 const connectionString =
@@ -17,6 +17,5 @@ if (!connectionString) {
 const client = postgres(connectionString, {
   ssl: { rejectUnauthorized: false },
 });
-
 // Tạo drizzle instance
 export const db = drizzle(client, { schema });

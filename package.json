@@ -8,13 +8,12 @@
   "packageManager": "pnpm@10.8.0",
   "scripts": {
     "build": "turbo run build",
-    "build:prod": "cross-env NODE_ENV=production dotenv -e ../../.env.production -- next build",
     "start": "pnpm --filter @acme/nextjs start",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo run clean",
     "db:push": "turbo -F @acme/db push",
     "db:studio": "turbo -F @acme/db studio",
-    "dev": "turbo watch dev  --filter=!@acme/expo",
+    "dev": "turbo watch dev --filter=!@acme/expo --continue",
     "dev:next": "turbo watch dev -F @acme/nextjs...",
     "format": "turbo run format --continue -- --cache --cache-location .cache/.prettiercache",
     "format:fix": "turbo run format --continue -- --write --cache --cache-location .cache/.prettiercache",
@@ -23,7 +22,13 @@
     "lint:ws": "pnpm dlx sherif@latest",
     "postinstall": "pnpm lint:ws",
     "typecheck": "turbo run typecheck",
-    "ui-add": "turbo run ui-add"
+    "ui-add": "turbo run ui-add",
+    "with-env:dev": "dotenv -e .env.development",
+    "with-env:staging": "dotenv -e .env.staging",
+    "with-env:prod": "dotenv -e .env.production",
+    "build:dev": "cross-env NODE_ENV=development pnpm with-env:dev -- turbo run build --filter=@acme/nextjs",
+    "build:staging": "cross-env NODE_ENV=staging     pnpm with-env:staging -- turbo run build --filter=@acme/nextjs",
+    "build:prod": "cross-env NODE_ENV=production  pnpm with-env:prod -- turbo run build --filter=@acme/nextjs"
   },
   "devDependencies": {
     "@acme/prettier-config": "workspace:*",
@@ -33,7 +38,10 @@
     "typescript": "catalog:"
   },
   "installConfig": {
-    "hoistingLimits": "workspaces"
+    "hoistingLimits": "workspaces",
+    "publicHoistPattern": [
+      "drizzle-orm"
+    ]
   },
   "prettier": "@acme/prettier-config"
 }

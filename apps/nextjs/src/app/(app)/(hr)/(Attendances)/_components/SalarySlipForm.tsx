@@ -1,13 +1,16 @@
 "use client";
 
+import type { InvalidateQueryFilters } from "@tanstack/react-query";
 import { useEffect, useTransition } from "react";
 import { pdf } from "@react-pdf/renderer";
 import {
+  skipToken,
   useMutation,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
+import type { CreateSalarySlipInput, SalarySlipRecord } from "@acme/db/schema";
 import { CreateSalarySlipSchema } from "@acme/db/schema";
 import { Button } from "@acme/ui/button";
 import {
@@ -72,9 +75,15 @@ export default function SalarySlipSmartForm({
       onSuccess: async (_, { id }) => {
         toast.success("Cập nhật phiếu lương thành công");
         await queryClient.invalidateQueries(
-          trpc.salary.getById.queryKey({ id }),
+          trpc.salary.getById.pathFilter({ id }) as InvalidateQueryFilters<
+            readonly unknown[]
+          >,
         );
-        await queryClient.invalidateQueries(trpc.salary.getAll.queryKey());
+        await queryClient.invalidateQueries(
+          trpc.salary.getAll.pathFilter() as InvalidateQueryFilters<
+            readonly unknown[]
+          >,
+        );
       },
     }),
   );
@@ -83,26 +92,56 @@ export default function SalarySlipSmartForm({
     trpc.salary.create.mutationOptions({
       onSuccess: async () => {
         toast.success("Tạo mới phiếu lương thành công");
-        await queryClient.invalidateQueries(trpc.salary.getAll.queryKey());
+        await queryClient.invalidateQueries(
+          trpc.salary.getAll.pathFilter() as InvalidateQueryFilters<
+            readonly unknown[]
+          >,
+        );
       },
     }),
   );
 
-  const { data: slipList } = useSuspenseQuery(
-    trpc.salary.getByUser.queryOptions({ userId }),
-  );
-
-  const slipQuery = id
-    ? useSuspenseQuery(trpc.salary.getById.queryOptions({ id }))
+  const slip = id
+    ? (
+        useSuspenseQuery(trpc.salary.getById.queryOptions({ id })) as {
+          data: SalarySlipRecord | undefined;
+        }
+      ).data
     : undefined;
 
-  const slip = slipQuery?.data;
+  function sanitizeSlip(
+    slip: Partial<SalarySlipRecord>,
+  ): CreateSalarySlipInput {
+    return {
+      userId: slip.userId!,
+      month: slip.month!,
+      basicSalary: slip.basicSalary ?? 0,
+      workingSalary: slip.workingSalary ?? 0,
+      bonus: slip.bonus ?? 0,
+      allowance: slip.allowance ?? 0,
+      otherIncome: slip.otherIncome ?? 0,
+      totalIncome: slip.totalIncome ?? 0,
+      socialInsuranceBase: slip.socialInsuranceBase ?? 0,
+      socialInsuranceDeducted: slip.socialInsuranceDeducted ?? 0,
+      unionFee: slip.unionFee ?? 0,
+      taxableIncome: slip.taxableIncome ?? 0,
+      personalDeduction: slip.personalDeduction ?? 0,
+      familyDeduction: slip.familyDeduction ?? 0,
+      taxIncomeFinal: slip.taxIncomeFinal ?? 0,
+      personalIncomeTax: slip.personalIncomeTax ?? 0,
+      advance: slip.advance ?? 0,
+      otherDeductions: slip.otherDeductions ?? 0,
+      totalDeductions: slip.totalDeductions ?? 0,
+      netIncome: slip.netIncome ?? 0,
+      status: slip.status ?? "pending",
+    };
+  }
 
   useEffect(() => {
     if (slip) {
-      form.reset(slip);
+      form.reset(sanitizeSlip(slip));
     }
-  }, [slip, form, id]);
+  }, [form, slip]);
 
   const formatCurrency = (val: string | number) => {
     const number =
@@ -119,11 +158,11 @@ export default function SalarySlipSmartForm({
       data.workingSalary + data.bonus + data.allowance + data.otherIncome;
 
     const totalDeductions =
-      (data.socialInsuranceDeducted || 0) +
-      (data.unionFee || 0) +
-      (data.personalIncomeTax || 0) +
-      (data.advance || 0) +
-      (data.otherDeductions || 0);
+      (data.socialInsuranceDeducted ?? 0) +
+      (data.unionFee ?? 0) +
+      (data.personalIncomeTax ?? 0) +
+      (data.advance ?? 0) +
+      (data.otherDeductions ?? 0);
 
     const netIncome = totalIncome - totalDeductions;
 
@@ -158,7 +197,11 @@ export default function SalarySlipSmartForm({
   };
 
   const renderForm = (mode: "create" | "update") => {
-    const fields = [
+    const fields: {
+      name: keyof CreateSalarySlipInput;
+      label: string;
+      isCurrency: boolean;
+    }[] = [
       { name: "month", label: "Tháng", isCurrency: false },
       { name: "basicSalary", label: "Lương cơ bản", isCurrency: true },
       { name: "workingSalary", label: "Lương ngày công", isCurrency: true },
@@ -202,8 +245,8 @@ export default function SalarySlipSmartForm({
               status: "completed",
             };
 
-            if (mode === "update" && (id || slip?.id)) {
-              updateMutation.mutate({ ...payload, id: id ?? slip.id });
+            if (mode === "update" && slip?.id) {
+              updateMutation.mutate({ ...payload, id: slip.id });
             } else {
               createMutation.mutate(payload);
             }
@@ -211,10 +254,10 @@ export default function SalarySlipSmartForm({
           className="grid gap-4"
         >
           {fields.map((f) => (
-            <FormField
+            <FormField<CreateSalarySlipInput>
               key={f.name}
               control={form.control}
-              name={f.name as keyof typeof form.values}
+              name={f.name}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{f.label}</FormLabel>
@@ -222,7 +265,9 @@ export default function SalarySlipSmartForm({
                     <Input
                       type="text"
                       value={
-                        f.isCurrency ? formatCurrency(field.value) : field.value
+                        f.isCurrency
+                          ? formatCurrency(field.value ?? 0)
+                          : (field.value ?? "")
                       }
                       onChange={(e) => {
                         field.onChange(

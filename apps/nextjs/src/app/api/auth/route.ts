@@ -22,7 +22,7 @@ function rewriteRequestUrlInDevelopment(req: NextRequest) {
 /**
  * Handle Expo OAuth callback flow.
  */
-async function handleExpoSigninCallback(req: NextRequest, redirectURL: string) {
+function handleExpoSigninCallback(req: NextRequest, redirectURL: string) {
   const response = NextResponse.next();
   const sessionToken = req.cookies.get("sb:token")?.value;
 
@@ -57,7 +57,7 @@ export const POST = async (
   }
 
   // Handle normal Supabase session check
-  const { data, error } = await supabase.auth.getSession();
+  const { error } = await supabase.auth.getSession();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 401 });
 
