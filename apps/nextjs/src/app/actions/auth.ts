@@ -1,8 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { AuthUser, UserRole } from "@acme/db";
+import type { AuthUser, ResponeAuthUser, SupabaseUserRow } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -26,12 +27,11 @@ export const handleSignInWithGoogle = async () => {
       skipBrowserRedirect: false, // Ensure browser handles the redirect
     },
   });
-
   if (error) {
     console.error("Failed to sign in with Google:", error);
     throw new Error(error.message);
   }
-
+  console.log(3333, `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback`);
   // Only redirect if we have a URL
   if (data.url) {
     redirect(data.url);
@@ -126,31 +126,64 @@ export async function signInEmail(email: string, password: string) {
   return data;
 }
 
-export const checkAuth = async (): Promise<AuthUser | null> => {
+export const checkAuth = async (): Promise<{
+  status: boolean;
+  message?: string;
+  user?: AuthUser;
+}> => {
   const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { data: authUser, error: authError } = await supabase.auth.getUser();
 
-  if (error) {
-    return null;
+  if (authError || !authUser.user.email) {
+    return { status: false, message: "Bạn cần đăng nhập." };
   }
 
-  const { data: userData, error: userError } = await supabase
+  const { data: users } = await supabase
     .from("users")
-    .select("role,firstName,lastName")
-    .eq("email", data.user.email)
-    .single();
+    .select(
+      `
+      id,
+      firstName,
+      lastName,
+      email,
+      status,
+      role_id,
+      role:roles (
+        id,
+        name,
+        permissions:permissions (
+          id,
+          action
+        )
+      )
+    `,
+    )
+    .eq("email", authUser.user.email);
 
-  if (userError) {
-    console.error("Error fetching user data:", userError);
-    return null;
+  const rawUser = users?.[0];
+  if (!rawUser || rawUser.status !== "active") {
+    return { status: false, message: "Tài khoản bị khóa hoặc không tồn tại." };
   }
 
-  return {
-    ...data.user,
-    role: userData.role as UserRole,
-    firstName: userData.firstName,
-    lastName: userData.lastName,
+  const role = Array.isArray(rawUser.role) ? rawUser.role[0] : rawUser.role;
+  if (!role) {
+    return { status: false, message: "Không có quyền truy cập." };
+  }
+
+  const user: AuthUser = {
+    id: rawUser.id,
+    email: rawUser.email,
+    firstName: rawUser.firstName,
+    lastName: rawUser.lastName,
+    role_id: rawUser.role_id,
+    role: {
+      id: role.id,
+      name: role.name,
+      permissions: role.permissions ?? [],
+    },
   };
+
+  return { status: true, user };
 };
 
 /** Supabase Sign Out */

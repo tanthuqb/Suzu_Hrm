@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { AlertCircle, CheckCircle } from "lucide-react";
@@ -9,11 +9,11 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 
-import { signInEmail } from "~/app/actions/auth";
-import { isStrongPassword, isValidEmail } from "~/app/libs";
+import { handleSignInWithGoogle } from "~/app/actions/auth";
+import { isStrongPassword } from "~/app/libs";
+import { env } from "~/env";
 import MainTabs from "./main-tab";
 import NewResetPassword from "./new-reset-password";
-import ResetPassword from "./reset-password";
 import SignInForm from "./sign-in-form";
 import Success from "./success";
 
@@ -35,85 +35,79 @@ export default function Page() {
   const nextRaw = searchParams.get("next");
 
   useEffect(() => {
-    let view: string | null = null;
     if (message) {
-      setError(message);
+      setError(decodeURIComponent(message));
     }
+
     if (nextRaw) {
       const innerParams = new URLSearchParams(nextRaw.split("?")[1]);
-      view = innerParams.get("view");
-      if (view === "new-password") {
+      const viewParam = innerParams.get("view");
+
+      if (viewParam === "new-password") {
         setCurrentView("new-password");
       }
+    } else if (view === "new-password") {
+      setCurrentView("new-password");
     }
   }, [view, message, nextRaw]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (!password) {
-      setError("Please enter your password");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      await signInEmail(email, password);
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setEmail("");
-      setPassword("");
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
-    } catch (error) {
-      setIsSubmitting(false);
-      setError("Invalid email or password");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      await handleSignInWithGoogle();
+    } catch (err) {
+      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
 
-  const handleRequestPasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      );
-
-      const redirectUrl = `${window.location.origin}/callback?next=/login?view=new-password&type=recovery`;
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof (err as any).message === "string"
+      ) {
+        errorMessage = (err as any).message;
       }
-
-      setSuccessMessage("Check your email for a password reset link.");
-    } catch (error: any) {
-      setError(error.message || "Something went wrong");
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // const handleRequestPasswordReset = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError(null);
+
+  //   if (!isValidEmail(email)) {
+  //     setError("Please enter a valid email address");
+  //     return;
+  //   }
+
+  //   setIsSubmitting(true);
+  //   try {
+  //     const supabase = createClient(
+  //       env.NEXT_PUBLIC_SUPABASE_URL,
+  //       env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  //     );
+
+  //     const redirectUrl = `${window.location.origin}/callback?next=/login?view=new-password&type=recovery`;
+
+  //     const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  //       redirectTo: redirectUrl,
+  //     });
+
+  //     if (error) {
+  //       throw new Error(error.message as);
+  //     }
+
+  //     setSuccessMessage("Check your email for a password reset link.");
+  //   } catch (error: any) {
+  //     setError(error.message || "Something went wrong");
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +129,8 @@ export default function Page() {
 
     try {
       const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        env.NEXT_PUBLIC_SUPABASE_URL,
+        env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       );
 
       const { error } = await supabase.auth.updateUser({
@@ -195,26 +189,22 @@ export default function Page() {
             />
             <SignInForm
               handleSignIn={handleSignIn}
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
               isSubmitting={isSubmitting}
               setCurrentView={setCurrentView}
             />
           </>
         );
 
-      case "reset-password":
-        return (
-          <ResetPassword
-            goBack={goBack}
-            email={email}
-            isSubmitting={isSubmitting}
-            handleRequestPasswordReset={handleRequestPasswordReset}
-            setEmail={setEmail}
-          />
-        );
+      // case "reset-password":
+      //   return (
+      //     <ResetPassword
+      //       goBack={goBack}
+      //       email={email}
+      //       isSubmitting={isSubmitting}
+      //       handleRequestPasswordReset={handleRequestPasswordReset}
+      //       setEmail={setEmail}
+      //     />
+      //   );
       case "new-password":
         return (
           <NewResetPassword
