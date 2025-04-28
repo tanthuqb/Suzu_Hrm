@@ -45,6 +45,21 @@ export const SupabaseUser = auth.table("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+/** ROLE TABLE  */
+export const Role = pgTable("roles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+});
+
+/** PERMISSION TABLE  */
+export const Permission = pgTable("permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roleId: uuid("role_id")
+    .references(() => Role.id)
+    .notNull(),
+  action: text("action").notNull(),
+});
+
 /** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().notNull(),
@@ -53,7 +68,9 @@ export const HRMUser = pgTable("users", (t) => ({
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
-  role: t.varchar("role", { length: 255 }).notNull(),
+  roleId: uuid("role_id")
+    .references(() => Role.id)
+    .notNull(),
   phone: t.varchar("phone", { length: 255 }).notNull(),
   status: t.varchar("status", { length: 255 }).default("active"),
   departmentId: t.integer("department_id").references(() => Department.id),
@@ -72,7 +89,6 @@ export const CreateUserSchemaInput = createInsertSchema(HRMUser, {
   firstName: z.string().max(255),
   lastName: z.string().max(255),
   email: z.string().email().max(255),
-  role: z.string().max(255),
   phone: z.string().max(255),
   status: z.string().max(255),
 }).omit({
@@ -363,6 +379,10 @@ export const HRMUserRelations = relations(HRMUser, ({ one, many }) => ({
     fields: [HRMUser.departmentId],
     references: [Department.id],
   }),
+  role: one(Role, {
+    fields: [HRMUser.roleId],
+    references: [Role.id],
+  }),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({
@@ -401,6 +421,18 @@ export const AttendanceRelations = relations(Attendance, ({ one }) => ({
   }),
 }));
 
+export const RoleRelations = relations(Role, ({ many }) => ({
+  permissions: many(Permission),
+  users: many(HRMUser),
+}));
+
+export const PermissionRelations = relations(Permission, ({ one }) => ({
+  role: one(Role, {
+    fields: [Permission.roleId],
+    references: [Role.id],
+  }),
+}));
+
 export const schema = {
   HRMUser,
   SalarySlip,
@@ -412,6 +444,7 @@ export const schema = {
   Notifications,
   LeaveRequests,
   Department,
+  Permission,
 };
 
 export default {

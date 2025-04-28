@@ -64,6 +64,13 @@
       "when": 1745809475404,
       "tag": "0008_youthful_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1745835763004,
+      "tag": "0009_youthful_warstar",
+      "breakpoints": true
     }
   ]
 }

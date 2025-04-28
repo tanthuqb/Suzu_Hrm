@@ -28,30 +28,39 @@ export interface IUser {
   email: string;
   phone: string;
   employeeCode: string;
-  role: UserRole;
+  role: string;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 // User With Role
-export interface AuthUser extends User {
-  role: string;
-  firstName?: string;
-  lastName?: string;
+export interface AuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: {
+    id: string;
+    name: string;
+    permissions: {
+      id: string;
+      action: string;
+    }[];
+  };
 }
 
 // Request/Response Types
 export interface CreateUserInput {
   name: string;
   email: string;
-  role: UserRole;
+  role: string;
   status?: UserStatus;
 }
 
 export interface UpdateUserInput {
   name?: string;
   email?: string;
-  role?: UserRole;
+  role?: string;
   status?: UserStatus;
 }
 
@@ -75,12 +84,10 @@ export interface AttendanceInput {
 }
 
 export type SalarySlipWithUser = HRMUserInput & {
-  role: UserRole;
   status: UserStatus;
 };
 
 export type SalarySlipWithTableUser = DBUser & {
-  role: UserRole;
   status?: UserStatus;
   latestSalarySlip?: SalarySlipRecord;
 };

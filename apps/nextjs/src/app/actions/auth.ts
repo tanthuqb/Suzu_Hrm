@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import type { AuthUser, UserRole } from "@acme/db";
+import type { AuthUser } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -130,26 +130,47 @@ export const checkAuth = async (): Promise<AuthUser | null> => {
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
-  if (error) {
+  if (error || !data.user) {
     return null;
   }
 
   const { data: userData, error: userError } = await supabase
     .from("users")
-    .select("role,firstName,lastName")
+    .select(
+      `
+    id,
+    firstName,
+    lastName,
+    email,
+    role_id,
+    role:roles (
+      id,
+      name,
+      permissions:permissions (
+        id,
+        action
+      )
+    )
+  `,
+    )
     .eq("email", data.user.email)
     .single();
 
-  if (userError) {
-    console.error("Error fetching user data:", userError);
+  if (userError || userData.role) {
+    console.error("Error fetching user data or role:", userError);
     return null;
   }
 
   return {
-    ...data.user,
-    role: userData.role as UserRole,
+    id: userData.id,
+    email: userData.email,
     firstName: userData.firstName,
     lastName: userData.lastName,
+    role: {
+      id: userData.role.id,
+      name: userData.role.name,
+      permissions: userData.role.permissions ?? [],
+    },
   };
 };
 
