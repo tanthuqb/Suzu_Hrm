@@ -52,8 +52,10 @@ export function UserTable() {
     order,
   };
 
+  const queryOptions = trpc.user.all.queryOptions(input);
+
   const { data, refetch, isFetching } = useSuspenseQuery(
-    trpc.user.all.queryOptions(input),
+    queryOptions.queryKey.length > 0 ? queryOptions : ({} as any),
   ) as {
     data: UserAllOutput;
     refetch: () => void;

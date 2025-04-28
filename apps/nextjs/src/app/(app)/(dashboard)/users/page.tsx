@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { UserStatusModal } from "~/app/_components/UserStatusModal";
 import { checkAuth } from "~/app/actions/auth";
 import { UserStatusModalProvider } from "~/app/context/UserStatusModalContext";
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { HydrateClient, trpc } from "~/trpc/server";
+import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import { UserTableSkeleton } from "./_components/table-skeleton";
 import { UserTable } from "./_components/user-table";
 
@@ -18,23 +19,18 @@ export default async function UsersPage() {
     redirect("/login?message=You do not have permission to access this page.");
   }
 
-  const input: {
-    page: number;
-    pageSize: number;
-    search: string;
-    sortBy: string;
-    order: "asc" | "desc";
-  } = {
+  const input = {
     page: 1,
     pageSize: 10,
     search: "",
-    sortBy: "",
-    order: "desc",
+    sortBy: "email",
+    order: "desc" as const,
   };
 
-  prefetch(trpc.user.all.queryOptions(input));
+  const { state } = await ssrPrefetch(trpc.user.all.queryOptions(input));
+
   return (
-    <HydrateClient>
+    <HydrateClient state={state}>
       <UserStatusModalProvider>
         <Suspense fallback={<UserTableSkeleton />}>
           <UserTable />

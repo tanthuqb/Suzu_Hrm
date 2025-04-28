@@ -1,7 +1,8 @@
+import type { DehydratedState } from "@tanstack/react-query";
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query";
 import { cache } from "react";
 import { headers } from "next/headers";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { HydrationBoundary } from "@tanstack/react-query";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
 import type { AppRouter } from "@acme/api";
@@ -32,12 +33,12 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
   queryClient: getQueryClient,
 });
 
-export function HydrateClient(props: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
+export function HydrateClient(props: {
+  children: React.ReactNode;
+  state: DehydratedState;
+}) {
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      {props.children}
-    </HydrationBoundary>
+    <HydrationBoundary state={props.state}>{props.children}</HydrationBoundary>
   );
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
