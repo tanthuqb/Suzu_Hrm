@@ -6,7 +6,7 @@ import { checkAuth } from "~/app/actions/auth";
 import { UserStatusModalProvider } from "~/app/context/UserStatusModalContext";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
-import { UserTableSkeleton } from "./_components/table-skeleton";
+import { UserTableSkeleton } from "../../_components/table-skeleton";
 import { UserTable } from "./_components/user-table";
 
 export default async function UsersPage() {
