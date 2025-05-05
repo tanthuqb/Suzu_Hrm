@@ -22,7 +22,6 @@ import { Label } from "@acme/ui/label";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
-import { useAuth } from "~/app/hooks/useAuth";
 import { useTRPC } from "~/trpc/react";
 
 interface UserRow {
@@ -42,17 +41,6 @@ export default function ImportPage() {
   const [textPreview, setTextPreview] = useState("");
   const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, isAdmin } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user) return;
-
-    if (!isAdmin) {
-      toast.error("Bạn không có quyền vào phần này");
-      router.replace("/users");
-    }
-  }, [user, isAdmin, router]);
 
   const importUsers = useMutation(
     trpc.user.imports.mutationOptions({

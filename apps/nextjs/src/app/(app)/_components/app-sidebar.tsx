@@ -29,10 +29,10 @@ import {
   SidebarMenuSubItem,
 } from "@acme/ui/sidebar";
 
-import { useAuth } from "~/app/hooks/useAuth";
+// import { useAuth } from "~/app/hooks/useAuth";
 
 export function AppSidebar() {
-  const { user } = useAuth();
+  // const { user } = useAuth();
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-border">
@@ -42,49 +42,49 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {user?.role == "admin" ? (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <Link href="/users">
-                  <Users className="h-4 w-4" />
-                  <span>Users</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ) : null}
-          {user?.role === "admin" ? (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/imports">
-                  <FileImport className="h-4 w-4" />
-                  <span>Import Suzu</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ) : null}
+          {/* {user?.role == "admin" ? ( */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive>
+              <Link href="/users">
+                <Users className="h-4 w-4" />
+                <span>Users</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {/* ) : null} */}
+          {/* {user?.role === "admin" ? ( */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/imports">
+                <FileImport className="h-4 w-4" />
+                <span>Import Suzu</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {/* ) : null} */}
           {/* Menu Menu Sub Nhan Su */}
-          {user?.role === "admin" || user?.role === "hr" ? (
-            <Collapsible className="group/collapsible">
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>
-                    <Users className="h-4 w-4" />
-                    <span>Nhân Sự</span>
-                    <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild>
-                        <Link href="/import-attendance">Imports</Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          ) : null}
+          {/* {user?.role === "admin" || user?.role === "hr" ? ( */}
+          <Collapsible className="group/collapsible">
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton>
+                  <Users className="h-4 w-4" />
+                  <span>Nhân Sự</span>
+                  <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/import-attendance">Imports</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
+          {/* ) : null} */}
           {/* Menu Menu Sub Kien Thuc */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>

@@ -1,8 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { AuthUser, SupabaseUserRow } from "@acme/db";
+import type { AuthUser, ResponeAuthUser, SupabaseUserRow } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -125,13 +126,21 @@ export async function signInEmail(email: string, password: string) {
   return data;
 }
 
-export const checkAuth = async (): Promise<AuthUser | null> => {
+export const checkAuth = async (): Promise<AuthUser | ResponeAuthUser> => {
+  const Result: ResponeAuthUser = { status: false, message: "" };
   const supabase = await createServerClient();
   const { data: authUser, error: authError } = await supabase.auth.getUser();
+  if (authError || !authUser.user.email) {
+    Result.message = "Email không tồn tại hoặc bị khóa";
+    return Result;
+  }
 
-  if (authError || !authUser.user.email) return null;
+  if (!isValidEmail(authUser.user.email)) {
+    Result.message = "Email không thuộc tổ chức SUZU";
+    return Result;
+  }
 
-  const { data: users, error: userError } = await supabase
+  const { data: users } = await supabase
     .from("users")
     .select(
       `
@@ -152,16 +161,23 @@ export const checkAuth = async (): Promise<AuthUser | null> => {
     `,
     )
     .eq("email", authUser.user.email);
-  if (userError || !users.length) return null;
+
+  if (!users || users.length === 0) {
+    Result.message = "Email không tồn tại hoặc bị khóa";
+    return Result;
+  }
 
   const rawUser = users[0] as SupabaseUserRow;
-  console.log("rawUser.status", rawUser.status != "active");
 
   if (rawUser.status != "active") {
-    return null;
+    Result.message = "Email không tồn tại hoặc bị khóa";
+    return Result;
   }
   const role = Array.isArray(rawUser.role) ? rawUser.role[0] : rawUser.role;
-  if (!role) return null;
+  if (!role) {
+    Result.message = "Bạn không có quyền hạn";
+    return Result;
+  }
 
   const userData: AuthUser = {
     id: rawUser.id,

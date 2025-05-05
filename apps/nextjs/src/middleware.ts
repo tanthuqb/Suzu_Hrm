@@ -20,16 +20,20 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  // ✅ KHÔNG can thiệp auth callback
   if (request.nextUrl.pathname === "/api/auth/callback") {
     return NextResponse.next();
   }
-
+  // ✅ Nếu không có token, chuyển hướng
   if (!user && !path.startsWith("/login") && !path.startsWith("/auth")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("message", "Bạn cần đăng nhập.");
+    loginUrl.searchParams.set("next", path);
+    return NextResponse.redirect(loginUrl);
   }
 
+  // ✅ Nếu đã login rồi mà vào /login thì đẩy về home
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";

@@ -34,9 +34,10 @@ export default function Page() {
   const message = searchParams.get("message");
   const nextRaw = searchParams.get("next");
 
+  console.log("meesag", message, nextRaw);
   useEffect(() => {
     if (message) {
-      setError(message);
+      setError(decodeURIComponent(message));
     }
 
     if (nextRaw) {
