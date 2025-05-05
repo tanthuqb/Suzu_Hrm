@@ -2,7 +2,7 @@ import { asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import type { SalarySlipWithTableUser, UserRole, UserStatus } from "@acme/db";
-import { HRMUser, SalarySlip } from "@acme/db/schema";
+import { HRMUser, Role, SalarySlip } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
 import type { ImportUsersResult } from "../types/index";
@@ -50,9 +50,7 @@ export const userRouter = createTRPCRouter({
           ? HRMUser.firstName
           : sortBy === "lastName"
             ? HRMUser.lastName
-            : sortBy === "role"
-              ? HRMUser.role
-              : HRMUser.email;
+            : HRMUser.email;
 
       const joined = await ctx.db
         .select({
@@ -61,6 +59,7 @@ export const userRouter = createTRPCRouter({
         })
         .from(HRMUser)
         .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
+        .leftJoin(Role, eq(HRMUser.roleId, Role.id))
         .where(where)
         .orderBy(
           order === "desc" ? desc(sortColumn) : asc(sortColumn),
@@ -73,7 +72,6 @@ export const userRouter = createTRPCRouter({
         if (!userMap.has(user.id)) {
           userMap.set(user.id, {
             ...user,
-            role: user.role as UserRole,
             status: user.status as UserStatus,
             latestSalarySlip: salary ?? undefined,
           });
@@ -184,7 +182,7 @@ export const userRouter = createTRPCRouter({
             name: user.name ?? `${user.firstName} ${user.lastName}`,
             email: user.email,
             phone: user.phone,
-            role: user.role as UserRole,
+            roleId: "",
             status: user.status as UserStatus,
             employeeCode: user.employeeCode ?? "",
             createdAt: new Date(),

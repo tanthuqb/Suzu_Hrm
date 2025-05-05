@@ -15,6 +15,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+import type { HRMUserInput } from "./types/types";
 import { AttendanceStatus } from "./constants/attendance";
 
 /** Helper convert enum */
@@ -44,6 +45,21 @@ export const SupabaseUser = auth.table("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+/** ROLE TABLE  */
+export const Role = pgTable("roles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+});
+
+/** PERMISSION TABLE  */
+export const Permission = pgTable("permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roleId: uuid("role_id")
+    .references(() => Role.id)
+    .notNull(),
+  action: text("action").notNull(),
+});
+
 /** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().notNull(),
@@ -52,9 +68,12 @@ export const HRMUser = pgTable("users", (t) => ({
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
-  role: t.varchar("role", { length: 255 }).notNull(),
+  roleId: uuid("role_id")
+    .references(() => Role.id)
+    .notNull(),
   phone: t.varchar("phone", { length: 255 }).notNull(),
   status: t.varchar("status", { length: 255 }).default("active"),
+  departmentId: t.integer("department_id").references(() => Department.id),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -70,7 +89,6 @@ export const CreateUserSchemaInput = createInsertSchema(HRMUser, {
   firstName: z.string().max(255),
   lastName: z.string().max(255),
   email: z.string().email().max(255),
-  role: z.string().max(255),
   phone: z.string().max(255),
   status: z.string().max(255),
 }).omit({
@@ -249,7 +267,7 @@ export const LeaveRequests = pgTable("leave_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
 
   name: text("name").notNull(),
-  userId: uuid("user_id").notNull(), // vì HRMUser.id là uuid
+  userId: uuid("user_id").notNull(),
   department: text("department").notNull(),
 
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
@@ -287,7 +305,63 @@ export const Attendance = pgTable("attendances", {
   status: attendanceStatusEnum("status").notNull(),
 });
 
+/** DEPARTMENT TABLE  */
+
+export const Department = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 20 }).notNull(),
+  managerId: uuid("manager_id"),
+  position: varchar("position", { length: 50 }).default("staff"),
+  description: text("description"),
+  createdById: uuid("created_by_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
+  userId: z.string().uuid(),
+  name: z.string().max(100),
+  code: z.string().max(20),
+  managerId: z.string().uuid().optional(),
+  position: z.string().max(50).optional(),
+  description: z.string().optional(),
+  createdById: z.string().uuid().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// type record
+export type DepartmentRecord = InferSelectModel<typeof Department>;
+export const UpdateDepartmentSchema = CreateDepartmentSchemaInput.extend({
+  id: z.number(),
+});
+
+export type DepartmentWithUsersRecord = DepartmentRecord & {
+  users: HRMUserInput[];
+};
+
 /** RELATIONS **/
+
+export const DepartmentRelations = relations(Department, ({ one, many }) => ({
+  manager: one(HRMUser, {
+    fields: [Department.managerId],
+    references: [HRMUser.id],
+  }),
+  createdBy: one(HRMUser, {
+    fields: [Department.createdById],
+    references: [HRMUser.id],
+  }),
+  user: one(HRMUser, {
+    fields: [Department.userId],
+    references: [HRMUser.id],
+  }),
+  users: many(HRMUser),
+}));
+
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   user: one(HRMUser, {
     fields: [LeaveRequests.userId],
@@ -295,12 +369,20 @@ export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   }),
 }));
 
-export const HRMUserRelations = relations(HRMUser, ({ many }) => ({
+export const HRMUserRelations = relations(HRMUser, ({ one, many }) => ({
   salarySlips: many(SalarySlip),
   assets: many(Asset),
   transactions: many(Transaction),
   leaveRequests: many(LeaveRequests),
   attendances: many(Attendance),
+  department: one(Department, {
+    fields: [HRMUser.departmentId],
+    references: [Department.id],
+  }),
+  role: one(Role, {
+    fields: [HRMUser.roleId],
+    references: [Role.id],
+  }),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({
@@ -339,6 +421,18 @@ export const AttendanceRelations = relations(Attendance, ({ one }) => ({
   }),
 }));
 
+export const RoleRelations = relations(Role, ({ many }) => ({
+  permissions: many(Permission),
+  users: many(HRMUser),
+}));
+
+export const PermissionRelations = relations(Permission, ({ one }) => ({
+  role: one(Role, {
+    fields: [Permission.roleId],
+    references: [Role.id],
+  }),
+}));
+
 export const schema = {
   HRMUser,
   SalarySlip,
@@ -349,6 +443,8 @@ export const schema = {
   Attendance,
   Notifications,
   LeaveRequests,
+  Department,
+  Permission,
 };
 
 export default {
@@ -359,4 +455,5 @@ export default {
   WorkflowRelations,
   WorkflowStepRelations,
   AttendanceRelations,
+  DepartmentRelations,
 };

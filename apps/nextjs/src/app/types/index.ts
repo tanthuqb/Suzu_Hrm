@@ -23,3 +23,16 @@ export interface UserAllOutput {
   users: SalarySlipWithTableUser[];
   total: number;
 }
+
+export interface Department {
+  id: number;
+  userId: string;
+  name: string;
+  code: string;
+  managerId: string | null;
+  position: string;
+  description: string | null;
+  createdById: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

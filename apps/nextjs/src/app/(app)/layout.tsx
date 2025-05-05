@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { SidebarProvider } from "@acme/ui/sidebar";
 import { Toaster } from "@acme/ui/toast";
 
-import { AppSidebar } from "./(dashboard)/users/_components/app-sidebar";
-import { Header } from "./(dashboard)/users/_components/header";
+import { AppSidebar } from "./_components/app-sidebar";
+import { Header } from "./_components/header";
 
 export default function AppLayout(props: { children: React.ReactNode }) {
   return (
