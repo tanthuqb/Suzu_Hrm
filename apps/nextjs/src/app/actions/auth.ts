@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import type { AuthUser } from "@acme/db";
+import type { AuthUser, SupabaseUserRow } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -26,12 +26,11 @@ export const handleSignInWithGoogle = async () => {
       skipBrowserRedirect: false, // Ensure browser handles the redirect
     },
   });
-
   if (error) {
     console.error("Failed to sign in with Google:", error);
     throw new Error(error.message);
   }
-
+  console.log(3333, `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback`);
   // Only redirect if we have a URL
   if (data.url) {
     redirect(data.url);
@@ -128,50 +127,60 @@ export async function signInEmail(email: string, password: string) {
 
 export const checkAuth = async (): Promise<AuthUser | null> => {
   const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { data: authUser, error: authError } = await supabase.auth.getUser();
 
-  if (error || !data.user) {
-    return null;
-  }
+  if (authError || !authUser.user.email) return null;
 
-  const { data: userData, error: userError } = await supabase
+  const { data: users, error: userError } = await supabase
     .from("users")
     .select(
       `
-    id,
-    firstName,
-    lastName,
-    email,
-    role_id,
-    role:roles (
       id,
-      name,
-      permissions:permissions (
+      firstName,
+      lastName,
+      email,
+      status,
+      role_id,
+      role:roles (
         id,
-        action
+        name,
+        permissions:permissions (
+          id,
+          action
+        )
       )
+    `,
     )
-  `,
-    )
-    .eq("email", data.user.email)
-    .single();
+    .eq("email", authUser.user.email);
+  if (userError || !users.length) return null;
 
-  if (userError || userData.role) {
-    console.error("Error fetching user data or role:", userError);
+  const rawUser = users[0] as SupabaseUserRow;
+  console.log("rawUser.status", rawUser.status != "active");
+
+  if (rawUser.status != "active") {
     return null;
   }
+  const role = Array.isArray(rawUser.role) ? rawUser.role[0] : rawUser.role;
+  if (!role) return null;
 
-  return {
-    id: userData.id,
-    email: userData.email,
-    firstName: userData.firstName,
-    lastName: userData.lastName,
+  const userData: AuthUser = {
+    id: rawUser.id,
+    email: rawUser.email,
+    firstName: rawUser.firstName,
+    lastName: rawUser.lastName,
+    role_id: rawUser.role_id,
     role: {
-      id: userData.role.id,
-      name: userData.role.name,
-      permissions: userData.role.permissions ?? [],
+      id: role.id,
+      name: role.name,
+      permissions:
+        role.permissions?.map((p) => ({
+          id: p.id,
+          action: p.action,
+        })) ?? [],
     },
   };
+
+  return userData;
 };
 
 /** Supabase Sign Out */

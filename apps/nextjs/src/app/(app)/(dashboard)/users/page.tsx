@@ -11,12 +11,12 @@ import { UserTable } from "./_components/user-table";
 
 export default async function UsersPage() {
   const AuthUser = await checkAuth();
-  console.log("AuthUser", AuthUser);
+  console.log("AuthUser", !AuthUser);
   // if (!AuthUser) {
   //   redirect("/login?message=You must be logged in to access this page.");
   // }
 
-  // if (AuthUser.role !== "admin") {
+  // if (AuthUser.role.name != "Admin") {
   //   redirect("/login?message=You do not have permission to access this page.");
   // }
 
