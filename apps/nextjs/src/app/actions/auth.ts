@@ -30,7 +30,6 @@ export const handleSignInWithGoogle = async () => {
     console.error("Failed to sign in with Google:", error);
     throw new Error(error.message);
   }
-  console.log(3333, `${env.NEXT_PUBLIC_APP_URL}/api/auth/callback`);
   // Only redirect if we have a URL
   if (data.url) {
     redirect(data.url);
@@ -133,6 +132,10 @@ export const checkAuth = async (): Promise<{
   const supabase = await createServerClient();
   const { data: authUser, error: authError } = await supabase.auth.getUser();
 
+  if (!isValidEmail(authUser.user?.email!)) {
+    return { status: false, message: "Email không phải của tổ chức." };
+  }
+
   if (authError || !authUser.user.email) {
     return { status: false, message: "Bạn cần đăng nhập." };
   }
@@ -166,7 +169,7 @@ export const checkAuth = async (): Promise<{
 
   const role = Array.isArray(rawUser.role) ? rawUser.role[0] : rawUser.role;
   if (!role) {
-    return { status: false, message: "Không có quyền truy cập." };
+    return { status: false, message: "Bạn không có quyền truy cập." };
   }
 
   const user: AuthUser = {
