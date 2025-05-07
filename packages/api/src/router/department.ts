@@ -4,30 +4,44 @@ import { z } from "zod";
 
 import { CreateDepartmentSchemaInput, Department } from "@acme/db/schema";
 
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
-/**
- * Department Router
- */
 export const departmentRouter = createTRPCRouter({
-  // Create new department
   create: protectedProcedure
     .input(CreateDepartmentSchemaInput)
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "department",
+        "create",
+        "Không có quyền tạo phòng ban",
+      );
       const newDepartment = await ctx.db
         .insert(Department)
         .values(input)
         .returning();
       return newDepartment[0];
     }),
-  // Get all departments
   getAll: publicProcedure.query(async ({ ctx }) => {
+    await checkPermissionOrThrow(
+      ctx,
+      "department",
+      "getAll",
+      "Không có quyền xem danh sách phòng ban",
+    );
     return await ctx.db.select().from(Department).orderBy(Department.createdAt);
   }),
-  // Get one department by id
+
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "department",
+        "getById",
+        "Không có quyền xem phòng ban",
+      );
       const { id } = input;
       const result = await ctx.db.query.Department.findFirst({
         where: (fields, { eq }) => eq(fields.id, id),
@@ -35,7 +49,7 @@ export const departmentRouter = createTRPCRouter({
 
       return result ?? null;
     }),
-  // Update department
+
   update: protectedProcedure
     .input(
       CreateDepartmentSchemaInput.extend({
@@ -43,6 +57,12 @@ export const departmentRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "department",
+        "update",
+        "Không có quyền cập nhật phòng ban",
+      );
       const { id, ...rest } = input;
       const [updated] = await ctx.db
         .update(Department)
@@ -59,10 +79,16 @@ export const departmentRouter = createTRPCRouter({
 
       return updated;
     }),
-  // Delete department
+
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "department",
+        "delete",
+        "Không có quyền xóa phòng ban",
+      );
       await ctx.db
         .delete(Department)
         .where(eq(Department.id, input.id))

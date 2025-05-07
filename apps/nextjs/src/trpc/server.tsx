@@ -19,8 +19,10 @@ import { createQueryClient } from "./query-client";
 const createContext = cache(async () => {
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
+  const authData = await auth();
+
   return createTRPCContext({
-    session: (await auth()) as unknown as Session,
+    session: authData as unknown as Session,
     headers: heads,
   });
 });

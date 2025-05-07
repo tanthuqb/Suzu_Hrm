@@ -1,6 +1,8 @@
-import type { DBUser } from "@acme/db";
+import { eq } from "drizzle-orm";
+
+import type { FullHrmUser } from "@acme/db";
 import { db } from "@acme/db/client";
-import { HRMUser } from "@acme/db/schema";
+import { HRMUser, Permission, Role } from "@acme/db/schema";
 
 import { createBrowserClient, createServerClient } from "../../supabase/src";
 import { env } from "../env";
@@ -8,11 +10,22 @@ import { env } from "../env";
 export interface Session {
   user: {
     id: string;
-    email?: string;
+    employeeCode?: string;
     name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    roleId?: string;
+    phone?: string;
+    status?: string;
+    departmentId?: string;
+    departments?: {
+      name?: string;
+    };
     image?: string;
   };
   expires: string;
+  role?: string;
 }
 
 export const isSecureContext = env.APP_ENV !== "development";
@@ -20,7 +33,7 @@ export const isSecureContext = env.APP_ENV !== "development";
 /** Validate Supabase JWT Token and map to HRM User */
 export const validateToken = async (
   token: string,
-): Promise<{ user: DBUser; expires: string } | null> => {
+): Promise<{ user: FullHrmUser; expires: string } | null> => {
   const supabaseBrowser = createBrowserClient();
   try {
     // First verify the token with Supabase
@@ -34,21 +47,20 @@ export const validateToken = async (
       return null;
     }
 
+    const userEmail = user.email ?? "";
     // Check if user exists in HRM users table
     const hrmUser = await db
       .select()
       .from(HRMUser)
-      .limit(1)
-      .execute()
-      .then((rows) => rows[0] ?? null);
+      .where(eq(HRMUser.email, userEmail))
+      .limit(1);
 
-    if (!hrmUser) {
-      console.error("User not found in HRM system");
-      return null;
+    if (hrmUser.length === 0 || !hrmUser[0]) {
+      throw new Error(`HRM user not found with email: ${userEmail}`);
     }
 
     return {
-      user: hrmUser,
+      user: hrmUser[0] as FullHrmUser,
       expires: new Date(Date.now() + 3600 * 1000).toISOString(),
     };
   } catch (err) {
@@ -89,28 +101,63 @@ export const getCurrentUser = async () => {
 };
 
 export const auth = async (): Promise<Session | null> => {
-  const supabase = await createServerClient();
-  const { error } = await supabase.auth.getUser();
+  try {
+    const supabase = await createServerClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
 
-  if (error) {
-    console.error("Failed to get user:", error);
+    if (!token) {
+      console.error("User not authenticated");
+      return null;
+    }
+
+    const hrmUser = await validateToken(token);
+    if (!hrmUser) {
+      console.error("Invalid token");
+      return null;
+    }
+
+    const userData = await db
+      .select({
+        id: HRMUser.id,
+        employeeCode: HRMUser.employeeCode,
+        name: HRMUser.name,
+        firstName: HRMUser.firstName,
+        lastName: HRMUser.lastName,
+        email: HRMUser.email,
+        roleId: HRMUser.roleId,
+        departmentId: HRMUser.departmentId,
+        phone: HRMUser.phone,
+        status: HRMUser.status,
+        createdAt: HRMUser.createdAt,
+        updatedAt: HRMUser.updatedAt,
+        roleName: Role.name,
+        permission: {
+          module: Permission.module,
+          action: Permission.action,
+          type: Permission.type,
+          allow: Permission.allow,
+        },
+      })
+      .from(HRMUser)
+      .leftJoin(Role, eq(HRMUser.roleId, Role.id))
+      .leftJoin(Permission, eq(Role.id, Permission.roleId))
+      .where(eq(HRMUser.email, hrmUser.user.email));
+
+    if (userData.length === 0) {
+      console.error("User not found in database.");
+      return null;
+    }
+
+    const role = userData[0]?.roleName ?? "guest";
+
+    return {
+      user: hrmUser.user,
+      expires: hrmUser.expires,
+      role,
+    };
+  } catch (error) {
+    console.error("Error during authentication:", error);
     return null;
   }
-
-  // Get HRM user data using validateToken
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  if (!token) {
-    return null;
-  }
-
-  const hrmUser = await validateToken(token);
-  if (!hrmUser) {
-    return null;
-  }
-
-  return {
-    user: hrmUser.user,
-    expires: hrmUser.expires,
-  };
 };

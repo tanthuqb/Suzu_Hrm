@@ -1,11 +1,18 @@
+import { TRPCError } from "@trpc/server";
 import { asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import type { SalarySlipWithTableUser, UserStatus } from "@acme/db";
-import { HRMUser, Role, SalarySlip } from "@acme/db/schema";
+import type {
+  FullHrmUser,
+  SalarySlipWithTableUser,
+  UserStatus,
+} from "@acme/db";
+import { Department, HRMUser, Role, SalarySlip } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
 import type { ImportUsersResult } from "../types/index";
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 const idSchema = z.union([z.string(), z.object({ id: z.string() })]);
@@ -34,6 +41,12 @@ export const userRouter = createTRPCRouter({
         }),
     )
     .query(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "all",
+        "Không có quyền cập nhật người dùng",
+      );
       const { page, pageSize, search, sortBy, order } = input;
       const offset = (page - 1) * pageSize;
 
@@ -56,24 +69,31 @@ export const userRouter = createTRPCRouter({
         .select({
           user: HRMUser,
           salary: SalarySlip,
+          role: Role,
+          department: Department,
         })
         .from(HRMUser)
         .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
+        .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
         .where(where)
         .orderBy(
           order === "desc" ? desc(sortColumn) : asc(sortColumn),
           desc(SalarySlip.createdAt),
         );
 
-      const userMap = new Map<string, SalarySlipWithTableUser>();
+      const userMap = new Map<string, FullHrmUser>();
 
-      for (const { user, salary } of joined) {
+      for (const { user, salary, role, department } of joined) {
         if (!userMap.has(user.id)) {
           userMap.set(user.id, {
             ...user,
             status: user.status as UserStatus,
             latestSalarySlip: salary ?? undefined,
+            role: role ? { id: role.id, name: role.name } : undefined,
+            departments: department
+              ? { id: department.id, name: department.name }
+              : undefined,
           });
         }
       }
@@ -92,6 +112,12 @@ export const userRouter = createTRPCRouter({
     }),
 
   byId: protectedProcedure.input(idSchema).query(async ({ ctx, input }) => {
+    await checkPermissionOrThrow(
+      ctx,
+      "user",
+      "byId",
+      "Không có quyền lấy thông tin người dùng",
+    );
     const id = typeof input === "string" ? input : input.id;
     return ctx.db.query.HRMUser.findFirst({ where: eq(HRMUser.id, id) });
   }),
@@ -99,6 +125,12 @@ export const userRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(idSchema)
     .mutation(async ({ ctx, input }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "delete",
+        "Không có quyền xóa người dùng",
+      );
       const id = typeof input === "string" ? input : input.id;
       return ctx.db.delete(HRMUser).where(eq(HRMUser.id, id));
     }),
@@ -119,6 +151,12 @@ export const userRouter = createTRPCRouter({
       ),
     )
     .mutation(async ({ ctx, input }): Promise<ImportUsersResult> => {
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "imports",
+        "Không có quyền import người dùng",
+      );
       const supabase = adminAuthClient();
 
       if (input.length === 0)
@@ -183,6 +221,7 @@ export const userRouter = createTRPCRouter({
             email: user.email,
             phone: user.phone,
             roleId: "",
+            departmentId: "",
             status: user.status as UserStatus,
             employeeCode: user.employeeCode ?? "",
             createdAt: new Date(),

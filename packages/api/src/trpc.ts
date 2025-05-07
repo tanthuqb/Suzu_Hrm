@@ -4,7 +4,9 @@ import { ZodError } from "zod";
 
 import type { Session } from "@acme/auth";
 import { auth, validateToken } from "@acme/auth";
+import { and, eq } from "@acme/db";
 import { db } from "@acme/db/client";
+import { Permission } from "@acme/db/schema";
 
 /**
  * Isomorphic Session getter for API requests
@@ -26,6 +28,27 @@ const isomorphicGetSession = async (
   }
   return auth();
 };
+
+export async function checkPermission(
+  roleId: string,
+  module: string,
+  action: string,
+) {
+  if (!roleId) return false;
+
+  const result = await db
+    .select()
+    .from(Permission)
+    .where(
+      and(
+        eq(Permission.roleId, roleId),
+        eq(Permission.module, module),
+        eq(Permission.action, action),
+      ),
+    );
+
+  return result.length > 0 && result[0]?.allow === true;
+}
 
 /**
  * 1. CONTEXT
@@ -51,6 +74,7 @@ export const createTRPCContext = async (opts: {
   return {
     session,
     db,
+    checkPermission,
   };
 };
 

@@ -1,4 +1,4 @@
-import type { NotificationType, SalarySlipWithTableUser } from "@acme/db";
+import type { FullHrmUser, NotificationType } from "@acme/db";
 
 export interface Notification {
   id: string;
@@ -20,7 +20,7 @@ export interface InputLeaveRequest {
 }
 
 export interface UserAllOutput {
-  users: SalarySlipWithTableUser[];
+  users: FullHrmUser[];
   total: number;
 }
 

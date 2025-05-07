@@ -1,7 +1,11 @@
-import type { User } from "@supabase/supabase-js";
 import type { InferSelectModel } from "drizzle-orm";
 
-import type { HRMUser, SalarySlipRecord } from "../schema";
+import type {
+  DepartmentRecord,
+  HRMUser,
+  RoleRecord,
+  SalarySlipRecord,
+} from "../schema";
 
 // User Types
 export type UserRole =
@@ -33,6 +37,15 @@ export interface IUser {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// full typpe of user is DBUser have slarySlip and role
+export type FullHrmUser = DBUser & {
+  status?: UserStatus;
+  latestSalarySlip?: SalarySlipRecord;
+  role?: Pick<RoleRecord, "id" | "name">;
+  departments?: Pick<DepartmentRecord, "id" | "name">;
+};
+
 // User With Role
 export interface AuthUser {
   id: string;
@@ -124,12 +137,4 @@ export type PermissionAction = "create" | "read" | "update" | "delete";
 export interface RoutePermission {
   path: string;
   actions: Record<PermissionAction, boolean>;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  routes: RoutePermission[];
 }

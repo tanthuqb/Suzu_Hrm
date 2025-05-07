@@ -4,12 +4,19 @@ import { z } from "zod";
 
 import { CreateSalarySlipSchema, SalarySlip } from "@acme/db/schema";
 
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const salaryRouter = createTRPCRouter({
   create: protectedProcedure
     .input(CreateSalarySlipSchema)
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "salary",
+        "create",
+        "Không có quyền tạo phiếu lương",
+      );
       const [inserted] = await ctx.db
         .insert(SalarySlip)
         .values(input)
@@ -18,12 +25,24 @@ export const salaryRouter = createTRPCRouter({
     }),
 
   getAll: protectedProcedure.query(async ({ ctx }) => {
+    await checkPermissionOrThrow(
+      ctx,
+      "salary",
+      "getAll",
+      "Không có quyền xem danh sách phiếu lương",
+    );
     return await ctx.db.select().from(SalarySlip).orderBy(SalarySlip.createdAt);
   }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "salary",
+        "getById",
+        "Không có quyền xem phiếu lương",
+      );
       const { id } = input;
       const result = await ctx.db.query.SalarySlip.findFirst({
         where: (fields, { eq }) => eq(fields.id, id),
@@ -35,6 +54,12 @@ export const salaryRouter = createTRPCRouter({
   getByUser: protectedProcedure
     .input(z.object({ userId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "salary",
+        "getByUser",
+        "Không có quyền xem phiếu lương của người dùng",
+      );
       return await ctx.db
         .select()
         .from(SalarySlip)
@@ -48,6 +73,12 @@ export const salaryRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "salary",
+        "update",
+        "Không có quyền cập nhật phiếu lương",
+      );
       const { id, ...rest } = input;
       const [updated] = await ctx.db
         .update(SalarySlip)
@@ -68,6 +99,12 @@ export const salaryRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "salary",
+        "delete",
+        "Không có quyền xoá phiếu lương",
+      );
       const deleted = await ctx.db
         .delete(SalarySlip)
         .where(eq(SalarySlip.id, input.id))

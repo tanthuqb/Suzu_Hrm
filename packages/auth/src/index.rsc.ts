@@ -1,6 +1,11 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import type { FullHrmUser } from "@acme/db";
+import { eq } from "@acme/db";
+import { db } from "@acme/db/client";
+import { Department, HRMUser, Permission, Role } from "@acme/db/schema";
+
 import type { Session } from "./config";
 import { createServerClient } from "../../supabase/src";
 import { env } from "../env";
@@ -63,31 +68,60 @@ export const signOut = async () => {
 };
 
 export const auth = cache(async (): Promise<Session | null> => {
-  const supabase = await createServerClient();
-  const { data: sessionData } = await supabase.auth.getSession();
-  const session = sessionData.session;
+  try {
+    const supabase = await createServerClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
 
-  if (!session) {
+    if (!token) {
+      console.error("User not authenticated");
+      return null;
+    }
+
+    const hrmUser = await validateToken(token);
+
+    if (!hrmUser) {
+      console.error("Invalid token");
+      return null;
+    }
+
+    const userData = await db
+      .select({
+        id: HRMUser.id,
+        employeeCode: HRMUser.employeeCode,
+        name: HRMUser.name,
+        firstName: HRMUser.firstName,
+        lastName: HRMUser.lastName,
+        email: HRMUser.email,
+        roleId: HRMUser.roleId,
+        departmentId: HRMUser.departmentId,
+        phone: HRMUser.phone,
+        status: HRMUser.status,
+        createdAt: HRMUser.createdAt,
+        updatedAt: HRMUser.updatedAt,
+        roleName: Role.name,
+      })
+      .from(HRMUser)
+      .leftJoin(Role, eq(HRMUser.roleId, Role.id))
+      .leftJoin(Permission, eq(Role.id, Permission.roleId))
+      .where(eq(HRMUser.email, hrmUser.user.email));
+
+    if (userData.length === 0) {
+      console.error("User not found in database.");
+      return null;
+    }
+
+    const role = userData[0]?.roleName ?? "guest";
+
+    return {
+      user: userData[0] as Omit<FullHrmUser, "departmentId" | "roleId">,
+      expires: hrmUser.expires,
+      role,
+    };
+  } catch (error) {
+    console.error("Error during authentication:", error);
     return null;
   }
-
-  const { data: userData, error } = await supabase.auth.getUser();
-
-  if (error) {
-    return null;
-  }
-
-  return {
-    user: {
-      id: userData.user.id,
-      email: userData.user.email ?? undefined,
-      name: userData.user.user_metadata.full_name as string,
-      image: userData.user.user_metadata.avatar_url as string,
-    },
-    expires:
-      session.expires_at?.toString() ??
-      new Date(Date.now() + 3600 * 1000).toISOString(),
-  };
 });
 
 export { validateToken, invalidateSessionToken, isSecureContext };

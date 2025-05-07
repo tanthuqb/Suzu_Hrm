@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { desc, relations } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -70,10 +70,13 @@ export type RoleRecord = InferSelectModel<typeof Role>;
 /** PERMISSION TABLE  */
 export const Permission = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  module: text("module").notNull(),
   roleId: uuid("role_id")
     .references(() => Role.id)
     .notNull(),
   action: text("action").notNull(),
+  type: text("type").notNull(),
+  allow: boolean("allow").default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -84,6 +87,7 @@ export const CreatePermissionSchemaInput = createInsertSchema(Permission, {
   id: z.string().uuid().optional(),
   roleId: z.string().uuid(),
   action: z.string().max(255),
+  module: z.string().max(255),
 }).omit({
   createdAt: true,
   updatedAt: true,
@@ -104,7 +108,9 @@ export const HRMUser = pgTable("users", (t) => ({
     .notNull(),
   phone: t.varchar("phone", { length: 255 }).notNull(),
   status: t.varchar("status", { length: 255 }).default("active"),
-  departmentId: t.integer("department_id").references(() => Department.id),
+  departmentId: uuid("department_id")
+    .references(() => Department.id)
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

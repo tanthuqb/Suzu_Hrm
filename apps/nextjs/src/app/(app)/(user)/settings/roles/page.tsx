@@ -1,7 +1,6 @@
-import React, { Suspense } from "react";
+import React from "react";
 import { redirect } from "next/navigation";
 
-import { UserTableSkeleton } from "~/app/(app)/_components/table-skeleton";
 import { checkAuth } from "~/app/actions/auth";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
@@ -18,9 +17,7 @@ export default async function PageRolesManagers() {
 
   return (
     <HydrateClient state={state}>
-      <Suspense fallback={<UserTableSkeleton />}>
-        <RoleManager />
-      </Suspense>
+      <RoleManager />
     </HydrateClient>
   );
 }

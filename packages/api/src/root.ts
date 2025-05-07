@@ -2,6 +2,7 @@ import { aclRouter } from "./router/acl";
 import { authRouter } from "./router/auth";
 import { departmentRouter } from "./router/department";
 import { hrRouter } from "./router/hr";
+import { permissionRouter } from "./router/permission";
 import { roleRouter } from "./router/role";
 import { salaryRouter } from "./router/salary";
 import { userRouter } from "./router/users";
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   department: departmentRouter,
   acl: aclRouter,
   role: roleRouter,
+  permission: permissionRouter,
 });
 
 // export type definition of API

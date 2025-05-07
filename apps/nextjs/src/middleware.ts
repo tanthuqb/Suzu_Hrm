@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 import { createServerClient, updateSession } from "@acme/supabase";
 
+import { isValidEmail } from "./app/libs";
+
 export const config = {
   matcher: [
     // Loại bỏ file tĩnh & ảnh
@@ -16,21 +18,38 @@ export async function middleware(request: NextRequest) {
   const supabase = await createServerClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
 
+  const publicPaths = ["/login", "/auth-code-error", "/api/auth/callback"];
+
   // ✅ KHÔNG can thiệp auth callback
-  if (request.nextUrl.pathname === "/api/auth/callback") {
+  if (publicPaths.some((p) => path.startsWith(p))) {
     return NextResponse.next();
   }
   // ✅ Nếu không có token, chuyển hướng
-  if (!user && !path.startsWith("/login") && !path.startsWith("/auth")) {
+  if (!user || authError) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("message", "Bạn cần đăng nhập.");
     loginUrl.searchParams.set("next", path);
     return NextResponse.redirect(loginUrl);
+  }
+
+  //Nếu đã có user nhưng email không đúng domain công ty → xóa session & redirect
+  const email = user.email ?? "";
+  if (!isValidEmail(email)) {
+    // xóa cookie session
+    response.cookies.delete("sb-mempvqxtouxcmxqiilln-auth-token.0 ");
+    response.cookies.delete("sb-mempvqxtouxcmxqiilln-auth-token.1");
+
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("message", "Email không phải của tổ chức.");
+    url.searchParams.set("next", path);
+    return NextResponse.redirect(url);
   }
 
   return response;
