@@ -117,3 +117,19 @@ export type SalarySlipWithTableUser = DBUser & {
   status?: UserStatus;
   latestSalarySlip?: SalarySlipRecord;
 };
+
+/* Permison Types and Role  */
+export type PermissionAction = "create" | "read" | "update" | "delete";
+
+export interface RoutePermission {
+  path: string;
+  actions: Record<PermissionAction, boolean>;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  routes: RoutePermission[];
+}
