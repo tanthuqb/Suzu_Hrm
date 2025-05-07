@@ -253,6 +253,11 @@ export function AppSidebar() {
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
+                      <Link href="/settings/roles">Role Manager</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
                       <Link href="/settings/role-permissions">
                         Role & Permission
                       </Link>

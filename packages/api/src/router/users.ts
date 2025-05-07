@@ -1,7 +1,7 @@
 import { asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import type { SalarySlipWithTableUser, UserRole, UserStatus } from "@acme/db";
+import type { SalarySlipWithTableUser, UserStatus } from "@acme/db";
 import { HRMUser, Role, SalarySlip } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 

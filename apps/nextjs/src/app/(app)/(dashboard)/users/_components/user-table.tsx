@@ -145,7 +145,7 @@ export function UserTable() {
                 <TableCell>{user.id}</TableCell>
                 <TableCell className="font-medium">{user.firstName}</TableCell>
                 <TableCell>{user.email ? user.email : null}</TableCell>
-                <TableCell>{user.role}</TableCell>
+                <TableCell>{user.roleId}</TableCell>
                 <TableCell>
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -181,7 +181,7 @@ export function UserTable() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => openModal(user)}
+                    onClick={() => openModal(user as any)}
                   >
                     Update
                   </Button>

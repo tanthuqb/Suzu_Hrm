@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { UserStatusModal } from "~/app/_components/UserStatusModal";
 import { checkAuth } from "~/app/actions/auth";
 import { UserStatusModalProvider } from "~/app/context/UserStatusModalContext";
-import { env } from "~/env";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import { UserTableSkeleton } from "../../_components/table-skeleton";

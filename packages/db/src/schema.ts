@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { relations } from "drizzle-orm";
+import { desc, relations } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -49,7 +49,23 @@ export const SupabaseUser = auth.table("users", {
 export const Role = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
 });
+
+export const CreateRoleSchemaInput = createInsertSchema(Role, {
+  id: z.string().uuid().optional(),
+  name: z.string().max(255),
+  description: z.string().max(255),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RoleRecord = InferSelectModel<typeof Role>;
 
 /** PERMISSION TABLE  */
 export const Permission = pgTable("permissions", {
@@ -58,7 +74,22 @@ export const Permission = pgTable("permissions", {
     .references(() => Role.id)
     .notNull(),
   action: text("action").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
 });
+
+export const CreatePermissionSchemaInput = createInsertSchema(Permission, {
+  id: z.string().uuid().optional(),
+  roleId: z.string().uuid(),
+  action: z.string().max(255),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PermissionRecord = InferSelectModel<typeof Permission>;
 
 /** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
