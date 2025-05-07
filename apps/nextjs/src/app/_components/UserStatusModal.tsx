@@ -31,12 +31,12 @@ export function UserStatusModal() {
               Huỷ
             </Button>
             <Button
-              onClick={() => updateUserStatus(selectedUser.email, "Active")}
+              onClick={() => updateUserStatus(selectedUser.email, "active")}
             >
               Kích hoạt
             </Button>
             <Button
-              onClick={() => updateUserStatus(selectedUser.email, "Suspended")}
+              onClick={() => updateUserStatus(selectedUser.email, "suspended")}
               variant="destructive"
             >
               Vô hiệu hoá

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import type { AuthUser, ResponeAuthUser, SupabaseUserRow } from "@acme/db";
+import type { AuthUser } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
 import { isValidEmail } from "~/app/libs/index";
@@ -436,7 +436,6 @@ export const updateStatus = async (email: string, newStatus: string) => {
     .from("users")
     .update({ status: newStatus })
     .eq("id", user.id);
-
   if (error) {
     console.error("Status update error:", error);
     throw new Error(error.message);
