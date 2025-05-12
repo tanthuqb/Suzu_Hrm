@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@acme/ui/button";
+
 interface Props {
   error: Error & { data?: { code?: string } };
   reset: () => void;
@@ -10,7 +12,7 @@ interface Props {
 
 export default function UsersError({ error, reset }: Props) {
   const router = useRouter();
-  // log để debug
+
   useEffect(() => {
     console.error("UsersPage crashed:", error);
   }, [error]);
@@ -27,18 +29,15 @@ export default function UsersError({ error, reset }: Props) {
         <p className="mb-4">Vui lòng liên hệ quản trị viên nếu cần trợ giúp.</p>
       )}
       <div className="space-x-2">
-        <button
-          className="rounded bg-blue-600 px-4 py-2 text-white"
-          onClick={() => reset()} // reset sẽ render lại page.tsx
-        >
+        <Button onClick={reset} variant="default">
           Thử lại
-        </button>
-        <button
-          className="rounded bg-gray-200 px-4 py-2"
+        </Button>
+        <Button
           onClick={() => router.push(isForbidden ? "/users" : "/")}
+          variant="secondary"
         >
           {isForbidden ? "Về Dashboard" : "Về Trang Chủ"}
-        </button>
+        </Button>
       </div>
     </div>
   );
