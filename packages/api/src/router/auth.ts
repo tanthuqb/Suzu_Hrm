@@ -5,6 +5,7 @@ import { z } from "zod";
 import { env } from "@acme/auth/env";
 import { createServerClient } from "@acme/supabase";
 
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const authRouter = createTRPCRouter({
@@ -17,7 +18,13 @@ export const authRouter = createTRPCRouter({
         autoConfirmEmail: z.boolean().optional().default(false),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "auth",
+        "register",
+        "Không có quyền đăng ký tài khoản",
+      );
       const { email, password, confirmPassword, autoConfirmEmail } = input;
       if (password !== confirmPassword) {
         throw new TRPCError({
@@ -77,7 +84,13 @@ export const authRouter = createTRPCRouter({
         adminConfirm: z.boolean().optional().default(false),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "auth",
+        "confirmEmail",
+        "Không có quyền xác thực email",
+      );
       const supabase = await createServerClient();
 
       if (input.token && !input.adminConfirm) {
@@ -112,7 +125,13 @@ export const authRouter = createTRPCRouter({
 
   resetPassword: publicProcedure
     .input(z.object({ password: z.string().min(8) }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "auth",
+        "resetPassword",
+        "Không có quyền đặt lại mật khẩu",
+      );
       const supabase = await createServerClient();
       const { error } = await supabase.auth.updateUser({
         password: input.password,
@@ -126,7 +145,13 @@ export const authRouter = createTRPCRouter({
     .input(
       z.object({ currentPassword: z.string(), newPassword: z.string().min(8) }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "auth",
+        "updatePassword",
+        "Không có quyền cập nhật mật khẩu",
+      );
       const supabase = await createServerClient();
       const { error } = await supabase.auth.updateUser({
         password: input.newPassword,

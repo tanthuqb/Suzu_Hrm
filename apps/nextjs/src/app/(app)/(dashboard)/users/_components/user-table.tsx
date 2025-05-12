@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -33,16 +33,16 @@ import { useTRPC } from "~/trpc/react";
 type SortField = "email" | "firstName" | "status" | "role" | undefined;
 
 export function UserTable() {
+  // 1) Local state for filters/pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [sortBy, setSortBy] = useState<SortField>("email");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
-
-  const debouncedSearch = useDebounce(search, 300);
-  const trpc = useTRPC();
-
   const { openModal } = useUserStatusModal();
+  const trpc = useTRPC();
+  const didMountRef = useRef(false);
 
   const input: RouterInputs["user"]["all"] = {
     page,
@@ -54,17 +54,31 @@ export function UserTable() {
 
   const queryOptions = trpc.user.all.queryOptions(input);
 
-  const { data, refetch, isFetching } = useSuspenseQuery(
-    queryOptions.queryKey.length > 0 ? queryOptions : ({} as any),
-  ) as {
+  const suspenseOpts =
+    queryOptions.queryKey.length > 0
+      ? {
+          ...queryOptions,
+          // không refetch khi component lần đầu mount
+          refetchOnMount: false,
+          // tắt refetch khi focus window/reconnect (tuỳ chọn)
+          refetchOnWindowFocus: false,
+          staleTime: Infinity,
+        }
+      : ({} as any);
+
+  const { data, isFetching } = useSuspenseQuery(suspenseOpts) as {
     data: UserAllOutput;
-    refetch: () => void;
     isFetching: boolean;
   };
 
-  useEffect(() => {
-    void refetch();
-  }, [page, pageSize, debouncedSearch, sortBy, order, refetch]);
+  // useEffect(() => {
+  //   void refetch();
+  //   if (didMountRef.current) {
+  //     void refetch();
+  //   } else {
+  //     didMountRef.current = true;
+  //   }
+  // }, [page, pageSize, debouncedSearch, sortBy, order, refetch]);
 
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
@@ -145,7 +159,11 @@ export function UserTable() {
                 <TableCell>{user.id}</TableCell>
                 <TableCell className="font-medium">{user.firstName}</TableCell>
                 <TableCell>{user.email ? user.email : null}</TableCell>
-                <TableCell>{user.role}</TableCell>
+                {user.role ? (
+                  <TableCell>{user.role.name}</TableCell>
+                ) : (
+                  <TableCell>No role assigned</TableCell>
+                )}
                 <TableCell>
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${

@@ -1,15 +1,13 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { UserStatusModal } from "~/app/_components/UserStatusModal";
 import { checkAuth } from "~/app/actions/auth";
 import { UserStatusModalProvider } from "~/app/context/UserStatusModalContext";
-import { env } from "~/env";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
-import { UserTableSkeleton } from "../../_components/table-skeleton";
-import { UserTable } from "./_components/user-table";
+import UserTableClient from "./_components/user-page-client";
 
+export const dynamic = "force-dynamic";
 export default async function UsersPage() {
   const auth = await checkAuth();
   if (!auth.status || !auth.user) {
@@ -30,9 +28,7 @@ export default async function UsersPage() {
   return (
     <HydrateClient state={state}>
       <UserStatusModalProvider>
-        <Suspense fallback={<UserTableSkeleton />}>
-          <UserTable />
-        </Suspense>
+        <UserTableClient />
         <UserStatusModal />
       </UserStatusModalProvider>
     </HydrateClient>

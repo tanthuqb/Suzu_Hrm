@@ -8,18 +8,16 @@ import { Header } from "./_components/header";
 
 export default function AppLayout(props: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden">
-          <AppSidebar />
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <Header />
-            <main className="flex-1 overflow-y-auto p-6">{props.children}</main>
-          </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full overflow-hidden">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6">{props.children}</main>
         </div>
+      </div>
 
-        <Toaster />
-      </SidebarProvider>
-    </Suspense>
+      <Toaster />
+    </SidebarProvider>
   );
 }

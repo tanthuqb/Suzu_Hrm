@@ -1,37 +1,34 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { CreateSalarySlipSchema, SalarySlip } from "@acme/db/schema";
+import { CreateRoleSchemaInput, Role } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
-export const salaryRouter = createTRPCRouter({
+export const roleRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(CreateSalarySlipSchema)
+    .input(CreateRoleSchemaInput)
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "salary",
+        "role",
         "create",
-        "Không có quyền tạo phiếu lương",
+        "Không có quyền tạo vai trò",
       );
-      const [inserted] = await ctx.db
-        .insert(SalarySlip)
-        .values(input)
-        .returning();
+      const [inserted] = await ctx.db.insert(Role).values(input).returning();
       return inserted;
     }),
 
   getAll: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
-      "salary",
+      "role",
       "getAll",
-      "Không có quyền xem danh sách phiếu lương",
+      "Không có quyền xem danh sách vai trò",
     );
-    return await ctx.db.select().from(SalarySlip).orderBy(SalarySlip.createdAt);
+    return await ctx.db.select().from(Role).orderBy(desc(Role.createdAt));
   }),
 
   getById: protectedProcedure
@@ -39,60 +36,52 @@ export const salaryRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "salary",
+        "role",
         "getById",
-        "Không có quyền xem phiếu lương",
+        "Không có quyền xem vai trò",
       );
       const { id } = input;
-      const result = await ctx.db.query.SalarySlip.findFirst({
-        where: (fields, { eq }) => eq(fields.id, id),
-      });
-
-      return result ?? null;
-    }),
-
-  getByUser: protectedProcedure
-    .input(z.object({ userId: z.string().uuid() }))
-    .query(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "salary",
-        "getByUser",
-        "Không có quyền xem phiếu lương của người dùng",
-      );
-      return await ctx.db
+      const result = await ctx.db
         .select()
-        .from(SalarySlip)
-        .where(eq(SalarySlip.userId, input.userId));
+        .from(Role)
+        .where(eq(Role.id, id))
+        .limit(1)
+        .execute();
+      if (!result.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Không tìm thấy vai trò",
+        });
+      }
+      return result[0];
     }),
 
   update: protectedProcedure
     .input(
-      CreateSalarySlipSchema.extend({
+      CreateRoleSchemaInput.extend({
         id: z.string().uuid(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "salary",
+        "role",
         "update",
-        "Không có quyền cập nhật phiếu lương",
+        "Không có quyền cập nhật vai trò",
       );
       const { id, ...rest } = input;
       const [updated] = await ctx.db
-        .update(SalarySlip)
+        .update(Role)
         .set(rest)
-        .where(eq(SalarySlip.id, id))
+        .where(eq(Role.id, id))
         .returning();
 
       if (!updated) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Không tìm thấy phiếu lương",
+          message: "Không tìm thấy vai trò",
         });
       }
-
       return updated;
     }),
 
@@ -101,19 +90,19 @@ export const salaryRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "salary",
+        "role",
         "delete",
-        "Không có quyền xoá phiếu lương",
+        "Không có quyền xoá vai trò",
       );
       const deleted = await ctx.db
-        .delete(SalarySlip)
-        .where(eq(SalarySlip.id, input.id))
+        .delete(Role)
+        .where(eq(Role.id, input.id))
         .returning();
 
       if (!deleted.length) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Không tìm thấy phiếu lương để xoá",
+          message: "Không tìm thấy vai trò để xoá",
         });
       }
 

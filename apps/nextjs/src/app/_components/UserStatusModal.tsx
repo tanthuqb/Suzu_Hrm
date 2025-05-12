@@ -23,8 +23,8 @@ export function UserStatusModal() {
         </DialogHeader>
         <div className="space-y-4">
           <p>
-            Bạn có chắc muốn cập nhật trạng thái cho{" "}
-            <b>{selectedUser.lastName}</b>?
+            Bạn có chắc muốn cập nhật trạng thái cho <b>{selectedUser.email}</b>
+            ?
           </p>
           <div className="flex justify-end gap-2">
             <Button onClick={closeModal} variant="outline">

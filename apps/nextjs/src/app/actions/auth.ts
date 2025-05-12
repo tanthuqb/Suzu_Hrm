@@ -9,9 +9,9 @@ import { isValidEmail } from "~/app/libs/index";
 import { env } from "~/env";
 
 /**
- * Send password reset email to the user
+ * Sign in the user with Google
+ * @returns {Promise<any>} - Returns user data
  */
-// Import the API client to use tRPC
 
 export const handleSignInWithGoogle = async () => {
   const supabase = await createServerClient();
@@ -38,24 +38,25 @@ export const handleSignInWithGoogle = async () => {
   return data;
 };
 
-/** Supabase Sign In (Email & Password hoặc OAuth) */
+/**
+ * Sign in the user with email and password
+ * @param email - The email address of the user
+ * @param password - The password for the user
+ * @returns {Promise<any>} - Returns user data
+ */
 export async function signInEmail(email: string, password: string) {
   const supabase = await createServerClient();
-  // Sign in with password
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    // If error is "Email not confirmed", try to auto-confirm it
     if (
       error.message.includes("Email not confirmed") &&
       env.SUPABASE_SERVICE_ROLE_KEY
     ) {
       try {
-        // Get user by email to get the user ID
-        // Create admin client with service role for privileged operations
         const { createClient } = await import("@supabase/supabase-js");
         const adminAuthClient = createClient(
           env.PUBLIC_SUPABASE_URL || "",
@@ -70,59 +71,43 @@ export async function signInEmail(email: string, password: string) {
 
         // Get user by email to find their ID
         const { data: userData } = await adminAuthClient.auth.admin.listUsers();
-        const user = userData.users.find((u) => u.email === email);
-
-        if (user?.id) {
-          // Use admin API to update user (mark email as confirmed)
-          await adminAuthClient.auth.admin.updateUserById(user.id, {
+        const userRec = userData.users.find(
+          (user) => user.user_metadata.email === email,
+        );
+        if (userRec?.id) {
+          await adminAuthClient.auth.admin.updateUserById(userRec.id, {
             email_confirm: true,
           });
-          console.log("Email auto-confirmed for user:", user.id);
-
-          // Try signin again after confirmation
-          const { data: confirmedData, error: confirmedError } =
-            await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-          if (confirmedError) {
-            console.error(
-              "Sign in error after email confirmation:",
-              confirmedError,
-            );
-            throw new Error(confirmedError.message);
-          }
-
-          // Refresh session
-          const { error: sessionError } = await supabase.auth.getSession();
-          if (sessionError) {
-            console.error("Session retrieval error:", sessionError);
-            throw new Error(sessionError.message);
-          }
-
-          return confirmedData;
+          // retry sign in
+          const { data: retryData, error: retryErr } =
+            await supabase.auth.signInWithPassword({ email, password });
+          if (retryErr) throw retryErr;
+          return retryData;
         }
-      } catch (adminError) {
-        console.error("Failed to auto-confirm email during login:", adminError);
-        // Continue with original error
+      } catch (e) {
+        console.error("Auto-confirm failed:", e);
       }
     }
-
     console.error("Sign in error:", error);
     throw new Error(error.message);
   }
 
-  // Ensure that session is refreshed and cookies are set properly
-  const { error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    console.error("Session retrieval error:", sessionError);
-    throw new Error(sessionError.message);
+  // Verify user via Auth server
+  const {
+    data: { user: verifiedUser },
+    error: verifyError,
+  } = await supabase.auth.getUser();
+  if (verifyError || !verifiedUser) {
+    console.error("User verification failed:", verifyError);
+    throw new Error("Failed to verify user session.");
   }
 
   return data;
 }
+/**
+ * Check if the user is authenticated
+ * @returns {Promise<{ status: boolean; message?: string; user?: AuthUser }>} - Returns authentication status and user data
+ */
 
 export const checkAuth = async (): Promise<{
   status: boolean;
@@ -132,15 +117,18 @@ export const checkAuth = async (): Promise<{
   const supabase = await createServerClient();
   const { data: authUser, error: authError } = await supabase.auth.getUser();
 
-  if (!isValidEmail(authUser.user?.email!)) {
+  if (authError) {
+    return {
+      status: false,
+      message: "Bạn cần đăng nhập hoặc phiên đã hết hạn.",
+    };
+  }
+
+  if (!isValidEmail(authUser.user.email!)) {
     return { status: false, message: "Email không phải của tổ chức." };
   }
 
-  if (authError || !authUser.user.email) {
-    return { status: false, message: "Bạn cần đăng nhập." };
-  }
-
-  const { data: users } = await supabase
+  const { data: rows, error: dbError } = await supabase
     .from("users")
     .select(
       `
@@ -153,42 +141,60 @@ export const checkAuth = async (): Promise<{
       role:roles (
         id,
         name,
-        permissions:permissions (
-          id,
-          action
-        )
+        permissions ( id, action )
       )
     `,
     )
-    .eq("email", authUser.user.email);
+    .eq("email", authUser.user.email)
+    .maybeSingle();
 
-  const rawUser = users?.[0];
-  if (!rawUser || rawUser.status !== "active") {
-    return { status: false, message: "Tài khoản bị khóa hoặc không tồn tại." };
+  if (dbError || !rows) {
+    return {
+      status: false,
+      message: "Không tìm thấy tài khoản trong hệ thống.",
+    };
   }
 
-  const role = Array.isArray(rawUser.role) ? rawUser.role[0] : rawUser.role;
+  if (rows.status !== "active") {
+    return {
+      status: false,
+      message: "Tài khoản bị khóa hoặc không hoạt động.",
+    };
+  }
+
+  const role =
+    Array.isArray(rows.role) && rows.role.length > 0
+      ? rows.role[0]
+      : (rows.role as any);
+
   if (!role) {
-    return { status: false, message: "Bạn không có quyền truy cập." };
+    return {
+      status: false,
+      message: "Bạn không có quyền truy cập.",
+    };
   }
 
-  const user: AuthUser = {
-    id: rawUser.id,
-    email: rawUser.email,
-    firstName: rawUser.firstName,
-    lastName: rawUser.lastName,
-    role_id: rawUser.role_id,
-    role: {
-      id: role.id,
-      name: role.name,
-      permissions: role.permissions ?? [],
-    },
+  const user = {
+    id: rows.id,
+    email: rows.email,
+    firstName: rows.firstName,
+    lastName: rows.lastName,
+    status: rows.status,
+    role_id: rows.role_id,
+    role: role.name,
+    permissions: role.permissions.map((permission: any) => ({
+      action: permission.action,
+      id: permission.id,
+    })),
   };
 
   return { status: true, user };
 };
 
-/** Supabase Sign Out */
+/**
+ * Sign out the user
+ * @returns {Promise<void>} - Returns nothing
+ */
 export const signOut = async () => {
   const supabase = await createServerClient();
   const { error } = await supabase.auth.signOut();
@@ -198,6 +204,14 @@ export const signOut = async () => {
   }
 };
 
+/**
+ * Register a new user
+ * @param email - The email address of the user
+ * @param password - The password for the user
+ * @param confirmPassword - The confirmation password
+ * @param autoConfirmEmail - Flag to auto-confirm email (default: true)
+ * @returns {Promise<any>} - Returns user data and confirmation status
+ */
 export const registerUser = async (
   email: string,
   password: string,
@@ -264,6 +278,9 @@ export const registerUser = async (
 
 /**
  * Update user's password (when logged in)
+ * @param password - The new password
+ * @param confirmPassword - The confirmation password
+ * @returns {Promise<any>} - Returns success message
  */
 export const updatePassword = async (
   password: string,
@@ -287,6 +304,11 @@ export const updatePassword = async (
   return { success: true };
 };
 
+/**
+ * Send password reset email to the user
+ * @param email - The email address of the user
+ * @returns {Promise<any>} - Returns success message
+ */
 export const forgotPassword = async (email: string) => {
   try {
     const supabase = await createServerClient();
@@ -309,12 +331,14 @@ export const forgotPassword = async (email: string) => {
     return { success: true };
   } catch (error: any) {
     console.error("Password reset error:", error);
-    throw new Error(error?.message || "Failed to send password reset email");
+    throw new Error(error?.message ?? "Failed to send password reset email");
   }
 };
 
 /**
  * Update user's email (when logged in)
+ * @param email - The new email address
+ * @returns {Promise<any>} - Returns success message
  */
 export const updateEmail = async (email: string) => {
   const supabase = await createServerClient();
@@ -335,7 +359,10 @@ export const updateEmail = async (email: string) => {
 };
 
 /**
- * Reset password with token (from reset password email)
+ * Reset password using the recovery token
+ * @param password - The new password
+ * @param confirmPassword - The confirmation password
+ * @returns {Promise<any>} - Returns success message
  */
 export const resetPassword = async (
   password: string,
@@ -360,18 +387,25 @@ export const resetPassword = async (
 };
 
 /**
- * Refresh Token Expires
+ * Refresh token
+ * @returns {Promise<any>} - Returns the refreshed session data
  */
-export const refreshSessionServer = async () => {
-  try {
-    const supabase = await createServerClient();
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return data.session;
-  } catch (error) {
-    console.error("Error refreshing session:", error);
+export const refreshToken = async () => {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.auth.refreshSession();
+
+  if (error) {
+    console.error("Token refresh error:", error);
+    throw new Error(error.message);
   }
+
+  return data;
 };
+/**
+ * Verify Recovery Token
+ * @param code - The recovery token code
+ * @returns {Promise<boolean>} - Returns true if the token is valid
+ */
 
 export const verifyRecoveryToken = async (code: string) => {
   const url = `${env.PUBLIC_SUPABASE_ANON_KEY}/auth/v1/token`;
@@ -406,7 +440,9 @@ export const verifyRecoveryToken = async (code: string) => {
 };
 
 /**
- * check email in databaes (when logged in)
+ * Check if the email exists in the database
+ * @param email - The email address to check
+ * @returns {Promise<any>} - Returns the user data if found
  */
 const checkEmail = async (email: string) => {
   if (!isValidEmail(email)) {
@@ -426,7 +462,10 @@ const checkEmail = async (email: string) => {
 };
 
 /**
- * Update user's status (when logged in)
+ * Update the user's status
+ * @param email - The email address of the user
+ * @param newStatus - The new status to set
+ * @returns {Promise<any>} - Returns success message
  */
 export const updateStatus = async (email: string, newStatus: string) => {
   const supabase = await createServerClient();

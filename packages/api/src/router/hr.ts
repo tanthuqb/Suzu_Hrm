@@ -1,4 +1,3 @@
-// ✅ hrRouter.ts: refactor sang createTRPCRouter
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -11,12 +10,19 @@ import {
   parseStatusSymbols,
 } from "@acme/utils";
 
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const hrRouter = createTRPCRouter({
   previewAttendances: protectedProcedure
     .input(z.array(z.record(z.any())))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "hr",
+        "previewAttendances",
+        "Không có quyền xem dữ liệu chấm công",
+      );
       const supabase = await createServerClient();
       const EmployCodeToIdMap = await getEmployCodeToUserIdMap(supabase);
 
@@ -90,7 +96,13 @@ export const hrRouter = createTRPCRouter({
         }),
       ),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "hr",
+        "importAttendances",
+        "Không có quyền nhập dữ liệu chấm công",
+      );
       const supabase = await createServerClient();
       const { error } = await supabase.from("attendances").insert(input);
 

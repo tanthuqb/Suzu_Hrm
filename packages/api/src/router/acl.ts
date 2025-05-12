@@ -1,10 +1,14 @@
+import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
-/**
- * Department Router
- */
 export const aclRouter = createTRPCRouter({
   getPermissions: protectedProcedure.query(async ({ ctx }) => {
+    await checkPermissionOrThrow(
+      ctx,
+      "acl",
+      "getPermissions",
+      "Không có quyền xem quyền truy cập",
+    );
     if (!ctx.session?.user.id) throw new Error("Unauthorized");
 
     const user = await ctx.db.query.HRMUser.findFirst({
