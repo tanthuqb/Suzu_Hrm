@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import type { Session } from "@acme/auth";
+import type { FullSession } from "@acme/auth";
 import { auth, validateToken } from "@acme/auth";
 import { and, eq } from "@acme/db";
 import { db } from "@acme/db/client";
@@ -15,13 +15,21 @@ import { Permission } from "@acme/db/schema";
  */
 const isomorphicGetSession = async (
   headers: Headers,
-): Promise<Session | null> => {
+): Promise<FullSession | null> => {
   const authToken = headers.get("Authorization") ?? null;
   if (authToken) {
     const validatedSession = await validateToken(authToken);
     if (validatedSession) {
       return {
-        user: validatedSession.user,
+        authUser: {
+          id: validatedSession.user.id,
+          email: validatedSession.user.email,
+          app_metadata: validatedSession.user_metadata,
+        },
+        hrmUser: {
+          ...validatedSession.user,
+          roleName: validatedSession.user.roleName ?? "guest",
+        },
         expires: validatedSession.expires,
       };
     }
@@ -64,12 +72,12 @@ export async function checkPermission(
  */
 export const createTRPCContext = async (opts: {
   headers: Headers;
-  session: Session | null;
+  session: FullSession | null;
 }) => {
   const session = await isomorphicGetSession(opts.headers);
 
   const source = opts.headers.get("x-trpc-source") ?? "unknown";
-  console.log(">>> tRPC Request from", source, "by", session?.user);
+  console.log(">>> tRPC Request from", source, "by", session?.hrmUser);
 
   return {
     session,
@@ -158,12 +166,12 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure: typeof publicProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
+    if (!ctx.session?.hrmUser) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({
       ctx: {
-        session: { ...ctx.session, user: ctx.session.user },
+        session: { ...ctx.session, user: ctx.session.hrmUser },
       },
     });
   });

@@ -24,7 +24,7 @@ export const departmentRouter = createTRPCRouter({
       return newDepartment[0];
     }),
   getAll: publicProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
+    const check = await checkPermissionOrThrow(
       ctx,
       "department",
       "getAll",
@@ -44,7 +44,7 @@ export const departmentRouter = createTRPCRouter({
       );
       const { id } = input;
       const result = await ctx.db.query.Department.findFirst({
-        where: (fields, { eq }) => eq(fields.id, id),
+        where: (fields, { eq }) => eq(fields.id, String(id)),
       });
 
       return result ?? null;
@@ -67,7 +67,7 @@ export const departmentRouter = createTRPCRouter({
       const [updated] = await ctx.db
         .update(Department)
         .set(rest)
-        .where(eq(Department.id, id))
+        .where(eq(Department.id, String(id)))
         .returning();
 
       if (!updated) {
@@ -91,7 +91,7 @@ export const departmentRouter = createTRPCRouter({
       );
       await ctx.db
         .delete(Department)
-        .where(eq(Department.id, input.id))
+        .where(eq(Department.id, String(input.id)))
         .returning();
       return { success: true };
     }),

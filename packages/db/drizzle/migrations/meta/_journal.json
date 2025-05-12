@@ -71,6 +71,20 @@
       "when": 1745835763004,
       "tag": "0009_youthful_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1747217100745,
+      "tag": "0010_add_auth_validators",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1747218051729,
+      "tag": "0011_whole_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

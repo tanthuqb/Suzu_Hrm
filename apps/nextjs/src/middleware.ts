@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 
 import { createServerClient, updateSession } from "@acme/supabase";
 
-import { isValidEmail } from "./app/libs";
-
 export const config = {
   matcher: [
     // Loại bỏ file tĩnh & ảnh
@@ -36,20 +34,6 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set("message", "Bạn cần đăng nhập.");
     loginUrl.searchParams.set("next", path);
     return NextResponse.redirect(loginUrl);
-  }
-
-  //Nếu đã có user nhưng email không đúng domain công ty → xóa session & redirect
-  const email = user.email ?? "";
-  if (!isValidEmail(email)) {
-    // xóa cookie session
-    response.cookies.delete("sb-mempvqxtouxcmxqiilln-auth-token.0 ");
-    response.cookies.delete("sb-mempvqxtouxcmxqiilln-auth-token.1");
-
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("message", "Email không phải của tổ chức.");
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
   }
 
   return response;

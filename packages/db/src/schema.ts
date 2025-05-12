@@ -17,6 +17,8 @@ import { z } from "zod";
 
 import type { HRMUserInput } from "./types/types";
 import { AttendanceStatus } from "./constants/attendance";
+import { OfficeEnum } from "./constants/office";
+import { UserStatusEnum } from "./constants/user-status";
 
 /** Helper convert enum */
 export const enumValues = <E extends Record<string, string>>(
@@ -95,6 +97,8 @@ export const CreatePermissionSchemaInput = createInsertSchema(Permission, {
 
 export type PermissionRecord = InferSelectModel<typeof Permission>;
 
+export const userStatusEnumValue = pgEnum("status", enumValues(UserStatusEnum));
+
 /** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().notNull(),
@@ -107,7 +111,9 @@ export const HRMUser = pgTable("users", (t) => ({
     .references(() => Role.id)
     .notNull(),
   phone: t.varchar("phone", { length: 255 }).notNull(),
-  status: t.varchar("status", { length: 255 }).default("active"),
+  status: userStatusEnumValue("status")
+    .notNull()
+    .default(UserStatusEnum.ACTIVE),
   departmentId: uuid("department_id")
     .references(() => Department.id)
     .notNull(),
@@ -343,16 +349,14 @@ export const Attendance = pgTable("attendances", {
 });
 
 /** DEPARTMENT TABLE  */
-
+export const officeEnum = pgEnum("office", enumValues(OfficeEnum));
 export const Department = pgTable("departments", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().notNull().primaryKey(),
   userId: uuid("user_id").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
-  code: varchar("code", { length: 20 }).notNull(),
-  managerId: uuid("manager_id"),
   position: varchar("position", { length: 50 }).default("staff"),
   description: text("description"),
-  createdById: uuid("created_by_id"),
+  office: officeEnum("office").default(OfficeEnum.NTL),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -360,18 +364,25 @@ export const Department = pgTable("departments", {
 export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
   userId: z.string().uuid(),
   name: z.string().max(100),
-  code: z.string().max(20),
-  managerId: z.string().uuid().optional(),
   position: z.string().max(50).optional(),
   description: z.string().optional(),
-  createdById: z.string().uuid().optional(),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
-
-// type record
+// DepartmentUser table
+export const DepartmentUser = pgTable("department_users", {
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  departmentId: uuid("department_id")
+    .notNull()
+    .references(() => Department.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+export type DepartmentUserRecord = InferSelectModel<typeof DepartmentUser>;
 export type DepartmentRecord = InferSelectModel<typeof Department>;
 export const UpdateDepartmentSchema = CreateDepartmentSchemaInput.extend({
   id: z.number(),
@@ -383,19 +394,23 @@ export type DepartmentWithUsersRecord = DepartmentRecord & {
 
 /** RELATIONS **/
 
+export const DepartmentUserRelations = relations(DepartmentUser, ({ one }) => ({
+  department: one(Department, {
+    fields: [DepartmentUser.departmentId],
+    references: [Department.id],
+  }),
+  user: one(HRMUser, {
+    fields: [DepartmentUser.userId],
+    references: [HRMUser.id],
+  }),
+}));
+
 export const DepartmentRelations = relations(Department, ({ one, many }) => ({
-  manager: one(HRMUser, {
-    fields: [Department.managerId],
-    references: [HRMUser.id],
-  }),
-  createdBy: one(HRMUser, {
-    fields: [Department.createdById],
-    references: [HRMUser.id],
-  }),
   user: one(HRMUser, {
     fields: [Department.userId],
     references: [HRMUser.id],
   }),
+  departmentUsers: many(DepartmentUser),
   users: many(HRMUser),
 }));
 

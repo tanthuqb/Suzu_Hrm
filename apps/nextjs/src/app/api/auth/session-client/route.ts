@@ -1,51 +1,30 @@
-import type { CookieOptions } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
 
-import { env } from "~/env";
+import { createServerClient } from "@acme/supabase";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = env.PUBLIC_SUPABASE_URL;
-    const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY;
+    const supabase = await createServerClient();
 
-    // Kiểm tra biến môi trường
-    if (!supabaseUrl || !supabaseKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing Supabase environment variables" }),
-        { status: 500 },
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error || !session) {
+      console.error("Không có session:", error);
+      return NextResponse.json(
+        { error: error?.message ?? "Phiên không tồn tại" },
+        { status: 401 },
       );
     }
 
-    // Tạo client từ server với cookies
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value || "";
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          console.log("Set cookie:", { name, value, options });
-        },
-        remove(name: string) {
-          console.log("Remove cookie:", name);
-        },
-      },
-    });
-
-    // Lấy session từ server-side
-    const { data, error } = await supabase.auth.getSession();
-
-    if (error || !data.session) {
-      return new Response(JSON.stringify({ error: "Không tìm thấy session" }), {
-        status: 401,
-      });
-    }
-
     // Log session để kiểm tra
-    console.log("Session từ server:", data.session);
+    console.log("Session từ server:", session);
 
     // Trả về session cho client
-    return new Response(JSON.stringify({ session: data.session }), {
+    return new Response(JSON.stringify({ session: session }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

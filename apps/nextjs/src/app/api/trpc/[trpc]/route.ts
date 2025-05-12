@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { appRouter, createTRPCContext } from "@acme/api";
 import { validateToken } from "@acme/auth";
+import { createServerClient } from "@acme/supabase";
 
 import { env } from "~/env";
 
@@ -20,12 +20,6 @@ export const OPTIONS = () => {
   return response;
 };
 
-interface CookieOptions {
-  name: string;
-  value?: string;
-  [key: string]: unknown;
-}
-
 const handler = async (req: NextRequest) => {
   try {
     console.log(">>> tRPC Request:", {
@@ -33,26 +27,8 @@ const handler = async (req: NextRequest) => {
       method: req.method,
     });
 
-    // Create Supabase client
-    const supabase = createServerClient(
-      env.PUBLIC_SUPABASE_URL,
-      env.PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          get(name: string) {
-            return req.cookies.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            req.cookies.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            req.cookies.delete({ name, ...options });
-          },
-        },
-      },
-    );
+    const supabase = await createServerClient();
 
-    // Get session
     const {
       data: { session },
       error: sessionError,
