@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import type { FullHrmUser } from "@acme/db";
 import { eq } from "@acme/db";
 import { db } from "@acme/db/client";
-import { Department, HRMUser, Permission, Role } from "@acme/db/schema";
+import { HRMUser, Permission, Role } from "@acme/db/schema";
 
-import type { Session } from "./config";
+import type { FullSession } from "./config";
 import { createServerClient } from "../../supabase/src";
 import { env } from "../env";
 import {
@@ -67,25 +67,22 @@ export const signOut = async () => {
   }
 };
 
-export const auth = cache(async (): Promise<Session | null> => {
+export const auth = cache(async (): Promise<FullSession | null> => {
   try {
     const supabase = await createServerClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !session) return null;
 
-    if (!token) {
-      console.error("User not authenticated");
-      return null;
-    }
+    const token = session.access_token;
+    if (!token) return null;
 
-    const hrmUser = await validateToken(token);
+    const validated = await validateToken(token);
+    if (!validated) return null;
 
-    if (!hrmUser) {
-      console.error("Invalid token");
-      return null;
-    }
-
-    const userData = await db
+    const rows = await db
       .select({
         id: HRMUser.id,
         employeeCode: HRMUser.employeeCode,
@@ -103,21 +100,31 @@ export const auth = cache(async (): Promise<Session | null> => {
       })
       .from(HRMUser)
       .leftJoin(Role, eq(HRMUser.roleId, Role.id))
-      .leftJoin(Permission, eq(Role.id, Permission.roleId))
-      .where(eq(HRMUser.email, hrmUser.user.email));
+      .where(eq(HRMUser.email, validated.user.email));
 
-    if (userData.length === 0) {
-      console.error("User not found in database.");
-      return null;
-    }
+    if (rows.length === 0) return null;
 
-    const role = userData[0]?.roleName ?? "guest";
+    const row = rows[0]!;
 
-    return {
-      user: userData[0] as Omit<FullHrmUser, "departmentId" | "roleId">,
-      expires: hrmUser.expires,
-      role,
+    const roleName = row.roleName ?? "guest";
+    const { roleName: __, ...hrmRest } = row;
+
+    const full: FullSession = {
+      authUser: {
+        id: validated.user.id,
+        email: validated.user.email,
+        app_metadata: validated.user_metadata,
+      },
+      hrmUser: {
+        ...hrmRest,
+        roleName,
+      },
+      expires: session.expires_at
+        ? new Date(session.expires_at).toISOString()
+        : "",
     };
+
+    return full;
   } catch (error) {
     console.error("Error during authentication:", error);
     return null;

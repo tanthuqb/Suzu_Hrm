@@ -10,14 +10,3 @@ export function adminAuthClient() {
 
   return createClient(supabaseUrl, supabaseServiceKey);
 }
-
-export function clientAuthClient() {
-  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-  const supabasePublicKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabasePublicKey) {
-    throw new Error("Supabase environment variables are not set.");
-  }
-
-  return createClient(supabaseUrl, supabasePublicKey);
-}

@@ -1,5 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
 
+import type { UserStatusEnum } from "../constants/user-status";
 import type {
   DepartmentRecord,
   HRMUser,
@@ -16,8 +17,6 @@ export type UserRole =
   | "admin"
   | "Admin";
 
-export type UserStatus = "Active" | "Suspended";
-
 // Notication Types
 export type NotificationType = "Email" | "Sms" | "Important";
 
@@ -33,15 +32,16 @@ export interface IUser {
   phone: string;
   employeeCode: string;
   role: string;
-  status: UserStatus;
+  status: UserStatusEnum;
   createdAt: Date;
   updatedAt: Date;
 }
 
 // full typpe of user is DBUser have slarySlip and role
 export type FullHrmUser = DBUser & {
-  status?: UserStatus;
+  status?: UserStatusEnum;
   latestSalarySlip?: SalarySlipRecord;
+  roleName?: string;
   role?: Pick<RoleRecord, "id" | "name">;
   departments?: Pick<DepartmentRecord, "id" | "name">;
 };
@@ -93,14 +93,14 @@ export interface CreateUserInput {
   name: string;
   email: string;
   role: string;
-  status?: UserStatus;
+  status?: UserStatusEnum;
 }
 
 export interface UpdateUserInput {
   name?: string;
   email?: string;
   role?: string;
-  status?: UserStatus;
+  status?: UserStatusEnum;
 }
 
 export interface HRMUserInput {
@@ -111,7 +111,7 @@ export interface HRMUserInput {
   email: string;
   phone: string;
   role: string;
-  status: UserStatus;
+  status: UserStatusEnum;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,11 +123,11 @@ export interface AttendanceInput {
 }
 
 export type SalarySlipWithUser = HRMUserInput & {
-  status: UserStatus;
+  status: UserStatusEnum;
 };
 
 export type SalarySlipWithTableUser = DBUser & {
-  status?: UserStatus;
+  status?: UserStatusEnum;
   latestSalarySlip?: SalarySlipRecord;
 };
 

@@ -9,10 +9,10 @@ export const aclRouter = createTRPCRouter({
       "getPermissions",
       "Không có quyền xem quyền truy cập",
     );
-    if (!ctx.session?.user.id) throw new Error("Unauthorized");
+    if (!ctx.session?.hrmUser.id) throw new Error("Unauthorized");
 
     const user = await ctx.db.query.HRMUser.findFirst({
-      where: (u: { id: any }, { eq }: any) => eq(u.id, ctx.session?.user.id),
+      where: (u: { id: any }, { eq }: any) => eq(u.id, ctx.session?.hrmUser.id),
     });
 
     if (!user?.roleId) return [];

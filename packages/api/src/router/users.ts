@@ -1,13 +1,7 @@
-import { TRPCError } from "@trpc/server";
-import { asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
-import { uuid } from "drizzle-orm/pg-core";
+import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import type {
-  FullHrmUser,
-  SalarySlipWithTableUser,
-  UserStatus,
-} from "@acme/db";
+import type { FullHrmUser, UserStatusEnum } from "@acme/db";
 import { Department, HRMUser, Role, SalarySlip } from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
@@ -50,6 +44,21 @@ export const userRouter = createTRPCRouter({
       const { page, pageSize, search, sortBy, order } = input;
       const offset = (page - 1) * pageSize;
 
+      const [count] = await ctx.db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(HRMUser)
+        .where(
+          search
+            ? or(
+                ilike(HRMUser.firstName, `%${search}%`),
+                ilike(HRMUser.lastName, `%${search}%`),
+                ilike(HRMUser.email, `%${search}%`),
+              )
+            : undefined,
+        )
+        .execute();
+      const total = count?.count ?? 0;
+
       const where = search
         ? or(
             ilike(HRMUser.firstName, `%${search}%`),
@@ -88,7 +97,7 @@ export const userRouter = createTRPCRouter({
         if (!userMap.has(user.id)) {
           userMap.set(user.id, {
             ...user,
-            status: user.status as UserStatus,
+            status: user.status as UserStatusEnum,
             latestSalarySlip: salary ?? undefined,
             role: role ? { id: role.id, name: role.name } : undefined,
             departments: department
@@ -100,13 +109,12 @@ export const userRouter = createTRPCRouter({
 
       const allUsers = Array.from(userMap.values());
       const users = allUsers.slice(offset, offset + pageSize);
-      const total = allUsers.length;
 
       return {
         users,
         total,
       } satisfies {
-        users: SalarySlipWithTableUser[];
+        users: FullHrmUser[];
         total: number;
       };
     }),
@@ -222,7 +230,7 @@ export const userRouter = createTRPCRouter({
             phone: user.phone,
             roleId: "",
             departmentId: "",
-            status: user.status as UserStatus,
+            status: user.status as UserStatusEnum,
             employeeCode: user.employeeCode ?? "",
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -247,4 +255,16 @@ export const userRouter = createTRPCRouter({
         ignoredCount: input.length - importedUsers.length,
       };
     }),
+
+  getAllUserSimple: protectedProcedure.query(async ({ ctx }) => {
+    await checkPermissionOrThrow(
+      ctx,
+      "user",
+      "getAllUserSimple",
+      "Không có quyền lấy danh sách người dùng đơn giản",
+    );
+    return ctx.db.query.HRMUser.findMany({
+      where: (fields, { eq }) => eq(fields.status, "active"),
+    });
+  }),
 });
