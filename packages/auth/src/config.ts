@@ -136,6 +136,8 @@ export const auth = async (): Promise<FullSession | null> => {
         createdAt: HRMUser.createdAt,
         updatedAt: HRMUser.updatedAt,
         roleName: Role.name,
+        positionId: HRMUser.positionId,
+        departmentId: HRMUser.departmentId,
       })
       .from(HRMUser)
       .leftJoin(Role, eq(HRMUser.roleId, Role.id))

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { DBUser } from "@acme/db";
 import type { DepartmentRecord } from "@acme/db/schema";
-import { OfficeEnum } from "@acme/db";
+import { OfficeEnum } from "@acme/db/constants";
 import { Button } from "@acme/ui/button";
 import {
   Form,
@@ -72,14 +72,12 @@ export function DepartmentForm({
     defaultValues: department
       ? {
           name: department.name,
-          position: department.position ?? "staff",
           office: department.office ?? undefined,
           description: department.description ?? undefined,
         }
       : {
           office: "",
           name: "",
-          position: "staff",
           description: undefined,
         },
   });
@@ -136,13 +134,12 @@ export function DepartmentForm({
             </FormItem>
           )}
         /> */}
-        Select Office
         <FormField
           control={form.control}
           name="office"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Office</FormLabel>
+              <FormLabel>Select Office</FormLabel>
               <FormControl>
                 <Select
                   onValueChange={field.onChange}
@@ -187,7 +184,7 @@ export function DepartmentForm({
           />
         </div>
         {/*  Position */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
+        {/* <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
           <FormField
             control={form.control}
             name="position"
@@ -215,7 +212,7 @@ export function DepartmentForm({
               </FormItem>
             )}
           />
-        </div>
+        </div> */}
         {/* Description */}
         <FormField
           control={form.control}

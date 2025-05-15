@@ -106,6 +106,12 @@ export const HRMUser = pgTable("users", (t) => ({
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
+  departmentId: uuid("department_id")
+    .references(() => Department.id)
+    .notNull(),
+  positionId: uuid("position_id")
+    .references(() => Role.id)
+    .notNull(),
   roleId: uuid("role_id")
     .references(() => Role.id)
     .notNull(),
@@ -349,7 +355,6 @@ export const officeEnum = pgEnum("office", enumValues(OfficeEnum));
 export const Department = pgTable("departments", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  position: varchar("position", { length: 50 }).default("staff"),
   description: text("description"),
   office: officeEnum("office").default(OfficeEnum.NTL),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -358,53 +363,16 @@ export const Department = pgTable("departments", {
 
 export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
   name: z.string().max(100),
-  position: z.string().max(50).optional(),
   description: z.string().optional(),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
-// DepartmentUser table
-export const DepartmentUser = pgTable("department_users", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-  departmentId: uuid("department_id")
-    .notNull()
-    .references(() => Department.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => HRMUser.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-export type DepartmentUserRecord = InferSelectModel<typeof DepartmentUser>;
+
 export type DepartmentRecord = InferSelectModel<typeof Department>;
-export const UpdateDepartmentSchema = CreateDepartmentSchemaInput.extend({
-  id: z.number(),
-});
-export const CreateDepartmentUserSchema = createInsertSchema(DepartmentUser, {
-  departmentId: z.string().uuid(),
-  userId: z.string().uuid(),
-}).omit({
-  id: true,
-  createdAt: true,
-});
 
 /** RELATIONS **/
-
-export const DepartmentUserRelations = relations(DepartmentUser, ({ one }) => ({
-  department: one(Department, {
-    fields: [DepartmentUser.departmentId],
-    references: [Department.id],
-  }),
-  user: one(HRMUser, {
-    fields: [DepartmentUser.userId],
-    references: [HRMUser.id],
-  }),
-}));
-
-export const DepartmentRelations = relations(Department, ({ many }) => ({
-  users: many(DepartmentUser),
-}));
 
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   user: one(HRMUser, {
@@ -414,16 +382,26 @@ export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
 }));
 
 export const HRMUserRelations = relations(HRMUser, ({ one, many }) => ({
-  departments: many(DepartmentUser),
   salarySlips: many(SalarySlip),
   assets: many(Asset),
   transactions: many(Transaction),
   leaveRequests: many(LeaveRequests),
   attendances: many(Attendance),
+  department: one(Department, {
+    fields: [HRMUser.departmentId],
+    references: [Department.id],
+  }),
+  position: one(Role, {
+    fields: [HRMUser.positionId],
+    references: [Role.id],
+  }),
   role: one(Role, {
     fields: [HRMUser.roleId],
     references: [Role.id],
   }),
+}));
+export const DepartmentRelations = relations(Department, ({ many }) => ({
+  users: many(HRMUser),
 }));
 
 export const SalarySlipRelations = relations(SalarySlip, ({ one }) => ({

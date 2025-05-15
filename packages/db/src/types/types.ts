@@ -22,21 +22,6 @@ export type NotificationType = "Email" | "Sms" | "Important";
 
 export type DBUser = InferSelectModel<typeof HRMUser>;
 
-// User Types
-export interface IUser {
-  id: string;
-  name: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  employeeCode: string;
-  role: string;
-  status: UserStatusEnum;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // full typpe of user is DBUser have slarySlip and role
 export type FullHrmUser = DBUser & {
   status?: UserStatusEnum;
