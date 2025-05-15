@@ -48,7 +48,7 @@ export default function DepartmentsPage() {
     trpc.user.getAllUserSimple.queryOptions(),
   );
 
-  const { data: departments, isFetching: isFetchingDepts } = useSuspenseQuery(
+  const { data: departments } = useSuspenseQuery(
     trpc.department.getAll.queryOptions(),
   );
 
@@ -157,7 +157,7 @@ export default function DepartmentsPage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Code</TableHead>
+              <TableHead>Office</TableHead>
               <TableHead>Position</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -175,7 +175,7 @@ export default function DepartmentsPage() {
                 <TableRow key={d.id}>
                   <TableCell>{d.id}</TableCell>
                   <TableCell className="font-medium">{d.name}</TableCell>
-                  <TableCell>{d.code}</TableCell>
+                  <TableCell>{d.office}</TableCell>
                   <TableCell>{d.position}</TableCell>
                   <TableCell>
                     {new Date(d.createdAt).toLocaleDateString()}

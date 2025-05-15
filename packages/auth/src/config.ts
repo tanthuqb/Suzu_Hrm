@@ -21,7 +21,6 @@ export interface FullSession {
     lastName: string;
     email: string;
     roleId: string;
-    departmentId: string;
     phone: string | null;
     status: string | null;
     createdAt: Date;
@@ -112,18 +111,17 @@ export const getCurrentUser = async () => {
 export const auth = async (): Promise<FullSession | null> => {
   try {
     const supabase = await createServerClient();
+
     const {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession();
     if (sessionError || !session) return null;
-
     const token = session.access_token;
     if (!token) return null;
 
     const validated = await validateToken(token);
     if (!validated) return null;
-
     const rows = await db
       .select({
         id: HRMUser.id,
@@ -133,7 +131,6 @@ export const auth = async (): Promise<FullSession | null> => {
         lastName: HRMUser.lastName,
         email: HRMUser.email,
         roleId: HRMUser.roleId,
-        departmentId: HRMUser.departmentId,
         phone: HRMUser.phone,
         status: HRMUser.status,
         createdAt: HRMUser.createdAt,

@@ -1,4 +1,4 @@
 export enum OfficeEnum {
-  NTL = "Nơ Trang Long",
+  NTL = "No Trang Long",
   SKY = "Sky",
 }
