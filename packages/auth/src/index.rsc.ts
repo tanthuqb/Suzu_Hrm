@@ -81,7 +81,6 @@ export const auth = cache(async (): Promise<FullSession | null> => {
 
     const validated = await validateToken(token);
     if (!validated) return null;
-    console.log("Session query2:", validated, token);
     const rows = await db
       .select({
         id: HRMUser.id,

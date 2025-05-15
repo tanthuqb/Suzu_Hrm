@@ -142,7 +142,7 @@ export function DepartmentForm({
           name="office"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>User</FormLabel>
+              <FormLabel>Office</FormLabel>
               <FormControl>
                 <Select
                   onValueChange={field.onChange}
