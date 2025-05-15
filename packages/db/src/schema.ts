@@ -15,7 +15,6 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import type { HRMUserInput } from "./types/types";
 import { AttendanceStatus } from "./constants/attendance";
 import { OfficeEnum } from "./constants/office";
 import { UserStatusEnum } from "./constants/user-status";
@@ -114,9 +113,6 @@ export const HRMUser = pgTable("users", (t) => ({
   status: userStatusEnumValue("status")
     .notNull()
     .default(UserStatusEnum.ACTIVE),
-  departmentId: uuid("department_id")
-    .references(() => Department.id)
-    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -352,7 +348,6 @@ export const Attendance = pgTable("attendances", {
 export const officeEnum = pgEnum("office", enumValues(OfficeEnum));
 export const Department = pgTable("departments", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
-  userId: uuid("user_id").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   position: varchar("position", { length: 50 }).default("staff"),
   description: text("description"),
@@ -362,7 +357,6 @@ export const Department = pgTable("departments", {
 });
 
 export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
-  userId: z.string().uuid(),
   name: z.string().max(100),
   position: z.string().max(50).optional(),
   description: z.string().optional(),
@@ -387,10 +381,13 @@ export type DepartmentRecord = InferSelectModel<typeof Department>;
 export const UpdateDepartmentSchema = CreateDepartmentSchemaInput.extend({
   id: z.number(),
 });
-
-export type DepartmentWithUsersRecord = DepartmentRecord & {
-  users: HRMUserInput[];
-};
+export const CreateDepartmentUserSchema = createInsertSchema(DepartmentUser, {
+  departmentId: z.string().uuid(),
+  userId: z.string().uuid(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
 
 /** RELATIONS **/
 
@@ -405,13 +402,8 @@ export const DepartmentUserRelations = relations(DepartmentUser, ({ one }) => ({
   }),
 }));
 
-export const DepartmentRelations = relations(Department, ({ one, many }) => ({
-  user: one(HRMUser, {
-    fields: [Department.userId],
-    references: [HRMUser.id],
-  }),
-  departmentUsers: many(DepartmentUser),
-  users: many(HRMUser),
+export const DepartmentRelations = relations(Department, ({ many }) => ({
+  users: many(DepartmentUser),
 }));
 
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
@@ -422,15 +414,12 @@ export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
 }));
 
 export const HRMUserRelations = relations(HRMUser, ({ one, many }) => ({
+  departments: many(DepartmentUser),
   salarySlips: many(SalarySlip),
   assets: many(Asset),
   transactions: many(Transaction),
   leaveRequests: many(LeaveRequests),
   attendances: many(Attendance),
-  department: one(Department, {
-    fields: [HRMUser.departmentId],
-    references: [Department.id],
-  }),
   role: one(Role, {
     fields: [HRMUser.roleId],
     references: [Role.id],

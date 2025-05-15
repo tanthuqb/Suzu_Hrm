@@ -2,7 +2,13 @@ import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { FullHrmUser, UserStatusEnum } from "@acme/db";
-import { Department, HRMUser, Role, SalarySlip } from "@acme/db/schema";
+import {
+  Department,
+  DepartmentUser,
+  HRMUser,
+  Role,
+  SalarySlip,
+} from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
 import type { ImportUsersResult } from "../types/index";
@@ -79,12 +85,14 @@ export const userRouter = createTRPCRouter({
           user: HRMUser,
           salary: SalarySlip,
           role: Role,
+          departmentUser: DepartmentUser,
           department: Department,
         })
         .from(HRMUser)
         .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
-        .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
+        .leftJoin(DepartmentUser, eq(DepartmentUser.userId, HRMUser.id))
+        .leftJoin(Department, eq(Department.id, DepartmentUser.departmentId))
         .where(where)
         .orderBy(
           order === "desc" ? desc(sortColumn) : asc(sortColumn),
@@ -229,7 +237,6 @@ export const userRouter = createTRPCRouter({
             email: user.email,
             phone: user.phone,
             roleId: "",
-            departmentId: "",
             status: user.status as UserStatusEnum,
             employeeCode: user.employeeCode ?? "",
             createdAt: new Date(),
