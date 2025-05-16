@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { CreateDepartmentSchemaInput, Department } from "@acme/db/schema";
+import {
+  CreateDepartmentSchemaInput,
+  Department,
+  UpdateDepartmentSchemaInput,
+} from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -24,7 +28,7 @@ export const departmentRouter = createTRPCRouter({
       return newDepartment[0];
     }),
   getAll: publicProcedure.query(async ({ ctx }) => {
-    const check = await checkPermissionOrThrow(
+    await checkPermissionOrThrow(
       ctx,
       "department",
       "getAll",
@@ -51,11 +55,7 @@ export const departmentRouter = createTRPCRouter({
     }),
 
   update: protectedProcedure
-    .input(
-      CreateDepartmentSchemaInput.extend({
-        id: z.number(),
-      }),
-    )
+    .input(UpdateDepartmentSchemaInput)
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
@@ -81,7 +81,7 @@ export const departmentRouter = createTRPCRouter({
     }),
 
   delete: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,

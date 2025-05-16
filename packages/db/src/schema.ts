@@ -364,11 +364,24 @@ export const Department = pgTable("departments", {
 export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
   name: z.string().max(100),
   description: z.string().optional(),
+  office: z.enum(enumValues(OfficeEnum)).default(OfficeEnum.NTL),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+export const UpdateDepartmentSchemaInput = createInsertSchema(Department, {
+  id: z.string().uuid(),
+  name: z.string().max(100),
+  description: z.string().optional(),
+  office: z.enum(enumValues(OfficeEnum)).default(OfficeEnum.NTL),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CreateDepartmentInput = z.infer<typeof CreateDepartmentSchemaInput>;
+export type UpdateDepartmentInput = z.infer<typeof UpdateDepartmentSchemaInput>;
 
 export type DepartmentRecord = InferSelectModel<typeof Department>;
 
