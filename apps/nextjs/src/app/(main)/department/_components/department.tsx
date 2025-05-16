@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
-import type { DepartmentRecord } from "@acme/db/schema";
+import type {
+  CreateDepartmentInput,
+  DepartmentRecord,
+  UpdateDepartmentInput,
+} from "@acme/db/schema";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -38,34 +46,72 @@ export default function DepartmentsPage() {
   const trpc = useTRPC();
 
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
-
-  const { data: users, isFetching: isFetchingUsers } = useSuspenseQuery(
-    trpc.user.getAllUserSimple.queryOptions(),
-  );
-
-  const { data: departments } = useSuspenseQuery(
+  const [selected, setSelected] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: departments, isFetching } = useSuspenseQuery(
     trpc.department.getAll.queryOptions(),
   );
 
-  const createDept = useMutation(
-    trpc.role.create.mutationOptions({
+  const [searchField, setSearchField] = useState<"all" | "name" | "office">(
+    "all",
+  );
+
+  const filteredDepartments = useMemo(() => {
+    if (searchField === "all" && !searchTerm) return departments;
+    console.log(
+      "Filtering with term:",
+      searchTerm || "(empty)",
+      "field:",
+      searchField,
+    );
+    return departments.filter((dept) => {
+      if (!searchTerm) {
+        if (searchField === "name") return dept.name && dept.name.trim() !== "";
+        if (searchField === "office")
+          return dept.office && dept.office.trim() !== "";
+        return true;
+      }
+
+      const name = String(dept.name ?? "").toLowerCase();
+      const office = String(dept.office ?? "").toLowerCase();
+      const term = searchTerm.toLowerCase();
+
+      if (searchField === "all")
+        return name.includes(term) || office.includes(term);
+      if (searchField === "name") return name.includes(term);
+      if (searchField === "office") return office.includes(term);
+      return false;
+    });
+  }, [departments, searchTerm, searchField]);
+
+  const createDepartment = useMutation(
+    trpc.department.create.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã thêm phòng ban`);
+        setIsCreateOpen(false);
+        setSelected(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.department.getAll.queryKey(),
+        });
       },
       onError(err) {
         toast.error(err.message);
       },
     }),
   );
-  const updateDept = useMutation(
-    trpc.role.update.mutationOptions({
+
+  const updateDepartment = useMutation(
+    trpc.department.update.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã cập nhật phòng ban`);
+        setIsEditOpen(false);
+        setSelected(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.department.getAll.queryKey(),
+        });
       },
       onError(err) {
         toast.error(err.message);
@@ -73,10 +119,16 @@ export default function DepartmentsPage() {
     }),
   );
 
-  const deleteDept = useMutation(
-    trpc.role.delete.mutationOptions({
+  const deleteDepartment = useMutation(
+    trpc.department.delete.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã xóa phòng ban`);
+        setIsViewOpen(false);
+        setIsEditOpen(false);
+        setSelected(null);
+        queryClient.invalidateQueries({
+          queryKey: trpc.department.getAll.queryKey(),
+        });
       },
       onError(err) {
         toast.error(err.message);
@@ -84,25 +136,26 @@ export default function DepartmentsPage() {
     }),
   );
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm("Delete this department?")) {
-      // deleteDept.mutate({ id });
+      deleteDepartment.mutate({ id });
     }
   };
 
-  const handleCreate = (
-    vals: Omit<(typeof departments)[0], "id" | "createdAt" | "updatedAt">,
-  ) => {
-    //createDept.mutate(vals);
+  const handleCreate = (vals: CreateDepartmentInput) => {
+    createDepartment.mutate({
+      ...vals,
+      description: vals.description ?? "",
+    });
   };
 
-  const handleEdit = (vals: (typeof departments)[0]) => {
-    //updateDept.mutate(vals);
+  const handleEdit = (vals: UpdateDepartmentInput) => {
+    updateDepartment.mutate({
+      ...vals,
+      id: selected!,
+      description: vals.description ?? "",
+    });
   };
-
-  const [searchField, setSearchField] = useState<"all" | "name" | "code">(
-    "all",
-  );
 
   return (
     <div className="container mx-auto py-10">
@@ -139,44 +192,47 @@ export default function DepartmentsPage() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="code">Code</SelectItem>
-            <SelectItem value="position">Position</SelectItem>
+            <SelectItem value="office">Office</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Info */}
       <div className="mb-2 text-sm text-muted-foreground">
-        Showing {departments.length}
+        Showing {filteredDepartments.length} of {departments.length}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-md border">
+      <div
+        className={`overflow-x-auto rounded-md border transition-opacity ${
+          isFetching ? "opacity-50" : "opacity-100"
+        }`}
+      >
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Office</TableHead>
-              <TableHead>Position</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {departments.length === 0 ? (
+            {filteredDepartments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No departments.
+                  {searchTerm
+                    ? "No departments match your search"
+                    : "No departments"}
                 </TableCell>
               </TableRow>
             ) : (
-              departments.map((d: any) => (
+              filteredDepartments.map((d: any) => (
                 <TableRow key={d.id}>
                   <TableCell>{d.id}</TableCell>
                   <TableCell className="font-medium">{d.name}</TableCell>
                   <TableCell>{d.office}</TableCell>
-                  <TableCell>{d.position}</TableCell>
                   <TableCell>
                     {new Date(d.createdAt).toLocaleDateString()}
                   </TableCell>
@@ -226,8 +282,6 @@ export default function DepartmentsPage() {
             <DialogDescription>Add a new one</DialogDescription>
           </DialogHeader>
           <DepartmentForm
-            users={users}
-            isLoading={isFetchingUsers}
             onSubmit={handleCreate}
             onCancel={() => setIsCreateOpen(false)}
           />
@@ -243,7 +297,7 @@ export default function DepartmentsPage() {
           </DialogHeader>
           {selected != null && (
             <DepartmentForm
-              department={departments.find((d) => d.id === "selected")}
+              department={departments.find((d) => d.id === selected)}
               onSubmit={handleEdit}
               onCancel={() => setIsEditOpen(false)}
             />
@@ -259,26 +313,25 @@ export default function DepartmentsPage() {
           </DialogHeader>
           {selected != null && (
             <div className="space-y-2 py-4">
-              {selected != null &&
-                (() => {
-                  const department = departments.find(
-                    (d: DepartmentRecord) => d.id === "selected",
-                  );
-                  if (!department) return <div>Department not found</div>;
-                  return (
-                    <div className="space-y-2 py-4">
-                      {Object.entries(department).map(([key, val]) => (
-                        <div
-                          key={key}
-                          className="grid grid-cols-3 items-center gap-2"
-                        >
-                          <div className="font-medium">{key}:</div>
-                          <div className="col-span-2">{String(val)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+              {(() => {
+                const department = departments.find(
+                  (d: DepartmentRecord) => d.id === selected,
+                );
+                if (!department) return <div>Department not found</div>;
+                return (
+                  <div className="space-y-2 py-4">
+                    {Object.entries(department).map(([key, val]) => (
+                      <div
+                        key={key}
+                        className="grid grid-cols-3 items-center gap-2"
+                      >
+                        <div className="font-medium">{key}:</div>
+                        <div className="col-span-2">{String(val)}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="flex justify-end">
                 <Button onClick={() => setIsViewOpen(false)}>Close</Button>
               </div>

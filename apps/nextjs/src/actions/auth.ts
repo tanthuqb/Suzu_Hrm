@@ -56,7 +56,6 @@ export const checkAuth = async (): Promise<{
       message: "Bạn cần đăng nhập hoặc phiên đã hết hạn.",
     };
   }
-  console.log("authUser", authUser.user.email);
 
   const { data: rows, error: dbError } = await supabase
     .from("users")
@@ -77,7 +76,6 @@ export const checkAuth = async (): Promise<{
     )
     .eq("email", authUser.user.email)
     .maybeSingle();
-  console.log("rows", rows);
 
   if (dbError || !rows) {
     return {
@@ -96,7 +94,7 @@ export const checkAuth = async (): Promise<{
   const role =
     Array.isArray(rows.role) && rows.role.length > 0 ? rows.role[0] : rows.role;
 
-  if (!role) {
+  if (!role || typeof role !== "object" || !("name" in role)) {
     return {
       status: false,
       message: "Bạn không có quyền truy cập.",
