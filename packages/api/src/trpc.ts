@@ -28,6 +28,7 @@ const isomorphicGetSession = async (
         },
         hrmUser: {
           ...validatedSession.user,
+          roleId: validatedSession.user.roleId ?? "",
           roleName: validatedSession.user.roleName ?? "guest",
         },
         expires: validatedSession.expires,

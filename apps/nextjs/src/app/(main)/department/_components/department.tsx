@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useMutation,
   useQueryClient,
@@ -297,7 +297,13 @@ export default function DepartmentsPage() {
           </DialogHeader>
           {selected != null && (
             <DepartmentForm
-              department={departments.find((d) => d.id === selected)}
+              department={(() => {
+                const d = departments.find((d) => d.id === selected);
+                if (!d) return undefined;
+                const office =
+                  d.office === "NTL" || d.office === "SKY" ? d.office : null;
+                return { ...d, office };
+              })()}
               onSubmit={handleEdit}
               onCancel={() => setIsEditOpen(false)}
             />
@@ -314,10 +320,14 @@ export default function DepartmentsPage() {
           {selected != null && (
             <div className="space-y-2 py-4">
               {(() => {
-                const department = departments.find(
-                  (d: DepartmentRecord) => d.id === selected,
-                );
-                if (!department) return <div>Department not found</div>;
+                const d = departments.find((d) => d.id === selected);
+                if (!d) return <div>Department not found</div>;
+                const office =
+                  d.office === "NTL" || d.office === "SKY" ? d.office : null;
+                const department: DepartmentRecord = {
+                  ...d,
+                  office,
+                };
                 return (
                   <div className="space-y-2 py-4">
                     {Object.entries(department).map(([key, val]) => (

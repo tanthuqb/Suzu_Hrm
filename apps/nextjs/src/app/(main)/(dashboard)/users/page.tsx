@@ -23,10 +23,21 @@ export default async function UsersPage() {
     order: "desc" as const,
   };
 
-  const { state } = await ssrPrefetch(trpc.user.all.queryOptions(input));
+  const { state: stateUsers } = await ssrPrefetch(
+    trpc.user.all.queryOptions(input),
+  );
+
+  const { state: stateRoles } = await ssrPrefetch(
+    trpc.department.getAll.queryOptions(),
+  );
+
+  const mergedState = {
+    ...stateUsers,
+    ...stateRoles,
+  };
 
   return (
-    <HydrateClient state={state}>
+    <HydrateClient state={mergedState}>
       <UserStatusModalProvider>
         <UserTableClient />
         <UserStatusModal />

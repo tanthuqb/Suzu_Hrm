@@ -21,9 +21,10 @@ export const departmentRouter = createTRPCRouter({
         "create",
         "Không có quyền tạo phòng ban",
       );
+      const office = input.office === "NTL" ? "NTL" : "NTL";
       const newDepartment = await ctx.db
         .insert(Department)
-        .values(input)
+        .values({ ...input, office })
         .returning();
       return newDepartment[0];
     }),
@@ -64,9 +65,10 @@ export const departmentRouter = createTRPCRouter({
         "Không có quyền cập nhật phòng ban",
       );
       const { id, ...rest } = input;
+      const office = rest.office === "NTL" ? "NTL" : "NTL";
       const [updated] = await ctx.db
         .update(Department)
-        .set(rest)
+        .set({ ...rest, office })
         .where(eq(Department.id, String(id)))
         .returning();
 

@@ -91,10 +91,9 @@ export const checkAuth = async (): Promise<{
     };
   }
 
-  const role =
-    Array.isArray(rows.role) && rows.role.length > 0 ? rows.role[0] : rows.role;
+  const role = Array.isArray(rows.role) ? rows.role[0] : rows.role;
 
-  if (!role || typeof role !== "object" || !("name" in role)) {
+  if (!role) {
     return {
       status: false,
       message: "Bạn không có quyền truy cập.",
@@ -103,16 +102,19 @@ export const checkAuth = async (): Promise<{
 
   const user = {
     id: rows.id,
-    email: rows.email,
     firstName: rows.firstName,
     lastName: rows.lastName,
-    status: rows.status,
+    email: rows.email,
     role_id: rows.role_id,
-    role: role.name,
-    permissions: role.permissions.map((permission: any) => ({
-      action: permission.action,
-      id: permission.id,
-    })),
+    roleName: role.name,
+    status: rows.status,
+    role: role,
+    permissions: Array.isArray(role.permissions)
+      ? role.permissions.map((permission: any) => ({
+          action: permission.action,
+          id: permission.id,
+        }))
+      : [],
   };
 
   return { status: true, user };

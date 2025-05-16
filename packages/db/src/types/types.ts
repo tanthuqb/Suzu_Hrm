@@ -24,7 +24,6 @@ export type DBUser = InferSelectModel<typeof HRMUser>;
 
 // full typpe of user is DBUser have slarySlip and role
 export type FullHrmUser = DBUser & {
-  status?: UserStatusEnum;
   latestSalarySlip?: SalarySlipRecord;
   roleName?: string;
   role?: Pick<RoleRecord, "id" | "name">;
@@ -38,6 +37,8 @@ export interface AuthUser {
   lastName: string;
   email: string;
   role_id: string;
+  roleName: string;
+  status: UserStatusEnum;
   role: {
     id: string;
     name: string;
@@ -46,26 +47,6 @@ export interface AuthUser {
       action: string;
     }[];
   };
-}
-
-export interface SupabaseUserRow {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  status: string;
-  role_id: string;
-  role:
-    | {
-        id: string;
-        name: string;
-        permissions: { id: string; action: string }[];
-      }
-    | {
-        id: string;
-        name: string;
-        permissions: { id: string; action: string }[];
-      }[];
 }
 
 export interface ResponeAuthUser {
