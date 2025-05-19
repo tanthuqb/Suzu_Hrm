@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@acme/ui/table";
 
+import { formatDate } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
 
 export const ProfileContent = ({ userId }: { userId: string }) => {
@@ -60,13 +61,6 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
     );
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
   return (
     <div className="container mx-auto p-6">
       <Card>

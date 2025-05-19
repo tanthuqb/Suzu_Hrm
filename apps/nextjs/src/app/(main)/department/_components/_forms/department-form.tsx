@@ -29,7 +29,6 @@ import { Textarea } from "@acme/ui/textarea";
 import { enumToArray } from "~/libs/index";
 
 const officeOptions = enumToArray(OfficeEnum);
-
 const formSchema = z.object({
   name: z
     .string()
@@ -65,13 +64,13 @@ export function DepartmentForm({
     defaultValues: department
       ? {
           name: department.name,
-          office: department.office ?? undefined,
-          description: department.description ?? undefined,
+          office: department.office ?? "",
+          description: department.description ?? "",
         }
       : {
           office: "",
           name: "",
-          description: undefined,
+          description: "",
         },
   });
 
@@ -128,35 +127,39 @@ export function DepartmentForm({
         <FormField
           control={form.control}
           name="office"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Select Office</FormLabel>
-              <FormControl>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={isLoading ? "Loading..." : "Select a office"}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {officeOptions.map((o) => (
-                      <SelectItem key={o.id} value={o.label.toString()}>
-                        {o.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormDescription>
-                Cập nhật thông tin phòng ban cho người dùng này.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            return (
+              <FormItem>
+                <FormLabel>Select Office</FormLabel>
+                <FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          isLoading ? "Loading..." : "Select a office"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {officeOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormDescription>
+                  Cập nhật thông tin phòng ban cho người dùng này.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
         {/* Name  */}
         <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-1">

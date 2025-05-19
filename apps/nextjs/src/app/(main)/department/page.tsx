@@ -13,11 +13,6 @@ const Page = async () => {
     redirect("/login?message=You must be logged in to access this page.");
   }
 
-  const isAdmin = AuthUser.user.role.name === "Admin";
-  if (isAdmin) {
-    redirect("/login?message=You do not have permission to access this page.");
-  }
-
   const { state: stateUser } = await ssrPrefetch(
     trpc.user.getAllUserSimple.queryOptions(),
   );
