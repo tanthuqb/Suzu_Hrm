@@ -39,6 +39,7 @@ import {
 } from "@acme/ui/table";
 import { toast } from "@acme/ui/toast";
 
+import { formatDate } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
 import { DepartmentForm } from "./_forms/department-form";
 
@@ -143,17 +144,12 @@ export default function DepartmentsPage() {
   };
 
   const handleCreate = (vals: CreateDepartmentInput) => {
-    createDepartment.mutate({
-      ...vals,
-      description: vals.description ?? "",
-    });
+    createDepartment.mutate({ ...vals });
   };
 
   const handleEdit = (vals: UpdateDepartmentInput) => {
     updateDepartment.mutate({
       ...vals,
-      id: selected!,
-      description: vals.description ?? "",
     });
   };
 
@@ -234,7 +230,9 @@ export default function DepartmentsPage() {
                   <TableCell className="font-medium">{d.name}</TableCell>
                   <TableCell>{d.office}</TableCell>
                   <TableCell>
-                    {new Date(d.createdAt).toLocaleDateString()}
+                    {d?.createdAt
+                      ? formatDate(d.createdAt.toString())
+                      : "Not assigned"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
