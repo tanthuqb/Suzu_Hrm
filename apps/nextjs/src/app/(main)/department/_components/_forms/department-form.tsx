@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import type { DBUser } from "@acme/db";
 import type { DepartmentRecord } from "@acme/db/schema";
 import { OfficeEnum } from "@acme/db/constants";
 import { Button } from "@acme/ui/button";
@@ -41,10 +40,6 @@ const formSchema = z.object({
     .min(2, "Office must be at least 2 characters")
     .max(100, "Office must be at most 100 characters")
     .optional(),
-  position: z
-    .string()
-    .max(50, "Position must be at most 50 characters")
-    .default("staff"),
   description: z
     .string()
     .max(1000, "Description must be at most 1000 characters")
@@ -54,14 +49,12 @@ const formSchema = z.object({
 
 interface DepartmentFormProps {
   department?: DepartmentRecord | null;
-  users?: DBUser[];
   isLoading?: boolean;
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
 export function DepartmentForm({
-  users = [],
   department,
   isLoading = false,
   onSubmit,
@@ -94,8 +87,6 @@ export function DepartmentForm({
       onSubmit(values);
     }
   };
-
-  console.log("users", users);
 
   return (
     <Form {...form}>
@@ -153,8 +144,8 @@ export function DepartmentForm({
                   </SelectTrigger>
                   <SelectContent>
                     {officeOptions.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>
-                        {o.label}
+                      <SelectItem key={o.id} value={o.label.toString()}>
+                        {o.id}
                       </SelectItem>
                     ))}
                   </SelectContent>

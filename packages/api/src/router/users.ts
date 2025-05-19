@@ -9,7 +9,6 @@ import type { ImportUsersResult } from "../types/index";
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
-const idSchema = z.union([z.string(), z.object({ id: z.string() })]);
 const allowedDomains = ["@suzu.group", "@suzu.edu.vn"];
 function isAllowedEmail(email: string) {
   return allowedDomains.some((domain) => email.endsWith(domain));
@@ -119,19 +118,86 @@ export const userRouter = createTRPCRouter({
       };
     }),
 
-  byId: protectedProcedure.input(idSchema).query(async ({ ctx, input }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "user",
-      "byId",
-      "Không có quyền lấy thông tin người dùng",
-    );
-    const id = typeof input === "string" ? input : input.id;
-    return ctx.db.query.HRMUser.findFirst({ where: eq(HRMUser.id, id) });
-  }),
+  byId: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "byId",
+        "Không có quyền lấy thông tin người dùng",
+      );
+      const { id } = input;
+      const result = await ctx.db
+        .select({
+          user: HRMUser,
+          salary: SalarySlip,
+          role: Role,
+          department: Department,
+        })
+        .from(HRMUser)
+        .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
+        .leftJoin(Role, eq(HRMUser.roleId, Role.id))
+        .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
+        .where(eq(HRMUser.id, id));
+
+      if (result.length === 0 || !result[0]?.user) return null;
+      const { user, salary, role, department } = result[0];
+
+      return {
+        ...user,
+        status: user.status as UserStatusEnum,
+        latestSalarySlip: salary ?? undefined,
+        role: role && role.id ? { id: role.id, name: role.name } : undefined,
+        roleName: role?.name,
+
+        departments:
+          department && department.id
+            ? { id: department.id, name: department.name }
+            : undefined,
+      } as FullHrmUser;
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        roleId: z.string().optional(),
+        status: z.enum(["active", "suspended"]).optional(),
+        employeeCode: z.string().optional(),
+        departmentId: z.string().optional(),
+        positionId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "update",
+        "Không có quyền cập nhật người dùng",
+      );
+      const { id, ...rest } = input;
+      const user = await ctx.db.query.HRMUser.findFirst({
+        where: eq(HRMUser.id, id),
+      });
+      if (!user) {
+        throw new Error("Người dùng không tồn tại");
+      }
+      if (rest.email && !isAllowedEmail(rest.email)) {
+        throw new Error(
+          "❌ Email không hợp lệ. Chỉ cho phép email với miền @suzu.group hoặc @suzu.edu.vn",
+        );
+      }
+      return ctx.db.update(HRMUser).set(rest).where(eq(HRMUser.id, id));
+    }),
 
   delete: protectedProcedure
-    .input(idSchema)
+    .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await checkPermissionOrThrow(
         ctx,
@@ -139,7 +205,7 @@ export const userRouter = createTRPCRouter({
         "delete",
         "Không có quyền xóa người dùng",
       );
-      const id = typeof input === "string" ? input : input.id;
+      const { id } = input;
       return ctx.db.delete(HRMUser).where(eq(HRMUser.id, id));
     }),
 

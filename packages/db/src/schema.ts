@@ -15,25 +15,28 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { AttendanceStatus } from "./constants/attendance";
-import { OfficeEnum } from "./constants/office";
-import { UserStatusEnum } from "./constants/user-status";
-
-/** Helper convert enum */
-export const enumValues = <E extends Record<string, string>>(
-  e: E,
-): [string, ...string[]] => {
-  if (typeof e !== "object") {
-    throw new Error("Invalid enum object passed");
-  }
-
-  const values = Object.values(e);
-  if (values.length === 0) {
-    throw new Error("Enum must have at least one value");
-  }
-
-  return values as [string, ...string[]];
-};
+// ENUM VALUES (không dùng enumValues cho pgEnum)
+export const attendanceStatusEnum = pgEnum("attendance_status", [
+  "1",
+  "W",
+  "P",
+  "P1",
+  "P2",
+  "BH",
+  "Rk",
+  "x/2",
+  "L",
+  "Nb",
+  "Nb1",
+  "Nb2",
+  "CT",
+  "BD",
+  "BC",
+  "BC1",
+  "BC2",
+]);
+export const userStatusEnumValue = pgEnum("status", ["active", "suspended"]);
+export const officeEnum = pgEnum("office", ["SKY", "NTL"]);
 
 /** Supabase Auth Schema */
 const auth = pgSchema("auth");
@@ -72,9 +75,10 @@ export type RoleRecord = InferSelectModel<typeof Role>;
 export const Permission = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
   module: text("module").notNull(),
-  roleId: uuid("role_id")
-    .references(() => Role.id)
-    .notNull(),
+  roleId: uuid("role_id").references(() => Role.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
   action: text("action").notNull(),
   type: text("type").notNull(),
   allow: boolean("allow").default(true),
@@ -96,8 +100,6 @@ export const CreatePermissionSchemaInput = createInsertSchema(Permission, {
 
 export type PermissionRecord = InferSelectModel<typeof Permission>;
 
-export const userStatusEnumValue = pgEnum("status", enumValues(UserStatusEnum));
-
 /** USERS TABLE - KHÔNG dùng defaultRandom để khớp Supabase ID */
 export const HRMUser = pgTable("users", (t) => ({
   id: uuid("id").primaryKey().notNull(),
@@ -106,19 +108,20 @@ export const HRMUser = pgTable("users", (t) => ({
   firstName: t.varchar("firstName", { length: 255 }).notNull(),
   lastName: t.varchar("lastName", { length: 255 }).notNull(),
   email: t.varchar("email", { length: 255 }).notNull(),
-  departmentId: uuid("department_id")
-    .references(() => Department.id)
-    .notNull(),
-  positionId: uuid("position_id")
-    .references(() => Role.id)
-    .notNull(),
-  roleId: uuid("role_id")
-    .references(() => Role.id)
-    .notNull(),
+  departmentId: uuid("department_id").references(() => Department.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  positionId: uuid("position_id").references(() => Role.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  roleId: uuid("role_id").references(() => Role.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
   phone: t.varchar("phone", { length: 255 }).notNull(),
-  status: userStatusEnumValue("status")
-    .notNull()
-    .default(UserStatusEnum.ACTIVE),
+  status: userStatusEnumValue("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -145,19 +148,18 @@ export const CreateUserSchemaInput = createInsertSchema(HRMUser, {
 export const SalarySlip = pgTable("salary_slips", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   userId: uuid("user_id")
-    .references(() => HRMUser.id)
+    .references(() => HRMUser.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    })
     .notNull(),
   month: varchar("month", { length: 10 }).notNull(),
-
-  // Thu nhập
   basicSalary: integer("basic_salary").notNull(),
   workingSalary: integer("working_salary").notNull(),
   bonus: integer("bonus").default(0),
   allowance: integer("allowance").default(0),
   otherIncome: integer("other_income").default(0),
   totalIncome: integer("total_income").notNull(),
-
-  // Khấu trừ
   socialInsuranceBase: integer("social_insurance_base"),
   socialInsuranceDeducted: integer("social_insurance_deduction"),
   unionFee: integer("union_fee"),
@@ -169,11 +171,7 @@ export const SalarySlip = pgTable("salary_slips", {
   advance: integer("advance"),
   otherDeductions: integer("other_deductions"),
   totalDeductions: integer("total_deductions"),
-
-  // Thực lãnh
   netIncome: integer("net_income").notNull(),
-
-  // Trạng thái, tạo lúc nào
   status: varchar("status", { length: 255 }).default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -214,7 +212,10 @@ export const Asset = pgTable("assets", (t) => ({
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   name: t.varchar("name", { length: 255 }).notNull(),
   type: t.varchar("type", { length: 255 }),
-  assignedTo: uuid("assigned_to").references(() => HRMUser.id),
+  assignedTo: uuid("assigned_to").references(() => HRMUser.id, {
+    onDelete: "cascade",
+    onUpdate: "cascade",
+  }),
   status: t.varchar("status", { length: 255 }).default("in-use"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }));
@@ -234,7 +235,10 @@ export const Transaction = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   userId: uuid("user_id")
     .notNull()
-    .references(() => HRMUser.id),
+    .references(() => HRMUser.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
   transactionType: varchar("transaction_type", { length: 255 }).notNull(),
   amount: integer("amount").notNull(),
   transactionDate: timestamp("transaction_date", {
@@ -275,7 +279,10 @@ export const CreateWorkflowSchema = createInsertSchema(Workflow).omit({
 export const WorkflowStep = pgTable("workflow_steps", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   workflowId: uuid("workflow_id")
-    .references(() => Workflow.id)
+    .references(() => Workflow.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    })
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
@@ -298,8 +305,7 @@ export const Notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: uuid("user_id")
     .notNull()
-    .references(() => HRMUser.id, { onDelete: "cascade" }),
-
+    .references(() => HRMUser.id, { onDelete: "cascade", onUpdate: "cascade" }),
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull(),
@@ -310,16 +316,12 @@ export const Notifications = pgTable("notifications", {
 /** LEAVE REQUEST */
 export const LeaveRequests = pgTable("leave_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
-
   name: text("name").notNull(),
   userId: uuid("user_id").notNull(),
   department: text("department").notNull(),
-
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
-
   reason: text("reason").notNull(),
-
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -338,11 +340,6 @@ export const CreateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
 });
 
 /**  ATTENDANCES  */
-export const attendanceStatusEnum = pgEnum(
-  "attendance_status",
-  enumValues(AttendanceStatus),
-);
-
 export const Attendance = pgTable("attendances", {
   id: serial("id").primaryKey(),
   userId: uuid("user_id").notNull(),
@@ -351,12 +348,11 @@ export const Attendance = pgTable("attendances", {
 });
 
 /** DEPARTMENT TABLE  */
-export const officeEnum = pgEnum("office", enumValues(OfficeEnum));
 export const Department = pgTable("departments", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
-  office: officeEnum("office").default(OfficeEnum.NTL),
+  office: officeEnum("office").default("NTL"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -364,16 +360,28 @@ export const Department = pgTable("departments", {
 export const CreateDepartmentSchemaInput = createInsertSchema(Department, {
   name: z.string().max(100),
   description: z.string().optional(),
+  office: z.enum(["SKY", "NTL"]).default("NTL"),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
+export const UpdateDepartmentSchemaInput = createInsertSchema(Department, {
+  id: z.string().uuid(),
+  name: z.string().max(100),
+  description: z.string().optional(),
+  office: z.enum(["SKY", "NTL"]).default("NTL"),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CreateDepartmentInput = z.infer<typeof CreateDepartmentSchemaInput>;
+export type UpdateDepartmentInput = z.infer<typeof UpdateDepartmentSchemaInput>;
 
 export type DepartmentRecord = InferSelectModel<typeof Department>;
 
 /** RELATIONS **/
-
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   user: one(HRMUser, {
     fields: [LeaveRequests.userId],

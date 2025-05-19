@@ -158,6 +158,7 @@ export const auth = async (): Promise<FullSession | null> => {
       },
       hrmUser: {
         ...hrmRest,
+        roleId: row.roleId ?? "",
         roleName,
       },
       expires: session.expires_at

@@ -19,6 +19,10 @@
     "./constants": {
       "types": "./dist/constants.d.ts",
       "default": "./dist/constants/index.js"
+    },
+    "./seed": {
+      "types": "./dist/seed.d.ts",
+      "default": "./dist/seed.js"
     }
   },
   "license": "MIT",
@@ -29,6 +33,7 @@
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "push": "pnpm with-env drizzle-kit generate  && pnpm with-env drizzle-kit push",
+    "seed": "pnpm build && pnpm with-env node dist/seed.js",
     "studio": "pnpm with-env drizzle-kit studio",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "with-env": "dotenv -e ../../.env --"

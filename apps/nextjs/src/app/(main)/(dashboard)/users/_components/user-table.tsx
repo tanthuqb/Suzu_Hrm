@@ -7,6 +7,7 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import type { RouterInputs } from "@acme/api";
+import type { FullHrmUser } from "@acme/db";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
@@ -29,6 +30,7 @@ import {
 import type { UserAllOutput } from "~/types/index";
 import { useUserStatusModal } from "~/context/UserStatusModalContext";
 import { useTRPC } from "~/trpc/react";
+import { SetRoleDialog } from "./set-role-client";
 
 type SortField = "email" | "firstName" | "status" | "role" | undefined;
 
@@ -40,6 +42,11 @@ export function UserTable() {
   const [sortBy, setSortBy] = useState<SortField>("email");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const { openModal } = useUserStatusModal();
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [selectedUserRole, setSelectedUserRole] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const trpc = useTRPC();
 
   const input: RouterInputs["user"]["all"] = {
@@ -67,6 +74,8 @@ export function UserTable() {
     isFetching: boolean;
   };
 
+  const { data: roles } = useSuspenseQuery(trpc.role.getAll.queryOptions());
+
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
       setOrder(order === "asc" ? "desc" : "asc");
@@ -75,6 +84,13 @@ export function UserTable() {
       setOrder("asc");
     }
     setPage(1);
+  };
+
+  const setRole = (userId: string, roleName?: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserRole(userId);
+    setSelectedUserRole(roleName);
+    setIsRoleDialogOpen(true);
   };
 
   return (
@@ -141,7 +157,7 @@ export function UserTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.users.map((user) => {
+            {data.users.map((user: FullHrmUser) => {
               return (
                 <TableRow key={user.id}>
                   <TableCell>{user.id}</TableCell>
@@ -149,11 +165,7 @@ export function UserTable() {
                     {user.firstName}
                   </TableCell>
                   <TableCell>{user.email ? user.email : null}</TableCell>
-                  {user.role ? (
-                    <TableCell>{user.role.name}</TableCell>
-                  ) : (
-                    <TableCell>No role assigned</TableCell>
-                  )}
+                  <TableCell>{user.role?.name}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -193,6 +205,23 @@ export function UserTable() {
                     >
                       Update
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="ml-2"
+                      onClick={() => {
+                        setRole(user.id);
+                      }}
+                    >
+                      Set Role
+                    </Button>
+                    <SetRoleDialog
+                      isOpen={isRoleDialogOpen}
+                      onClose={() => setIsRoleDialogOpen(false)}
+                      roles={roles}
+                      userId={selectedUserId}
+                      currentRoleName={selectedUserRole}
+                    />
                   </TableCell>
                 </TableRow>
               );
