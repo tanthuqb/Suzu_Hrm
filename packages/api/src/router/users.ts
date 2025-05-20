@@ -157,7 +157,6 @@ export const userRouter = createTRPCRouter({
             : undefined,
       } as FullHrmUser;
     }),
-
   update: protectedProcedure
     .input(
       z.object({
@@ -334,4 +333,14 @@ export const userRouter = createTRPCRouter({
       where: (fields, { eq }) => eq(fields.status, "active"),
     });
   }),
+
+  getAllUserByDepartmentId: protectedProcedure
+    .input(z.object({ departmentId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { departmentId } = input;
+      return ctx.db.query.HRMUser.findMany({
+        where: (fields, { eq }) =>
+          eq(fields.departmentId, departmentId) && eq(fields.status, "active"),
+      });
+    }),
 });

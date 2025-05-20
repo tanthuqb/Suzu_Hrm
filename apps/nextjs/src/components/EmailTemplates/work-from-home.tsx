@@ -8,10 +8,12 @@ export default function WorkFromHomeEmailTemplate({
   name,
   department,
   reason,
+  link,
 }: {
   name: string;
   department: string;
   reason: string;
+  link: string;
 }) {
   return (
     <Html lang="vi">
@@ -68,6 +70,19 @@ export default function WorkFromHomeEmailTemplate({
               Rất mong phòng nhân sự xem xét và cho phép làm việc tại nhà theo
               quy định.
             </Text>
+
+            <a href={link}>
+              <Text
+                style={{
+                  fontSize: "16px",
+                  lineHeight: "1.5",
+                  color: "#1a73e8",
+                  textDecoration: "underline",
+                }}
+              >
+                Xem chi tiết đơn xin làm việc tại nhà
+              </Text>
+            </a>
 
             <Text
               style={{
