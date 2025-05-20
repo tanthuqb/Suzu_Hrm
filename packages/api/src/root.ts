@@ -1,4 +1,7 @@
+import { LeaveRequests } from "@acme/db/schema";
+
 import { aclRouter } from "./router/acl";
+import { attendanceRouter } from "./router/attendance";
 import { authRouter } from "./router/auth";
 import { departmentRouter } from "./router/department";
 import { hrRouter } from "./router/hr";
@@ -17,6 +20,8 @@ export const appRouter = createTRPCRouter({
   acl: aclRouter,
   role: roleRouter,
   permission: permissionRouter,
+  attendance: attendanceRouter,
+  // leaverequest: LeaveRequests,
 });
 
 // export type definition of API

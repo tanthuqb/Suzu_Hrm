@@ -67,10 +67,14 @@ export const checkAuth = async (): Promise<{
     email,
     status,
     role_id,
-    role:users_role_id_roles_id_fk (
+    role:role_id (
       id,
       name,
       permissions( id, action )
+    ),
+    department:department_id (
+      id,
+      name
     )
   `,
     )
@@ -92,6 +96,9 @@ export const checkAuth = async (): Promise<{
   }
 
   const role = Array.isArray(rows.role) ? rows.role[0] : rows.role;
+  const department = Array.isArray(rows.department)
+    ? rows.department[0]
+    : rows.department;
 
   if (!role) {
     return {
@@ -108,6 +115,12 @@ export const checkAuth = async (): Promise<{
     role_id: rows.role_id,
     roleName: role.name,
     status: rows.status,
+    departments: department
+      ? {
+          id: department.id,
+          name: department.name,
+        }
+      : undefined,
     role: role,
     permissions: Array.isArray(role.permissions)
       ? role.permissions.map((permission: any) => ({

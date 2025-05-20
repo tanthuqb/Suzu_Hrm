@@ -19,10 +19,6 @@ const WorkFromHomeForm = dynamic(
 export default async function Page() {
   const Auth = await checkAuth();
 
-  if (!Auth.user) {
-    return <div>You must be logged in to access this page.</div>;
-  }
-
   return (
     <Card className="w-full shadow-lg">
       <CardHeader className="rounded-t-lg bg-gradient-to-r from-blue-50 to-indigo-50 pb-6 text-center">
@@ -34,7 +30,7 @@ export default async function Page() {
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
-        <WorkFromHomeForm user={Auth.user} />
+        <WorkFromHomeForm user={Auth.user!} />
       </CardContent>
     </Card>
   );

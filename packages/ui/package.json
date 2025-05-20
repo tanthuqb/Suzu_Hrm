@@ -30,7 +30,8 @@
     "./checkbox": "./src/checkbox.tsx",
     "./radio-group": "./src/radio-group.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
-    "./command": "./src/command.tsx"
+    "./command": "./src/command.tsx",
+    "./date-picker": "./src/date-picker.tsx"
   },
   "license": "MIT",
   "scripts": {

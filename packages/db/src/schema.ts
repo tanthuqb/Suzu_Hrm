@@ -37,6 +37,11 @@ export const attendanceStatusEnum = pgEnum("attendance_status", [
 ]);
 export const userStatusEnumValue = pgEnum("status", ["active", "suspended"]);
 export const officeEnum = pgEnum("office", ["SKY", "NTL"]);
+export const approvalStatusEnum = pgEnum("approval_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
 
 /** Supabase Auth Schema */
 const auth = pgSchema("auth");
@@ -317,7 +322,9 @@ export const Notifications = pgTable("notifications", {
 export const LeaveRequests = pgTable("leave_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  userId: uuid("user_id").notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id, { onDelete: "cascade", onUpdate: "cascade" }),
   department: text("department").notNull(),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
@@ -339,13 +346,75 @@ export const CreateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
   createdAt: true,
 });
 
+export const UpdateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
+  id: z.string().uuid(),
+  name: z.string().max(255),
+  userId: z.string().uuid(),
+  department: z.string().max(255),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  reason: z.string().max(255),
+}).omit({
+  createdAt: true,
+});
+export type UpdateLeaveRequestsInput = z.infer<
+  typeof UpdateLeaveRequestsSchema
+>;
+export type CreateLeaveRequestsInput = z.infer<
+  typeof CreateLeaveRequestsSchema
+>;
+export type LeaveRequestsRecord = InferSelectModel<typeof LeaveRequests>;
+
 /**  ATTENDANCES  */
 export const Attendance = pgTable("attendances", {
-  id: serial("id").primaryKey(),
+  id: uuid().primaryKey(),
   userId: uuid("user_id").notNull(),
   date: timestamp("date", { withTimezone: true }).notNull(),
   status: attendanceStatusEnum("status").notNull(),
+  isRemote: boolean("is_remote").default(false),
+  remoteReason: text("remote_reason"),
+  approvalStatus: approvalStatusEnum("approval_status").default("pending"),
+  approvedBy: uuid("approved_by").references(() => HRMUser.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
 });
+
+export const CreateAttendanceSchema = createInsertSchema(Attendance, {
+  userId: z.string().uuid(),
+  date: z.string().datetime(),
+  status: z.enum([
+    "1",
+    "W",
+    "P",
+    "P1",
+    "P2",
+    "BH",
+    "Rk",
+    "x/2",
+    "L",
+    "Nb",
+    "Nb1",
+    "Nb2",
+    "CT",
+    "BD",
+    "BC",
+    "BC1",
+    "BC2",
+  ]),
+  isRemote: z.boolean().default(false),
+  remoteReason: z.string().optional(),
+  approvalStatus: z
+    .enum(["pending", "approved", "rejected"])
+    .default("pending"),
+}).omit({
+  id: true,
+  approvedAt: true,
+});
+
+export type CreateAttendanceInput = z.infer<typeof CreateAttendanceSchema>;
+export type AttendanceRecord = InferSelectModel<typeof Attendance>;
 
 /** DEPARTMENT TABLE  */
 export const Department = pgTable("departments", {

@@ -42,6 +42,7 @@ const formSchema = z.object({
     .refine((val) => val instanceof Date, {
       message: "Start date is required when field is not empty.",
     }),
+
   endDate: z
     .date()
     .optional()
@@ -62,7 +63,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
     defaultValues: {
       name: `${user.lastName} ${user.firstName}`,
       userId: user.id,
-      department: "",
+      department: user.departments?.name,
       reason: "",
       startDate: undefined,
       endDate: undefined,

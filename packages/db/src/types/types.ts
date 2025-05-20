@@ -39,6 +39,7 @@ export interface AuthUser {
   role_id: string;
   roleName: string;
   status: UserStatusEnum;
+  departments?: Pick<DepartmentRecord, "id" | "name">;
   role: {
     id: string;
     name: string;

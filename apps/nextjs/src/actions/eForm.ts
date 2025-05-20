@@ -18,6 +18,10 @@ export const sendLeaveRequest = async (
   leaveRequestsInput: InputLeaveRequest,
 ): Promise<{ data: any[] | null; error: PostgrestError | null }> => {
   const supabase = await createServerClient();
+  console.log(
+    "🚀 ~ file: eForm.ts:20 ~ sendLeaveRequest ~ leaveRequestsInput:",
+    leaveRequestsInput,
+  );
   const { error, data } = await supabase.from("leave_requests").insert({
     name: leaveRequestsInput.name,
     user_id: leaveRequestsInput.userId,
@@ -30,17 +34,13 @@ export const sendLeaveRequest = async (
   if (error) {
     throw new Error(error.message);
   }
-  if (!data) {
-    throw new Error("No data returned from Supabase");
-  }
 
   const htmlContent = await renderWFHEmail({
     name: leaveRequestsInput.name,
     department: leaveRequestsInput.department,
     reason: leaveRequestsInput.reason,
+    link: `${env.NEXT_PUBLIC_APP_URL}/dashboard/leave-requests`,
   });
-
-  //const AuthUser = await checkAuth();
 
   await resend.emails.send({
     from: "HR System <delivered@resend.dev>",
