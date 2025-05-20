@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Edit, Search, Trash2 } from "lucide-react";
 
@@ -16,44 +21,11 @@ import {
   TableRow,
 } from "@acme/ui/table";
 
+import { useTRPC } from "~/trpc/react";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { LeaveRequestDialog } from "./leave-request-dialog";
 
-// Mock data based on the schema
-const mockLeaveRequests = [
-  {
-    id: "1",
-    name: "John Doe",
-    userId: "user1",
-    department: "Engineering",
-    startDate: new Date("2023-05-10"),
-    endDate: new Date("2023-05-15"),
-    reason: "Annual leave",
-    createdAt: new Date("2023-05-01"),
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    userId: "user2",
-    department: "Marketing",
-    startDate: new Date("2023-06-20"),
-    endDate: new Date("2023-06-25"),
-    reason: "Family event",
-    createdAt: new Date("2023-06-10"),
-  },
-  {
-    id: "3",
-    name: "Michael Johnson",
-    userId: "user3",
-    department: "Finance",
-    startDate: new Date("2023-07-05"),
-    endDate: new Date("2023-07-10"),
-    reason: "Medical leave",
-    createdAt: new Date("2023-06-25"),
-  },
-];
-
-export function LeaveRequestsTable() {
+export function LeaveRequestsTable({ userId }: { userId: string }) {
   const [searchName, setSearchName] = useState("");
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(
     undefined,
@@ -65,8 +37,14 @@ export function LeaveRequestsTable() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Filter the leave requests based on search and date filters
-  const filteredRequests = mockLeaveRequests.filter((request) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const { data: leavesRequests } = useSuspenseQuery(
+    trpc.leaveRequest.getAll.queryOptions(),
+  );
+
+  const filteredRequests = leavesRequests.filter((request) => {
     const nameMatch = request.name
       .toLowerCase()
       .includes(searchName.toLowerCase());
@@ -76,21 +54,37 @@ export function LeaveRequestsTable() {
     return nameMatch && startDateMatch && endDateMatch;
   });
 
+  const deleteMutation = useMutation(
+    trpc.leaveRequest.delete.mutationOptions({
+      onSuccess: () => {
+        console.log("Leave request deleted successfully");
+        setIsDeleteDialogOpen(false);
+      },
+      onError: (error) => {
+        console.error("Error deleting leave request:", error);
+      },
+    }),
+  );
+
   const handleView = (request: any) => {
     setSelectedRequest(request);
     setIsViewDialogOpen(true);
   };
 
-  const handleDelete = (request: any) => {
+  const handleDelete = async (request: any) => {
     setSelectedRequest(request);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    // Here you would call your delete API
     console.log("Deleting request:", selectedRequest.id);
+    await deleteMutation.mutateAsync({
+      id: selectedRequest.id,
+    });
+    queryClient.invalidateQueries({
+      queryKey: trpc.leaveRequest.getAll.queryKey(),
+    });
     setIsDeleteDialogOpen(false);
-    // After successful deletion, you would refresh the data
   };
 
   const resetFilters = () => {
@@ -189,6 +183,8 @@ export function LeaveRequestsTable() {
             isOpen={isViewDialogOpen}
             onClose={() => setIsViewDialogOpen(false)}
             leaveRequest={selectedRequest}
+            setIsViewDialogOpen={setIsViewDialogOpen}
+            userId={userId}
           />
           <DeleteConfirmDialog
             isOpen={isDeleteDialogOpen}

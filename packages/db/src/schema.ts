@@ -328,7 +328,14 @@ export const LeaveRequests = pgTable("leave_requests", {
   department: text("department").notNull(),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+  status: attendanceStatusEnum("status").notNull(),
   reason: text("reason").notNull(),
+  approvalStatus: approvalStatusEnum("approval_status").default("pending"),
+  approvedBy: uuid("approved_by").references(() => HRMUser.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -367,7 +374,7 @@ export type LeaveRequestsRecord = InferSelectModel<typeof LeaveRequests>;
 
 /**  ATTENDANCES  */
 export const Attendance = pgTable("attendances", {
-  id: uuid().primaryKey(),
+  id: uuid().primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
   date: timestamp("date", { withTimezone: true }).notNull(),
   status: attendanceStatusEnum("status").notNull(),

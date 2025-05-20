@@ -2,7 +2,10 @@
 
 import type React from "react";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import type { ApprovalStatus } from "@acme/db";
+import { approvalStatusEnum } from "@acme/db";
 import { Button } from "@acme/ui/button";
 import { DatePicker } from "@acme/ui/date-picker";
 import {
@@ -15,26 +18,50 @@ import {
 } from "@acme/ui/dialog";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
+
+import { useTRPC } from "~/trpc/react";
+
+const approvalStatusOptions = Object.values(approvalStatusEnum);
 
 interface LeaveRequestDialogProps {
   isOpen: boolean;
   onClose: () => void;
   leaveRequest: any;
+  userId: string;
+  setIsViewDialogOpen: (isOpen: boolean) => void;
 }
 
 export function LeaveRequestDialog({
   isOpen,
   onClose,
   leaveRequest,
+  userId,
+  setIsViewDialogOpen,
 }: LeaveRequestDialogProps) {
+  const [selectedStatus, setSelectedStatus] = useState<ApprovalStatus>(
+    leaveRequest?.approvalStatus ?? approvalStatusEnum.PENDING,
+  );
+
   const [formData, setFormData] = useState({
     name: leaveRequest.name,
     department: leaveRequest.department,
     startDate: leaveRequest.startDate,
     endDate: leaveRequest.endDate,
     reason: leaveRequest.reason,
+    userId: leaveRequest.userId,
+    status: leaveRequest.status,
   });
+
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -51,12 +78,60 @@ export function LeaveRequestDialog({
     setFormData((prev) => ({ ...prev, endDate: date || prev.endDate }));
   };
 
+  const updateMutation = useMutation(
+    trpc.leaveRequest.update.mutationOptions({
+      onSuccess: () => {
+        console.log("Leave request updated successfully");
+        setIsViewDialogOpen(false);
+      },
+      onError: (error) => {
+        console.error("Error updating leave request:", error);
+      },
+    }),
+  );
+
+  const createAttandanceMutation = useMutation(
+    trpc.attendance.create.mutationOptions({}),
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would call your update API
-    console.log("Updating request:", leaveRequest.id, formData);
+    await updateMutation.mutateAsync({
+      ...formData,
+      id: leaveRequest.id,
+      approvalStatus: selectedStatus,
+      approvedBy: userId,
+      approvedAt: new Date(),
+      startDate: formData.startDate
+        ? typeof formData.startDate === "string"
+          ? formData.startDate
+          : (formData.startDate as Date).toISOString()
+        : "",
+      endDate: formData.endDate
+        ? typeof formData.endDate === "string"
+          ? formData.endDate
+          : (formData.endDate as Date).toISOString()
+        : "",
+    });
+
+    if (selectedStatus === "approved") {
+      await createAttandanceMutation.mutateAsync({
+        date: formData.startDate
+          ? typeof formData.startDate === "string"
+            ? formData.startDate
+            : (formData.startDate as Date).toISOString()
+          : "",
+        userId: leaveRequest.userId,
+        isRemote: false,
+        remoteReason: formData.reason,
+        status: leaveRequest.status,
+      });
+    }
+
+    queryClient.invalidateQueries({
+      queryKey: trpc.leaveRequest.getAll.queryKey(),
+    });
     onClose();
-    // After successful update, you would refresh the data
   };
 
   return (
@@ -79,6 +154,7 @@ export function LeaveRequestDialog({
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                disabled={userId !== leaveRequest.userId}
                 className="col-span-3"
               />
             </div>
@@ -90,17 +166,19 @@ export function LeaveRequestDialog({
                 id="department"
                 name="department"
                 value={formData.department}
+                disabled={userId !== leaveRequest.userId}
                 onChange={handleChange}
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            {/* <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Start Date</Label>
               <div className="col-span-3">
                 <DatePicker
-                  date={formData.startDate}
+                  date={formData.startDate}                  
                   onDateChange={handleStartDateChange}
                   className="w-full"
+                  
                 />
               </div>
             </div>
@@ -113,7 +191,7 @@ export function LeaveRequestDialog({
                   className="w-full"
                 />
               </div>
-            </div>
+            </div> */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="reason" className="text-right">
                 Reason
@@ -122,9 +200,36 @@ export function LeaveRequestDialog({
                 id="reason"
                 name="reason"
                 value={formData.reason}
+                disabled={userId !== leaveRequest.userId}
                 onChange={handleChange}
                 className="col-span-3"
               />
+            </div>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="reason" className="text-right">
+              Status
+            </Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedStatus}
+                onValueChange={(value: string) =>
+                  setSelectedStatus(value as ApprovalStatus)
+                }
+                disabled={userId == leaveRequest.userId}
+                defaultValue={leaveRequest.approvalStatus}
+              >
+                <SelectTrigger className="h-8 w-[120px]">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  {approvalStatusOptions.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

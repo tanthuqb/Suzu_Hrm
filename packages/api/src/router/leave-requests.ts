@@ -15,7 +15,7 @@ export const leaveRequestRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
-      "leave-requests",
+      "leaveRequest",
       "getAll",
       "Không có quyền xem quyền truy cập",
     );
@@ -29,7 +29,7 @@ export const leaveRequestRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "attendance",
+        "leaveRequest",
         "getById",
         "Không có quyền xem quyền truy cập",
       );
@@ -53,7 +53,7 @@ export const leaveRequestRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "attendance",
+        "leaveRequest",
         "update",
         "Không có quyền cập nhật quyền truy cập",
       );
@@ -81,7 +81,7 @@ export const leaveRequestRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
-        "attendance",
+        "leaveRequest",
         "delete",
         "Không có quyền xóa quyền truy cập",
       );

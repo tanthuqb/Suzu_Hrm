@@ -1,8 +1,8 @@
 "use client";
 
-import { useId } from "react";
-import dynamic from "next/dynamic";
+import { useId, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -10,8 +10,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import type { AuthUser } from "@acme/db";
+import type { DepartmentRecord } from "@acme/db/schema";
+import {
+  approvalStatusEnum,
+  AttendanceStatus,
+  AttendanceStatusLabel,
+} from "@acme/db";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
+import { Calendar } from "@acme/ui/calendar";
 import {
   Form,
   FormControl,
@@ -22,20 +29,25 @@ import {
 } from "@acme/ui/form";
 import { Input } from "@acme/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@acme/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
 import { sendLeaveRequest } from "~/actions/eForm";
-
-const Calendar = dynamic(
-  () => import("@acme/ui/calendar").then((mod) => mod.Calendar),
-  { ssr: false },
-);
+import { useTRPC } from "~/trpc/react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   userId: z.string().min(1, { message: "User ID is required." }),
-  department: z.string().min(1, { message: "Department is required." }),
+  department: z.string().min(1, {
+    message: "Department is required.",
+  }),
   startDate: z
     .date()
     .optional()
@@ -49,15 +61,35 @@ const formSchema = z.object({
     .refine((val) => val instanceof Date, {
       message: "End date is required when field is not empty.",
     }),
+  userInDepartment: z.string().optional(),
   reason: z
     .string()
     .min(10, { message: "Reason must be at least 10 characters." }),
+  status: z.enum(Object.values(approvalStatusEnum) as [string, ...string[]], {
+    required_error: "Status is required.",
+    invalid_type_error: "Status must be a valid option.",
+  }),
+
+  AttendanceStatus: z.enum(
+    Object.values(AttendanceStatus) as [string, ...string[]],
+    {
+      required_error: "Attendance status is required.",
+      invalid_type_error: "Attendance status must be a valid option.",
+    },
+  ),
 });
 
-export default function WFHForm({ user }: { user: AuthUser }) {
+export default function WFHForm({
+  user,
+  departments,
+}: {
+  user: AuthUser;
+  departments: DepartmentRecord[];
+}) {
   const uid = useId();
   const startUid = `${uid}-start`;
   const endUid = `${uid}-end`;
+  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,11 +99,24 @@ export default function WFHForm({ user }: { user: AuthUser }) {
       reason: "",
       startDate: undefined,
       endDate: undefined,
+      status: approvalStatusEnum.PENDING,
+      AttendanceStatus: AttendanceStatus.WorkDay,
     },
   });
 
+  const [selectedDepartment, setSelectedDepartment] = useState(
+    user.departments?.name ?? "",
+  );
+  // const { data: usersByDept, isLoading } = useSuspenseQuery(
+  //   trpc.user.getAllUserByDepartmentId.queryOptions({
+  //     departmentId: user.departments?.id!,
+  //   }),
+  // );
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { error } = await sendLeaveRequest(values);
+    const { error } = await sendLeaveRequest({
+      ...values,
+    });
 
     if (error) {
       toast.error("Gửi thất bại", { description: error.message });
@@ -129,21 +174,95 @@ export default function WFHForm({ user }: { user: AuthUser }) {
 
         <FormField
           control={form.control}
-          name="department"
+          name="AttendanceStatus"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Department</FormLabel>
+              <FormLabel>Status</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Engineering"
-                  {...field}
+                <Select
                   value={field.value ?? ""}
-                />
+                  onValueChange={field.onChange}
+                  required={true}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(AttendanceStatusLabel).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="department"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Department</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setSelectedDepartment(value);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* {usersByDept && usersByDept.length > 0 && (
+          <FormField
+            control={form.control}
+            name="userInDepartment"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Chọn nhân viên trong phòng ban</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn nhân viên" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {usersByDept.map((u: any) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.lastName} {u.firstName} - {u.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )} */}
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { eq } from "@acme/db";
-import { Attendance } from "@acme/db/schema";
+import { Attendance, CreateAttendanceSchema } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -41,6 +41,23 @@ export const attendanceRouter = createTRPCRouter({
       }
       return result[0];
     }),
+  create: protectedProcedure
+    .input(CreateAttendanceSchema)
+    .mutation(async ({ input, ctx }) => {
+      const { date, userId, isRemote, remoteReason, ...rest } = input;
+      const [created] = await ctx.db
+        .insert(Attendance)
+        .values({
+          ...rest,
+          date: new Date(date),
+          userId,
+          isRemote,
+          remoteReason,
+        })
+        .returning();
+      return created;
+    }),
+
   update: protectedProcedure
     .input(
       z.object({
