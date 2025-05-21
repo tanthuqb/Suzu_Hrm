@@ -2,12 +2,15 @@
 
 import type React from "react";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 
 import type { ApprovalStatus } from "@acme/db";
 import { approvalStatusEnum } from "@acme/db";
 import { Button } from "@acme/ui/button";
-import { DatePicker } from "@acme/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +29,7 @@ import {
   SelectValue,
 } from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
+import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 
@@ -81,17 +85,32 @@ export function LeaveRequestDialog({
   const updateMutation = useMutation(
     trpc.leaveRequest.update.mutationOptions({
       onSuccess: () => {
-        console.log("Leave request updated successfully");
+        toast("Leave request updated successfully", {
+          description: "The leave request has been updated.",
+        });
         setIsViewDialogOpen(false);
       },
       onError: (error) => {
-        console.error("Error updating leave request:", error);
+        toast("Error updating leave request", {
+          description: error.message,
+        });
       },
     }),
   );
 
   const createAttandanceMutation = useMutation(
     trpc.attendance.create.mutationOptions({}),
+  );
+
+  const { data: checkAttendance } = useSuspenseQuery(
+    trpc.attendance.getByDateAndUserId.queryOptions({
+      date: formData.startDate
+        ? typeof formData.startDate === "string"
+          ? formData.startDate
+          : (formData.startDate as Date).toISOString()
+        : "",
+      userId: leaveRequest.userId,
+    }),
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,17 +134,24 @@ export function LeaveRequestDialog({
     });
 
     if (selectedStatus === "approved") {
-      await createAttandanceMutation.mutateAsync({
-        date: formData.startDate
-          ? typeof formData.startDate === "string"
-            ? formData.startDate
-            : (formData.startDate as Date).toISOString()
-          : "",
-        userId: leaveRequest.userId,
-        isRemote: false,
-        remoteReason: formData.reason,
-        status: leaveRequest.status,
-      });
+      if (checkAttendance) {
+        toast("Error", {
+          description: "Attendance already exists for this date",
+        });
+      } else {
+        await createAttandanceMutation.mutateAsync({
+          date: formData.startDate
+            ? typeof formData.startDate === "string"
+              ? formData.startDate
+              : (formData.startDate as Date).toISOString()
+            : "",
+          userId: leaveRequest.userId,
+          isRemote: false,
+          remoteReason: formData.reason,
+          status: leaveRequest.status,
+          leaveRequestId: leaveRequest.id,
+        });
+      }
     }
 
     queryClient.invalidateQueries({

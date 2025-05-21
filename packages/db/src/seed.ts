@@ -53,5 +53,3 @@ async function main() {
 
   console.log("Seed thành công!");
 }
-
-main().then(() => process.exit(0));

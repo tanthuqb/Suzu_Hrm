@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 
-import { checkAuth } from "~/actions/auth";
+import { checkRole } from "~/actions/auth";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import Permissions from "../_components/Permission-Client";
 
 export default async function PermissionsPage() {
-  const auth = await checkAuth();
-  if (!auth.status || !auth.user) {
+  const { status, message } = await checkRole(["admin", "hr"]);
+  if (!status) {
     redirect(
-      `/login?message=${encodeURIComponent(auth.message || "Bạn cần đăng nhập.")}`,
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
     );
   }
   const { state: stateRole } = await ssrPrefetch(

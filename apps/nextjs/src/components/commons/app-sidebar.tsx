@@ -39,7 +39,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {/* {user?.role == "admin" ? ( */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive>
               <Link href="/users">
@@ -48,19 +47,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* ) : null} */}
-          {/* {user?.role === "admin" ? ( */}
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/imports">
-                <FileImport className="h-4 w-4" />
-                <span>Import Suzu</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          {/* ) : null} */}
-          {/* Menu Menu Sub Nhan Su */}
-          {/* {user?.role === "admin" || user?.role === "hr" ? ( */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -74,15 +60,27 @@ export function AppSidebar() {
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
-                      <Link href="/import-attendance">Imports</Link>
+                      <Link href="/import-attendance">Imports Attendances</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/attendances">Chấm Công</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/leave-requests">Nghỉ Phép</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* ) : null} */}
-          {/* Menu Menu Sub Kien Thuc */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -113,7 +111,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub Ca Nhan */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -144,7 +141,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub E Form */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -175,7 +171,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub Process */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -215,7 +210,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub E Form */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -229,14 +223,33 @@ export function AppSidebar() {
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
-                      <Link href="/department">Khởi Tạo & Cập Nhật</Link>
+                      <Link href="/department">Quản Lý Phòng Ban</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Settings */}
+          <Collapsible className="group/collapsible">
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton>
+                  <Send className="h-4 w-4" />
+                  <span>Vị Trí</span>
+                  <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/positions">Quản lý Vị Trí</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -260,6 +273,11 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/imports">Import Suzu</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
@@ -268,16 +286,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {/* <SidebarMenuButton asChild>
-              <Link href="/">
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </Link>
-            </SidebarMenuButton> */}
-          </SidebarMenuItem>
-        </SidebarMenu>
         <div className="mt-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800 text-white"></div>
         </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import type { AttendanceInput, AttendanceStatus } from "@acme/db";
+import type { HRMUserInput } from "@acme/db";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
 import {
@@ -22,47 +23,45 @@ import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 
-export default function Page() {
-  const [fileData, setFileData] = useState<AttendanceInput[]>([]);
-  const [textPreview, setTextPreview] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface UserRow {
+  "Email Address [Required]": string;
+  "First Name [Required]": string;
+  "Last Name [Required]": string;
+  "Mã NV"?: string;
+  "Work Phone"?: string;
+  Role?: string;
+  "Status [READ ONLY]"?: string;
+}
+
+export default function ImportUserPage() {
   const trpc = useTRPC();
 
-  const importMutation = useMutation(
-    trpc.hr.importAttendances.mutationOptions({
-      onSuccess: (data) => {
-        toast.success(`✅ Đã import ${data.insertedCount} dòng`);
-        setFileData([]);
-        setTextPreview("");
+  const [fileData, setFileData] = useState<HRMUserInput[]>([]);
+  const [textPreview, setTextPreview] = useState("");
+  const [isLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const importUsers = useMutation(
+    trpc.user.imports.mutationOptions({
+      onSuccess: ({ insertedCount, ignoredCount }) => {
+        toast.success(
+          `✅ Đã import ${insertedCount} va ${ignoredCount} người dùng`,
+        );
       },
-      onError: (err) => {
-        toast.error(err.message || "❌ Lỗi import");
-      },
-      onSettled: () => {
-        setIsLoading(false);
+      onError(err) {
+        toast.error(err.message);
       },
     }),
   );
 
-  const previewMutation = useMutation(
-    trpc.hr.previewAttendances.mutationOptions({
-      onMutate() {
-        setIsLoading(true);
-      },
-      onSuccess: (data: any) => {
-        setFileData(data);
-        setTextPreview(JSON.stringify(data, null, 2));
-      },
-      onError: (err: any) => {
-        toast.error(err.message || "Không thể preview dữ liệu.");
-        setError(err.message || "Không thể preview dữ liệu.");
-      },
-      onSettled: () => {
-        setIsLoading(false);
-      },
-    }),
-  );
+  function formatPhone(raw: unknown): string {
+    if (!raw || (typeof raw !== "string" && typeof raw !== "number")) return "";
+
+    const str = String(raw).trim();
+    if (str.toLowerCase() === "undefined") return "";
+
+    return str.length === 9 ? "0" + str : str;
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,42 +69,34 @@ export default function Page() {
 
     setError(null);
     const ext = file.name.split(".").pop()?.toLowerCase();
+
     const reader = new FileReader();
 
     reader.onload = () => {
       const rawData = reader.result;
 
       try {
-        let rawJson: any[] = [];
+        let rawJson: UserRow[] = [];
 
         if (ext === "json") {
-          if (!rawData) {
-            setError("❌ Không thể đọc file JSON.");
-            return;
-          }
-          rawJson = JSON.parse(rawData as string);
+          rawJson = JSON.parse(rawData as string) as UserRow[];
         } else if (ext === "xlsx" || ext === "xls") {
-          if (!rawData) {
-            setError("❌ Không thể đọc file Excel.");
-            return;
-          }
-
           const workbook = XLSX.read(rawData, { type: "binary" });
 
-          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-            setError("❌ File Excel không chứa sheet nào.");
+          if (workbook.SheetNames.length === 0) {
+            setError("❌ Không tìm thấy sheet trong file Excel");
             return;
           }
 
-          const firstSheetName = workbook.SheetNames[0];
-          if (!firstSheetName) {
-            setError("❌ Sheet đầu tiên không hợp lệ.");
+          const sheetName = workbook.SheetNames[0];
+          if (!sheetName) {
+            setError("❌ Không thể tìm thấy sheet đầu tiên trong file Excel");
             return;
           }
 
-          const sheet = workbook.Sheets[firstSheetName];
+          const sheet = workbook.Sheets[sheetName];
           if (!sheet) {
-            setError("❌ Sheet đầu tiên không hợp lệ.");
+            setError("❌ Không thể tìm thấy sheet đầu tiên trong file Excel");
             return;
           }
 
@@ -115,22 +106,49 @@ export default function Page() {
           return;
         }
 
-        // Hiển thị dữ liệu gốc để debug
-        setTextPreview(JSON.stringify(rawJson, null, 2));
+        const allowedDomains = ["@suzu.group", "@suzu.edu.vn"];
 
-        // Gửi dữ liệu thô lên server để chuẩn hóa preview
-        previewMutation.mutate(rawJson);
+        const formatted = rawJson
+          .map((row) => {
+            const email = row["Email Address [Required]"].trim();
+            if (!email || !allowedDomains.some((d) => email.endsWith(d)))
+              return null;
+
+            return {
+              firstName: row["First Name [Required]"]
+                ? row["First Name [Required]"].trim()
+                : "",
+              lastName: row["Last Name [Required]"]
+                ? row["Last Name [Required]"].trim()
+                : "",
+              email,
+              employeeCode: row["Mã NV"]?.trim() ?? "",
+              phone: formatPhone(row["Work Phone"]),
+              role: row.Role?.trim() ?? "user",
+              status:
+                row["Status [READ ONLY]"]?.trim().toLowerCase() == "active"
+                  ? "Active"
+                  : "Suspended",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          })
+          .filter((item): item is HRMUserInput => !!item);
+
+        if (formatted.length === 0) {
+          setError(
+            "❌ Không có email hợp lệ để import (chỉ chấp nhận @suzu.group hoặc @suzu.edu.vn)",
+          );
+          return;
+        }
+
+        setFileData(formatted);
+        setTextPreview(JSON.stringify(formatted, null, 2));
       } catch (err) {
         console.error(err);
-
-        // Handle error safely
-        if (err instanceof Error) {
-          setError(`❌ Không thể đọc file: ${err.message}`);
-        } else {
-          setError(
-            "❌ Không thể đọc file. Vui lòng kiểm tra định dạng và nội dung.",
-          );
-        }
+        setError(
+          "❌ Không thể đọc file. Vui lòng kiểm tra định dạng và nội dung.",
+        );
       }
     };
 
@@ -142,17 +160,13 @@ export default function Page() {
   };
 
   const handleImport = () => {
-    setIsLoading(true);
     if (!fileData.length) {
       setError("Chưa có dữ liệu!");
       return;
     }
-    importMutation.mutate(
-      fileData.map((d) => ({
-        ...d,
-        status: d.status as AttendanceStatus,
-      })),
-    );
+
+    setError(null);
+    importUsers.mutate(fileData);
   };
 
   return (

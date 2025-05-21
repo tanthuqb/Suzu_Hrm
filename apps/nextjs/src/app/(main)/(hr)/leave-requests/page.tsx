@@ -1,11 +1,19 @@
-import { checkAuth } from "~/actions/auth";
+import { redirect } from "next/navigation";
+
+import { VALID_ROLES } from "@acme/db";
+
+import { checkRole } from "~/actions/auth";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
-import { LeaveRequestsTable } from "./../_components/leave-requests-table";
+import { LeaveRequestsTable } from "./../_components/leave-requests/leave-requests-table";
 
 export default async function LeaveManagementPage() {
-  const AuthUser = await checkAuth();
-  const { user } = AuthUser;
+  const { status, user, message } = await checkRole(VALID_ROLES);
+  if (!status) {
+    redirect(
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
+    );
+  }
   const { state } = await ssrPrefetch(trpc.leaveRequest.getAll.queryOptions());
 
   return (

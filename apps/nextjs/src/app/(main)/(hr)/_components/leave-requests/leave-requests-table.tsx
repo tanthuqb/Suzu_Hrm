@@ -20,12 +20,19 @@ import {
   TableHeader,
   TableRow,
 } from "@acme/ui/table";
+import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { LeaveRequestDialog } from "./leave-request-dialog";
 
-export function LeaveRequestsTable({ userId }: { userId: string }) {
+export function LeaveRequestsTable({
+  userId,
+  leaveRequestId,
+}: {
+  userId: string;
+  leaveRequestId?: string;
+}) {
   const [searchName, setSearchName] = useState("");
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(
     undefined,
@@ -44,24 +51,30 @@ export function LeaveRequestsTable({ userId }: { userId: string }) {
     trpc.leaveRequest.getAll.queryOptions(),
   );
 
-  const filteredRequests = leavesRequests.filter((request) => {
-    const nameMatch = request.name
-      .toLowerCase()
-      .includes(searchName.toLowerCase());
-    const startDateMatch =
-      !startDateFilter || request.startDate >= startDateFilter;
-    const endDateMatch = !endDateFilter || request.endDate <= endDateFilter;
-    return nameMatch && startDateMatch && endDateMatch;
-  });
+  const filteredRequests = leaveRequestId
+    ? leavesRequests.filter((request) => request.id === leaveRequestId)
+    : leavesRequests.filter((request) => {
+        const nameMatch = request.name
+          .toLowerCase()
+          .includes(searchName.toLowerCase());
+        const startDateMatch =
+          !startDateFilter || request.startDate >= startDateFilter;
+        const endDateMatch = !endDateFilter || request.endDate <= endDateFilter;
+        return nameMatch && startDateMatch && endDateMatch;
+      });
 
   const deleteMutation = useMutation(
     trpc.leaveRequest.delete.mutationOptions({
       onSuccess: () => {
-        console.log("Leave request deleted successfully");
+        toast("Leave request deleted successfully", {
+          description: "The leave request has been deleted.",
+        });
         setIsDeleteDialogOpen(false);
       },
       onError: (error) => {
-        console.error("Error deleting leave request:", error);
+        toast("Error deleting leave request", {
+          description: error.message,
+        });
       },
     }),
   );
@@ -77,7 +90,6 @@ export function LeaveRequestsTable({ userId }: { userId: string }) {
   };
 
   const confirmDelete = async () => {
-    console.log("Deleting request:", selectedRequest.id);
     await deleteMutation.mutateAsync({
       id: selectedRequest.id,
     });

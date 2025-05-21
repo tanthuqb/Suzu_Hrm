@@ -1,3 +1,4 @@
+import { create } from "domain";
 import type { InferSelectModel } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import {
@@ -117,7 +118,7 @@ export const HRMUser = pgTable("users", (t) => ({
     onDelete: "set null",
     onUpdate: "cascade",
   }),
-  positionId: uuid("position_id").references(() => Role.id, {
+  positionId: uuid("position_id").references(() => Position.id, {
     onDelete: "set null",
     onUpdate: "cascade",
   }),
@@ -380,12 +381,10 @@ export const Attendance = pgTable("attendances", {
   status: attendanceStatusEnum("status").notNull(),
   isRemote: boolean("is_remote").default(false),
   remoteReason: text("remote_reason"),
-  approvalStatus: approvalStatusEnum("approval_status").default("pending"),
-  approvedBy: uuid("approved_by").references(() => HRMUser.id, {
+  leaveRequestId: uuid("leave_request_id").references(() => LeaveRequests.id, {
     onDelete: "set null",
     onUpdate: "cascade",
   }),
-  approvedAt: timestamp("approved_at", { withTimezone: true }),
 });
 
 export const CreateAttendanceSchema = createInsertSchema(Attendance, {
@@ -412,12 +411,9 @@ export const CreateAttendanceSchema = createInsertSchema(Attendance, {
   ]),
   isRemote: z.boolean().default(false),
   remoteReason: z.string().optional(),
-  approvalStatus: z
-    .enum(["pending", "approved", "rejected"])
-    .default("pending"),
+  leaveRequestId: z.string().uuid().optional(),
 }).omit({
   id: true,
-  approvedAt: true,
 });
 
 export type CreateAttendanceInput = z.infer<typeof CreateAttendanceSchema>;
@@ -456,6 +452,40 @@ export type CreateDepartmentInput = z.infer<typeof CreateDepartmentSchemaInput>;
 export type UpdateDepartmentInput = z.infer<typeof UpdateDepartmentSchemaInput>;
 
 export type DepartmentRecord = InferSelectModel<typeof Department>;
+
+export const Position = pgTable("positions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  departmentId: uuid("department_id")
+    .references(() => Department.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    })
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const CreatePositionSchemaInput = createInsertSchema(Position, {
+  id: z.string().uuid().optional(),
+  name: z.string().max(100),
+  departmentId: z.string().uuid(),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CreatePositionInput = z.infer<typeof CreatePositionSchemaInput>;
+export type PositionRecord = InferSelectModel<typeof Position>;
+export const UpdatePositionSchemaInput = createInsertSchema(Position, {
+  id: z.string().uuid(),
+  name: z.string().max(100),
+  departmentId: z.string().uuid(),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type UpdatePositionInput = z.infer<typeof UpdatePositionSchemaInput>;
 
 /** RELATIONS **/
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
