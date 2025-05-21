@@ -39,7 +39,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {/* {user?.role == "admin" ? ( */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive>
               <Link href="/users">
@@ -48,12 +47,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* ) : null} */}
-          {/* {user?.role === "admin" ? ( */}
-
-          {/* ) : null} */}
-          {/* Menu Menu Sub Nhan Su */}
-          {/* {user?.role === "admin" || user?.role === "hr" ? ( */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -67,7 +60,7 @@ export function AppSidebar() {
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
-                      <Link href="/import-attendance">Imports</Link>
+                      <Link href="/import-attendance">Imports Attendances</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -88,8 +81,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* ) : null} */}
-          {/* Menu Menu Sub Kien Thuc */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -120,7 +111,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub Ca Nhan */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -151,7 +141,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub E Form */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -182,7 +171,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub Process */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -222,7 +210,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Sub E Form */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -243,7 +230,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Vị trí */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -264,7 +250,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-          {/* Menu Menu Settings */}
           <Collapsible className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
@@ -301,16 +286,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {/* <SidebarMenuButton asChild>
-              <Link href="/">
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </Link>
-            </SidebarMenuButton> */}
-          </SidebarMenuItem>
-        </SidebarMenu>
         <div className="mt-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800 text-white"></div>
         </div>
