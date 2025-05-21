@@ -50,14 +50,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
           {/* ) : null} */}
           {/* {user?.role === "admin" ? ( */}
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/imports">
-                <FileImport className="h-4 w-4" />
-                <span>Import Suzu</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
           {/* ) : null} */}
           {/* Menu Menu Sub Nhan Su */}
           {/* {user?.role === "admin" || user?.role === "hr" ? ( */}
@@ -75,6 +68,20 @@ export function AppSidebar() {
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
                       <Link href="/import-attendance">Imports</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/attendances">Chấm Công</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/leave-requests">Nghỉ Phép</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -229,7 +236,28 @@ export function AppSidebar() {
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild>
-                      <Link href="/department">Khởi Tạo & Cập Nhật</Link>
+                      <Link href="/department">Quản Lý Phòng Ban</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
+          {/* Menu Menu Vị trí */}
+          <Collapsible className="group/collapsible">
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton>
+                  <Send className="h-4 w-4" />
+                  <span>Vị Trí</span>
+                  <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/positions">Quản lý Vị Trí</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -258,6 +286,11 @@ export function AppSidebar() {
                       <Link href="/settings/role-permissions">
                         Role & Permission
                       </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild>
+                      <Link href="/imports">Import Suzu</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>

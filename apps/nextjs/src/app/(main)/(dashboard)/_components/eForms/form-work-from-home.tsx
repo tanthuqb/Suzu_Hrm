@@ -5,7 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { AuthUser } from "@acme/db";
 
 import { useTRPC } from "~/trpc/react";
-import WFHForm from "./form/wfh-form";
+import WFHForm from "./wfh-form";
 
 export default function WorkFromHomeForm({ user }: { user: AuthUser }) {
   const trpc = useTRPC();

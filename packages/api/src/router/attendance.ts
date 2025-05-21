@@ -1,8 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { eq } from "@acme/db";
-import { Attendance, CreateAttendanceSchema } from "@acme/db/schema";
+import { alias, and, eq } from "@acme/db";
+import {
+  Attendance,
+  CreateAttendanceSchema,
+  Department,
+  HRMUser,
+  LeaveRequests,
+} from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -15,8 +21,71 @@ export const attendanceRouter = createTRPCRouter({
       "getAll",
       "Không có quyền xem quyền truy cập",
     );
-    return await ctx.db.select().from(Attendance).orderBy(Attendance.date);
+
+    const User = alias(HRMUser, "User");
+    const Approver = alias(HRMUser, "Approver");
+
+    return await ctx.db
+      .select({
+        id: Attendance.id,
+        date: Attendance.date,
+        userId: Attendance.userId,
+        userName: User.name,
+        userEmail: User.email,
+        status: Attendance.status,
+        isRemote: Attendance.isRemote,
+        remoteReason: Attendance.remoteReason,
+        leaveRequestId: Attendance.leaveRequestId,
+        leaveRequestStatus: LeaveRequests.approvalStatus,
+        leaveRequestReason: LeaveRequests.reason,
+        leaveRequestsApprovedBy: LeaveRequests.approvedBy,
+        approvedByName: Approver.name,
+        office: Department.office,
+        departmentName: Department.name,
+      })
+      .from(Attendance)
+      .leftJoin(LeaveRequests, eq(Attendance.leaveRequestId, LeaveRequests.id))
+      .leftJoin(User, eq(LeaveRequests.userId, User.id))
+      .leftJoin(Approver, eq(LeaveRequests.approvedBy, Approver.id))
+      .leftJoin(Department, eq(Department.id, User.departmentId))
+      .orderBy(Attendance.date);
   }),
+
+  getByDateAndUserId: protectedProcedure
+    .input(
+      z.object({
+        date: z.string().datetime(),
+        userId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "attendance",
+      //   "getByDateAndUserId",
+      //   "Không có quyền xem quyền truy cập",
+      // );
+      const { date, userId } = input;
+      const result = await ctx.db
+        .select()
+        .from(Attendance)
+        .where(
+          and(
+            eq(Attendance.date, new Date(date)),
+            eq(Attendance.userId, String(userId)),
+          ),
+        )
+        .limit(1)
+        .execute();
+      if (!result.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Không tìm thấy ngày chấm công",
+        });
+      }
+      return result[0];
+    }),
+
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {

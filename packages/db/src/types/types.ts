@@ -105,3 +105,21 @@ export interface RoutePermission {
   path: string;
   actions: Record<PermissionAction, boolean>;
 }
+
+export interface FullAttendanceRecord {
+  id: string;
+  date: Date;
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  status: string;
+  isRemote: boolean | null;
+  remoteReason: string | null;
+  leaveRequestId: string | null;
+  leaveRequestStatus: string | null;
+  leaveRequestReason: string | null;
+  leaveRequestsApprovedBy: string | null;
+  approvedByName: string | null;
+  office: string | null;
+  departmentName: string | null;
+}

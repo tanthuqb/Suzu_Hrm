@@ -1,5 +1,7 @@
 import React from "react";
+import { redirect } from "next/navigation";
 
+import { VALID_ROLES } from "@acme/db";
 import {
   Card,
   CardContent,
@@ -8,13 +10,18 @@ import {
   CardTitle,
 } from "@acme/ui/card";
 
-import { checkAuth } from "~/actions/auth";
-import WorkFromHomeForm from "~/app/(main)/(dashboard)/eForms/_components/form-work-from-home";
+import { checkRole } from "~/actions/auth";
+import WorkFromHomeForm from "~/app/(main)/(dashboard)/_components/eForms/form-work-from-home";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 
 export default async function Page() {
-  const Auth = await checkAuth();
+  const { status, user, message } = await checkRole(VALID_ROLES);
+  if (!status) {
+    redirect(
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
+    );
+  }
 
   const { state } = await ssrPrefetch(trpc.department.getAll.queryOptions());
 
@@ -30,7 +37,7 @@ export default async function Page() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <WorkFromHomeForm user={Auth.user!} />
+          <WorkFromHomeForm user={user!} />
         </CardContent>
       </Card>
     </HydrateClient>

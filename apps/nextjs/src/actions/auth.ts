@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import type { AuthUser } from "@acme/db";
+import { VALID_ROLES } from "@acme/db/constants";
 import { createServerClient } from "@acme/supabase";
 
 import { env } from "~/env";
@@ -181,4 +182,34 @@ export const updateStatus = async (email: string, newStatus: string) => {
   }
 
   return { success: true };
+};
+
+/**
+ * Check if the user has the required role
+ * @param roles - The roles to check against
+ * @returns {Promise<{ status: boolean; user?: AuthUser; message?: string }>} - Returns authentication status and user data
+ */
+
+export const checkRole = async (
+  roles: string[],
+): Promise<{ status: boolean; user?: AuthUser; message?: string }> => {
+  const auth = await checkAuth();
+  if (!auth.status || !auth.user) {
+    return { status: false, message: "Bạn cần đăng nhập." };
+  }
+
+  const userRole = (auth.user.roleName ?? "").toLowerCase();
+  const validRoles = VALID_ROLES.map((r) => r.toLowerCase());
+  const allowedRoles = roles.map((r) => r.toLowerCase());
+
+  if (!userRole || !validRoles.includes(userRole)) {
+    return {
+      status: false,
+      message: "Tài khoản chưa được gán quyền hoặc quyền không hợp lệ.",
+    };
+  }
+  if (!allowedRoles.includes(userRole)) {
+    return { status: false, message: "Bạn không có quyền truy cập." };
+  }
+  return { status: true, user: auth.user };
 };

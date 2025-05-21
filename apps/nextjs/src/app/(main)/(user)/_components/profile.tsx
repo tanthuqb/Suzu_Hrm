@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   Briefcase,
@@ -29,13 +30,15 @@ import {
   TableHeader,
   TableRow,
 } from "@acme/ui/table";
+import { toast } from "@acme/ui/toast";
 
 import { formatDate } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
 
 export const ProfileContent = ({ userId }: { userId: string }) => {
   const trpc = useTRPC();
-
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const {
     data: user,
     isLoading,
@@ -45,6 +48,16 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
       id: userId,
     }),
   );
+
+  useEffect(() => {
+    const message = searchParams.get("message");
+    if (message) {
+      toast("Error", { description: decodeURIComponent(message) });
+      const params = new URLSearchParams(searchParams);
+      params.delete("message");
+      router.replace(`/profile?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, router]);
 
   if (isLoading) {
     return (

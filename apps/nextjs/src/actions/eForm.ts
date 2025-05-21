@@ -3,7 +3,6 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
-import type { LeaveRequestsRecord } from "@acme/db/schema";
 import { createServerClient } from "@acme/supabase";
 
 import { renderWFHEmail } from "~/components/EmailTemplates/work-form-home.render";
@@ -19,26 +18,30 @@ export const sendLeaveRequest = async (
 ): Promise<{ data: any[] | null; error: PostgrestError | null }> => {
   const supabase = await createServerClient();
 
-  const { error, data } = await supabase.from("leave_requests").insert({
-    name: leaveRequestsInput.name,
-    user_id: leaveRequestsInput.userId,
-    department: leaveRequestsInput.department,
-    reason: leaveRequestsInput.reason,
-    start_date: leaveRequestsInput.startDate,
-    end_date: leaveRequestsInput.endDate,
-    approval_status: leaveRequestsInput.status,
-    status: leaveRequestsInput.AttendanceStatus,
-  });
+  const { error, data } = await supabase
+    .from("leave_requests")
+    .insert({
+      name: leaveRequestsInput.name,
+      user_id: leaveRequestsInput.userId,
+      department: leaveRequestsInput.department,
+      reason: leaveRequestsInput.reason,
+      start_date: leaveRequestsInput.startDate,
+      end_date: leaveRequestsInput.endDate,
+      approval_status: leaveRequestsInput.status,
+      status: leaveRequestsInput.AttendanceStatus,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
   }
-
+  const leaveRequestId = data.id;
   const htmlContent = await renderWFHEmail({
     name: leaveRequestsInput.name,
     department: leaveRequestsInput.department,
     reason: leaveRequestsInput.reason,
-    link: `${env.NEXT_PUBLIC_APP_URL}/leave-requests`,
+    link: `${env.NEXT_PUBLIC_APP_URL}/leave-requests/${leaveRequestId}`,
   });
 
   await resend.emails.send({
@@ -47,5 +50,5 @@ export const sendLeaveRequest = async (
     subject: `Đơn xin làm việc tại nhà - ${leaveRequestsInput.name}`,
     html: htmlContent,
   });
-  return { data, error };
+  return { data: [data], error };
 };

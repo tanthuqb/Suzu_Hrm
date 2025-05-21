@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { isUUID } from "@acme/validators";
 
-import { checkAuth } from "~/actions/auth";
+import { checkRole } from "~/actions/auth";
 import SalarySlipSmartForm from "../../_components/SalarySlipForm";
 
 interface SalaryProps {
@@ -18,16 +18,18 @@ export default async function SalaryPage({
   const { id: rawId } = await params;
   const { userId } = await searchParams;
 
-  const data = await checkAuth();
-  if (!data.status || !data.user) {
-    notFound();
+  const { status, user, message } = await checkRole(["admin", "hr"]);
+  if (!status) {
+    redirect(
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
+    );
   }
   if (rawId !== "create" && (!rawId || !isUUID(rawId))) {
     notFound();
   }
   const id = rawId !== "create" ? rawId : undefined;
 
-  const fullName = `${data.user.lastName} ${data.user.firstName}`;
+  const fullName = `${user?.lastName} ${user?.firstName}`;
 
   return (
     <Suspense
@@ -35,7 +37,7 @@ export default async function SalaryPage({
     >
       <SalarySlipSmartForm
         id={id}
-        userId={userId ?? data.user.id}
+        userId={userId ?? user?.id!}
         name={fullName || "guest"}
       />
     </Suspense>

@@ -89,7 +89,6 @@ export default function WFHForm({
   const uid = useId();
   const startUid = `${uid}-start`;
   const endUid = `${uid}-end`;
-  const trpc = useTRPC();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
