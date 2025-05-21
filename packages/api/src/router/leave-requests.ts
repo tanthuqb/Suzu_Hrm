@@ -13,12 +13,12 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const leaveRequestRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "leaveRequest",
-      "getAll",
-      "Không có quyền xem quyền truy cập",
-    );
+    // await checkPermissionOrThrow(
+    //   ctx,
+    //   "leaveRequest",
+    //   "getAll",
+    //   "Không có quyền xem quyền truy cập",
+    // );
     return await ctx.db
       .select()
       .from(LeaveRequests)
@@ -27,12 +27,12 @@ export const leaveRequestRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(CreateLeaveRequestsSchema)
     .query(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "leaveRequest",
-        "getById",
-        "Không có quyền xem quyền truy cập",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "leaveRequest",
+      //   "getById",
+      //   "Không có quyền xem quyền truy cập",
+      // );
       const { userId } = input;
       const result = await ctx.db
         .select()
@@ -51,12 +51,12 @@ export const leaveRequestRouter = createTRPCRouter({
   update: protectedProcedure
     .input(UpdateLeaveRequestsSchema)
     .mutation(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "leaveRequest",
-        "update",
-        "Không có quyền cập nhật quyền truy cập",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "leaveRequest",
+      //   "update",
+      //   "Không có quyền cập nhật quyền truy cập",
+      // );
       const { id, startDate, endDate, ...updateData } = input;
       const updated = await ctx.db
         .update(LeaveRequests)
@@ -79,12 +79,12 @@ export const leaveRequestRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "leaveRequest",
-        "delete",
-        "Không có quyền xóa quyền truy cập",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "leaveRequest",
+      //   "delete",
+      //   "Không có quyền xóa quyền truy cập",
+      // );
       const { id } = input;
       const deleted = await ctx.db
         .delete(LeaveRequests)

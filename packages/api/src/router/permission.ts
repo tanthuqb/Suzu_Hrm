@@ -9,12 +9,12 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const permissionRouter = createTRPCRouter({
   getAllActions: protectedProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "permission",
-      "getAllActions",
-      "Không có quyền xoá vai trò",
-    );
+    // await checkPermissionOrThrow(
+    //   ctx,
+    //   "permission",
+    //   "getAllActions",
+    //   "Không có quyền xoá vai trò",
+    // );
     try {
       const actions = getAllTrpcActions();
       return actions;
@@ -41,12 +41,12 @@ export const permissionRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "permission",
-        "saveActions",
-        "Không có quyền cập nhật vai trò",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "permission",
+      //   "saveActions",
+      //   "Không có quyền cập nhật vai trò",
+      // );
       const { roleId, actions } = input;
 
       try {
@@ -78,12 +78,12 @@ export const permissionRouter = createTRPCRouter({
   getPermissionsByRoleId: protectedProcedure
     .input(z.object({ roleId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "permission",
-        "getPermissionsByRoleId",
-        "Không có quyền xem quyền theo role ID",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "permission",
+      //   "getPermissionsByRoleId",
+      //   "Không có quyền xem quyền theo role ID",
+      // );
       try {
         const permissions = await ctx.db
           .select({
@@ -135,12 +135,12 @@ export const permissionRouter = createTRPCRouter({
       }),
     )
     .query(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "permission",
-        "checkPermission",
-        "Không có quyền kiểm tra quyền",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "permission",
+      //   "checkPermission",
+      //   "Không có quyền kiểm tra quyền",
+      // );
       try {
         const result = await ctx.db
           .select()
