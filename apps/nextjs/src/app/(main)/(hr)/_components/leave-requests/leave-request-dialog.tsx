@@ -197,27 +197,7 @@ export function LeaveRequestDialog({
                 className="col-span-3"
               />
             </div>
-            {/* <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Start Date</Label>
-              <div className="col-span-3">
-                <DatePicker
-                  date={formData.startDate}                  
-                  onDateChange={handleStartDateChange}
-                  className="w-full"
-                  
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">End Date</Label>
-              <div className="col-span-3">
-                <DatePicker
-                  date={formData.endDate}
-                  onDateChange={handleEndDateChange}
-                  className="w-full"
-                />
-              </div>
-            </div> */}
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="reason" className="text-right">
                 Reason

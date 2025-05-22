@@ -4,8 +4,9 @@ import { z } from "zod";
 
 import {
   CreatePositionSchemaInput,
+  Department,
   Position,
-  UpdateDepartmentSchemaInput,
+  UpdatePositionSchemaInput,
 } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
@@ -36,7 +37,21 @@ export const positionRouter = createTRPCRouter({
     //   "getAll",
     //   "Không có quyền xem danh sách vị trí công việc",
     // );
-    return await ctx.db.select().from(Position).orderBy(Position.createdAt);
+    return await ctx.db
+      .select({
+        id: Position.id,
+        name: Position.name,
+        departmentId: Position.departmentId,
+        createdAt: Position.createdAt,
+        updatedAt: Position.updatedAt,
+        department: {
+          id: Department.id,
+          name: Department.name,
+        },
+      })
+      .from(Position)
+      .leftJoin(Department, eq(Position.departmentId, Department.id))
+      .orderBy(Position.createdAt);
   }),
 
   getById: publicProcedure
@@ -58,7 +73,7 @@ export const positionRouter = createTRPCRouter({
     }),
 
   update: protectedProcedure
-    .input(UpdateDepartmentSchemaInput)
+    .input(UpdatePositionSchemaInput)
     .mutation(async ({ input, ctx }) => {
       //   await checkPermissionOrThrow(
       //     ctx,
@@ -67,7 +82,6 @@ export const positionRouter = createTRPCRouter({
       //     "Không có quyền cập nhật vị trí công việc",
       //   );
       const { id, ...rest } = input;
-
       const [updated] = await ctx.db
         .update(Position)
         .set({ ...rest })

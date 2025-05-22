@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { set } from "zod";
 
 import type { RouterInputs } from "@acme/api";
 import type { FullHrmUser } from "@acme/db";
@@ -30,6 +31,8 @@ import {
 import type { UserAllOutput } from "~/types/index";
 import { useUserStatusModal } from "~/context/UserStatusModalContext";
 import { useTRPC } from "~/trpc/react";
+import { SetDepartmentDialog } from "./set-department-client";
+import { SetPositionDialog } from "./set-position-client";
 import { SetRoleDialog } from "./set-role-client";
 
 type SortField = "email" | "firstName" | "status" | "role" | undefined;
@@ -46,6 +49,15 @@ export function UserTable() {
   const [selectedUserRole, setSelectedUserRole] = useState<string | undefined>(
     undefined,
   );
+  const [selectedUserDepartment, setSelectedUserDepartment] = useState<
+    string | undefined
+  >(undefined);
+  const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
+  const [selectedUserPosition, setSelectedUserPosition] = useState<
+    string | undefined
+  >(undefined);
+  const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
+
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const trpc = useTRPC();
 
@@ -75,6 +87,12 @@ export function UserTable() {
   };
 
   const { data: roles } = useSuspenseQuery(trpc.role.getAll.queryOptions());
+  const { data: departments } = useSuspenseQuery(
+    trpc.department.getAll.queryOptions(),
+  );
+  const { data: positions } = useSuspenseQuery(
+    trpc.position.getAll.queryOptions(),
+  );
 
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
@@ -91,6 +109,20 @@ export function UserTable() {
     setSelectedUserRole(userId);
     setSelectedUserRole(roleName);
     setIsRoleDialogOpen(true);
+  };
+
+  const setDepartment = (userId: string, departmentName?: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserDepartment(userId);
+    setSelectedUserDepartment(departmentName);
+    setIsDepartmentDialogOpen(true);
+  };
+
+  const setPosition = (userId: string, positionName?: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserPosition(userId);
+    setSelectedUserPosition(positionName);
+    setIsPositionDialogOpen(true);
   };
 
   return (
@@ -213,7 +245,27 @@ export function UserTable() {
                         setRole(user.id);
                       }}
                     >
-                      Set Role
+                      Role
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="ml-2"
+                      onClick={() => {
+                        setDepartment(user.id);
+                      }}
+                    >
+                      Department
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="ml-2"
+                      onClick={() => {
+                        setPosition(user.id);
+                      }}
+                    >
+                      Position
                     </Button>
                     <SetRoleDialog
                       isOpen={isRoleDialogOpen}
@@ -221,6 +273,20 @@ export function UserTable() {
                       roles={roles}
                       userId={selectedUserId}
                       currentRoleName={selectedUserRole}
+                    />
+                    <SetDepartmentDialog
+                      isOpen={isDepartmentDialogOpen}
+                      onClose={() => setIsDepartmentDialogOpen(false)}
+                      departments={departments}
+                      userId={selectedUserId}
+                      currentDepartmentName={selectedUserDepartment}
+                    />
+                    <SetPositionDialog
+                      isOpen={isPositionDialogOpen}
+                      onClose={() => setIsPositionDialogOpen(false)}
+                      positions={positions}
+                      userId={selectedUserId}
+                      currentPositionName={selectedUserPosition}
                     />
                   </TableCell>
                 </TableRow>
