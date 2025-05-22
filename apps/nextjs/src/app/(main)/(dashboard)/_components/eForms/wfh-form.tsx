@@ -40,14 +40,11 @@ import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
 import { sendLeaveRequest } from "~/actions/eForm";
-import { useTRPC } from "~/trpc/react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   userId: z.string().min(1, { message: "User ID is required." }),
-  department: z.string().min(1, {
-    message: "Department is required.",
-  }),
+  departmentId: z.string().optional(),
   startDate: z
     .date()
     .optional()
@@ -65,18 +62,19 @@ const formSchema = z.object({
   reason: z
     .string()
     .min(10, { message: "Reason must be at least 10 characters." }),
-  status: z.enum(Object.values(approvalStatusEnum) as [string, ...string[]], {
-    required_error: "Status is required.",
-    invalid_type_error: "Status must be a valid option.",
+  status: z.enum(Object.values(AttendanceStatus) as [string, ...string[]], {
+    required_error: "Attendance status is required.",
+    invalid_type_error: "Attendance status must be a valid option.",
   }),
-
-  AttendanceStatus: z.enum(
-    Object.values(AttendanceStatus) as [string, ...string[]],
+  ApprovalStatus: z.enum(
+    Object.values(approvalStatusEnum) as [string, ...string[]],
     {
-      required_error: "Attendance status is required.",
-      invalid_type_error: "Attendance status must be a valid option.",
+      required_error: "Approval status is required",
+      invalid_type_error: "Approval status must be a valid option.",
     },
   ),
+  ApprovalBy: z.string().optional(),
+  ApprovalAt: z.date().optional(),
 });
 
 export default function WFHForm({
@@ -94,28 +92,23 @@ export default function WFHForm({
     defaultValues: {
       name: `${user.lastName} ${user.firstName}`,
       userId: user.id,
-      department: user.departments?.name,
+      departmentId: user.departments?.name,
       reason: "",
       startDate: undefined,
       endDate: undefined,
-      status: approvalStatusEnum.PENDING,
-      AttendanceStatus: AttendanceStatus.WorkDay,
+      status: AttendanceStatus.WorkDay,
+      ApprovalStatus: approvalStatusEnum.PENDING,
+      ApprovalBy: "",
+      ApprovalAt: undefined,
     },
   });
 
   const [selectedDepartment, setSelectedDepartment] = useState(
     user.departments?.name ?? "",
   );
-  // const { data: usersByDept, isLoading } = useSuspenseQuery(
-  //   trpc.user.getAllUserByDepartmentId.queryOptions({
-  //     departmentId: user.departments?.id!,
-  //   }),
-  // );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { error } = await sendLeaveRequest({
-      ...values,
-    });
+    const { error } = await sendLeaveRequest(values);
 
     if (error) {
       toast.error("Gửi thất bại", { description: error.message });
@@ -173,7 +166,7 @@ export default function WFHForm({
 
         <FormField
           control={form.control}
-          name="AttendanceStatus"
+          name="status"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
@@ -204,7 +197,7 @@ export default function WFHForm({
 
         <FormField
           control={form.control}
-          name="department"
+          name="departmentId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Department</FormLabel>
@@ -221,7 +214,7 @@ export default function WFHForm({
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.name}>
+                      <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
                     ))}

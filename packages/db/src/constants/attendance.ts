@@ -44,3 +44,23 @@ export const AttendanceStatusLabel: Record<AttendanceStatus, string> = {
   [AttendanceStatus.SundayCompensateHalfUnpaid]:
     "Nghỉ bù Chủ nhật (nửa ngày nghỉ không lương)",
 };
+
+export const attendanceStatusEnumValues = [
+  "1",
+  "W",
+  "P",
+  "P1",
+  "P2",
+  "BH",
+  "Rk",
+  "x/2",
+  "L",
+  "Nb",
+  "Nb1",
+  "Nb2",
+  "CT",
+  "BD",
+  "BC",
+  "BC1",
+  "BC2",
+] as const;
