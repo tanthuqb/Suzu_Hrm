@@ -277,7 +277,7 @@ export function LeaveRequestsTable({
               <AlertDialogDescription>
                 Bạn có muốn xóa nghỉ phép{" "}
                 <strong>{selectedRequest.name}</strong>?. Hành động không thể
-                quay laij
+                quay lại
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
