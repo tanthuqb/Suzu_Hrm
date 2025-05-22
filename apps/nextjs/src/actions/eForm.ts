@@ -20,21 +20,18 @@ export const sendLeaveRequest = async (
   const supabase = await createServerClient();
   const { error, data } = await supabase
     .from("leave_requests")
-    .upsert(
-      {
-        name: leaveRequestsInput.name,
-        user_id: leaveRequestsInput.userId,
-        department_id: leaveRequestsInput.departmentId,
-        reason: leaveRequestsInput.reason,
-        start_date: leaveRequestsInput.startDate,
-        end_date: leaveRequestsInput.endDate,
-        approval_status: leaveRequestsInput.approvalStatus,
-        status: leaveRequestsInput.status,
-        approved_by: leaveRequestsInput.approvedBy,
-        approved_at: leaveRequestsInput.approvedAt,
-      },
-      { onConflict: "user_id,id" },
-    )
+    .insert({
+      name: leaveRequestsInput.name,
+      user_id: leaveRequestsInput.userId,
+      department_id: leaveRequestsInput.departmentId,
+      reason: leaveRequestsInput.reason,
+      start_date: leaveRequestsInput.startDate,
+      end_date: leaveRequestsInput.endDate,
+      approval_status: leaveRequestsInput.approvalStatus,
+      status: leaveRequestsInput.status,
+      approved_by: leaveRequestsInput.approvedBy,
+      approved_at: leaveRequestsInput.approvedAt,
+    })
     .select("id")
     .single();
 
