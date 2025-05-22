@@ -62,7 +62,7 @@ export const attendanceRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "attendance",
-        "getByDateAndUserId",
+        "getByLeaveRequestAndUserId",
         "Không có quyền xem quyền truy cập",
       );
       const { leaveRequestId, userId } = input;
