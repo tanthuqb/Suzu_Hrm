@@ -1,6 +1,4 @@
 import type { FullHrmUser, NotificationType } from "@acme/db";
-import { attendanceStatusEnumValues } from "@acme/db";
-
 export interface Notification {
   id: string;
   userId: string;
