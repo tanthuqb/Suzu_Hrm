@@ -21,10 +21,10 @@ export default async function LeaveManagementPage() {
       <div className="container mx-auto space-y-6 py-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            Leave Requests Management
+            Quản lý nghỉ phép
           </h1>
           <p className="text-muted-foreground">
-            View, search, and manage employee leave requests
+            Xem, Tìm kiếm và quản lý nghỉ phép
           </p>
         </div>
         <LeaveRequestsTable userId={user?.id!} />

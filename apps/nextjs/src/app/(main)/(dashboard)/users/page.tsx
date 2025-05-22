@@ -31,9 +31,14 @@ export default async function UsersPage() {
     trpc.department.getAll.queryOptions(),
   );
 
+  const { state: stateDepartments } = await ssrPrefetch(
+    trpc.department.getAll.queryOptions(),
+  );
+
   const mergedState = {
     ...stateUsers,
     ...stateRoles,
+    ...stateDepartments,
   };
 
   return (
