@@ -34,12 +34,12 @@ export const userRouter = createTRPCRouter({
         }),
     )
     .query(async ({ input, ctx }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "user",
-      //   "all",
-      //   "Không có quyền cập nhật người dùng",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "all",
+        "Không có quyền cập nhật người dùng",
+      );
       const { page, pageSize, search, sortBy, order } = input;
       const offset = (page - 1) * pageSize;
 
@@ -121,12 +121,12 @@ export const userRouter = createTRPCRouter({
   byId: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "user",
-      //   "byId",
-      //   "Không có quyền lấy thông tin người dùng",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "byId",
+        "Không có quyền lấy thông tin người dùng",
+      );
       const { id } = input;
       const result = await ctx.db
         .select({
@@ -174,12 +174,12 @@ export const userRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "user",
-      //   "update",
-      //   "Không có quyền cập nhật người dùng",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "update",
+        "Không có quyền cập nhật người dùng",
+      );
       const { id, ...rest } = input;
       const user = await ctx.db.query.HRMUser.findFirst({
         where: eq(HRMUser.id, id),
@@ -198,12 +198,12 @@ export const userRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "user",
-      //   "delete",
-      //   "Không có quyền xóa người dùng",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "delete",
+        "Không có quyền xóa người dùng",
+      );
       const { id } = input;
       return ctx.db.delete(HRMUser).where(eq(HRMUser.id, id));
     }),
@@ -224,12 +224,12 @@ export const userRouter = createTRPCRouter({
       ),
     )
     .mutation(async ({ ctx, input }): Promise<ImportUsersResult> => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "user",
-      //   "imports",
-      //   "Không có quyền import người dùng",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "user",
+        "imports",
+        "Không có quyền import người dùng",
+      );
       const supabase = adminAuthClient();
 
       if (input.length === 0)
@@ -323,12 +323,12 @@ export const userRouter = createTRPCRouter({
     }),
 
   getAllUserSimple: protectedProcedure.query(async ({ ctx }) => {
-    // await checkPermissionOrThrow(
-    //   ctx,
-    //   "user",
-    //   "getAllUserSimple",
-    //   "Không có quyền lấy danh sách người dùng đơn giản",
-    // );
+    await checkPermissionOrThrow(
+      ctx,
+      "user",
+      "getAllUserSimple",
+      "Không có quyền lấy danh sách người dùng đơn giản",
+    );
     return ctx.db.query.HRMUser.findMany({
       where: (fields, { eq }) => eq(fields.status, "active"),
     });

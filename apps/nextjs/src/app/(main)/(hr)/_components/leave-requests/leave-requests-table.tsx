@@ -9,8 +9,26 @@ import {
 import { format } from "date-fns";
 import { Edit, Search, Trash2 } from "lucide-react";
 
+import type { LeaveRequestsRecord } from "@acme/db/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@acme/ui/alert-dialog";
 import { Button } from "@acme/ui/button";
 import { DatePicker } from "@acme/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@acme/ui/dialog";
 import { Input } from "@acme/ui/input";
 import {
   Table,
@@ -22,9 +40,10 @@ import {
 } from "@acme/ui/table";
 import { toast } from "@acme/ui/toast";
 
+import type { LeaveRequestFormValues } from "./leave-request-form";
+import { toLeaveRequestUpdateDTO } from "~/dtos/leaveRequest";
 import { useTRPC } from "~/trpc/react";
-import { DeleteConfirmDialog } from "./delete-confirm-dialog";
-import { LeaveRequestDialog } from "./leave-request-dialog";
+import { LeaveRequestForm } from "./leave-request-form";
 
 export function LeaveRequestsTable({
   userId,
@@ -40,7 +59,8 @@ export function LeaveRequestsTable({
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(
     undefined,
   );
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<LeaveRequestsRecord | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -79,19 +99,19 @@ export function LeaveRequestsTable({
     }),
   );
 
-  const handleView = (request: any) => {
+  const handleView = (request: LeaveRequestsRecord) => {
     setSelectedRequest(request);
     setIsViewDialogOpen(true);
   };
 
-  const handleDelete = async (request: any) => {
+  const handleDelete = async (request: LeaveRequestsRecord) => {
     setSelectedRequest(request);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
     await deleteMutation.mutateAsync({
-      id: selectedRequest.id,
+      id: selectedRequest?.id!,
     });
     queryClient.invalidateQueries({
       queryKey: trpc.leaveRequest.getAll.queryKey(),
@@ -103,6 +123,30 @@ export function LeaveRequestsTable({
     setSearchName("");
     setStartDateFilter(undefined);
     setEndDateFilter(undefined);
+  };
+
+  const updateMutation = useMutation(
+    trpc.leaveRequest.update.mutationOptions({
+      onSuccess: () => {
+        toast("Leave request updated successfully", {
+          description: "The leave request has been updated.",
+        });
+        setIsViewDialogOpen(false);
+        queryClient.invalidateQueries({
+          queryKey: trpc.leaveRequest.getAll.queryKey(),
+        });
+      },
+      onError: (error) => {
+        toast("Error updating leave request", {
+          description: error.message,
+        });
+      },
+    }),
+  );
+
+  const handleUpdate = async (formValues: LeaveRequestFormValues) => {
+    const dto = toLeaveRequestUpdateDTO(formValues, selectedRequest, userId);
+    await updateMutation.mutateAsync(dto);
   };
 
   return (
@@ -156,11 +200,11 @@ export function LeaveRequestsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRequests.map((request) => (
+              filteredRequests.map((request: LeaveRequestsRecord) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">{request.name}</TableCell>
-                  <TableCell>{request.department}</TableCell>
-                  <TableCell>{format(request.startDate, "PPP")}</TableCell>
+                  <TableCell>{request.departmentId ?? "N/A"}</TableCell>
+                  <TableCell>{format(request.createdAt, "PPP")}</TableCell>
                   <TableCell>{format(request.endDate, "PPP")}</TableCell>
                   <TableCell>{request.reason}</TableCell>
                   <TableCell className="text-right">
@@ -189,23 +233,64 @@ export function LeaveRequestsTable({
         </Table>
       </div>
 
+      {/* Edit/View Dialog */}
       {selectedRequest && (
-        <>
-          <LeaveRequestDialog
-            isOpen={isViewDialogOpen}
-            onClose={() => setIsViewDialogOpen(false)}
-            leaveRequest={selectedRequest}
-            setIsViewDialogOpen={setIsViewDialogOpen}
-            userId={userId}
-          />
-          <DeleteConfirmDialog
-            isOpen={isDeleteDialogOpen}
-            onClose={() => setIsDeleteDialogOpen(false)}
-            onConfirm={confirmDelete}
-            title="Delete Leave Request"
-            description={`Are you sure you want to delete the leave request for ${selectedRequest.name}? This action cannot be undone.`}
-          />
-        </>
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Cập nhật nghỉ phép</DialogTitle>
+              <DialogDescription>Cập nhật yêu cầu nghỉ phép</DialogDescription>
+            </DialogHeader>
+            <LeaveRequestForm
+              defaultValues={{
+                ...selectedRequest,
+                approvalStatus:
+                  selectedRequest.approvalStatus === null
+                    ? undefined
+                    : selectedRequest.approvalStatus,
+                approvedBy:
+                  selectedRequest.approvedBy === null
+                    ? undefined
+                    : selectedRequest.approvedBy,
+                approvedAt:
+                  selectedRequest.approvedAt === null
+                    ? undefined
+                    : selectedRequest.approvedAt,
+              }}
+              isLoading={updateMutation.isPending}
+              isReadOnly={false}
+              onSubmit={handleUpdate}
+              onCancel={() => setIsViewDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+      {/* Delete Dialog */}
+      {selectedRequest && (
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xóa nghỉ phép</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có muốn xóa nghỉ phép{" "}
+                <strong>{selectedRequest.name}</strong>?. Hành động không thể
+                quay laij
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Xóa
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

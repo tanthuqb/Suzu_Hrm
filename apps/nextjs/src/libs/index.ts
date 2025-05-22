@@ -14,3 +14,14 @@ export function formatDate(date: string) {
     day: "numeric",
   });
 }
+
+export function toISOStringSafe(val: any): string {
+  if (!val) return new Date().toISOString();
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === "string") {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d.toISOString();
+    throw new Error("Invalid datetime string");
+  }
+  throw new Error("Invalid datetime value");
+}

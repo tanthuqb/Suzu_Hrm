@@ -1,4 +1,3 @@
-import { create } from "domain";
 import type { InferSelectModel } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import {
@@ -16,7 +15,11 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// ENUM VALUES (không dùng enumValues cho pgEnum)
+import {
+  approvalStatusEnumValues,
+  attendanceStatusEnumValues,
+} from "./constants";
+
 export const attendanceStatusEnum = pgEnum("attendance_status", [
   "1",
   "W",
@@ -326,7 +329,12 @@ export const LeaveRequests = pgTable("leave_requests", {
   userId: uuid("user_id")
     .notNull()
     .references(() => HRMUser.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  department: text("department").notNull(),
+  departmentId: uuid("department_id")
+    .notNull()
+    .references(() => Department.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   status: attendanceStatusEnum("status").notNull(),
@@ -345,10 +353,14 @@ export const LeaveRequests = pgTable("leave_requests", {
 export const CreateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
   name: z.string().max(255),
   userId: z.string().uuid(),
-  department: z.string().max(255),
+  departmentId: z.string().uuid(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
   reason: z.string().max(255),
+  status: z.enum(attendanceStatusEnumValues),
+  approvalStatus: z.enum(approvalStatusEnumValues),
+  approvedBy: z.string().uuid(),
+  approvedAt: z.string().datetime(),
 }).omit({
   id: true,
   createdAt: true,
@@ -358,10 +370,14 @@ export const UpdateLeaveRequestsSchema = createInsertSchema(LeaveRequests, {
   id: z.string().uuid(),
   name: z.string().max(255),
   userId: z.string().uuid(),
-  department: z.string().max(255),
+  departmentId: z.string().uuid(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
   reason: z.string().max(255),
+  status: z.enum(attendanceStatusEnumValues),
+  approvalStatus: z.enum(approvalStatusEnumValues),
+  approvedBy: z.string().uuid(),
+  approvedAt: z.string().datetime(),
 }).omit({
   createdAt: true,
 });

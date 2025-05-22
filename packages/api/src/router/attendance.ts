@@ -15,12 +15,12 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const attendanceRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    // await checkPermissionOrThrow(
-    //   ctx,
-    //   "attendance",
-    //   "getAll",
-    //   "Không có quyền xem quyền truy cập",
-    // );
+    await checkPermissionOrThrow(
+      ctx,
+      "attendance",
+      "getAll",
+      "Không có quyền xem quyền truy cập",
+    );
 
     const User = alias(HRMUser, "User");
     const Approver = alias(HRMUser, "Approver");
@@ -51,27 +51,27 @@ export const attendanceRouter = createTRPCRouter({
       .orderBy(Attendance.date);
   }),
 
-  getByDateAndUserId: protectedProcedure
+  getByLeaveRequestAndUserId: protectedProcedure
     .input(
       z.object({
-        date: z.string().datetime(),
+        leaveRequestId: z.string().uuid(),
         userId: z.string().uuid(),
       }),
     )
     .query(async ({ input, ctx }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "attendance",
-      //   "getByDateAndUserId",
-      //   "Không có quyền xem quyền truy cập",
-      // );
-      const { date, userId } = input;
+      await checkPermissionOrThrow(
+        ctx,
+        "attendance",
+        "getByDateAndUserId",
+        "Không có quyền xem quyền truy cập",
+      );
+      const { leaveRequestId, userId } = input;
       const result = await ctx.db
         .select()
         .from(Attendance)
         .where(
           and(
-            eq(Attendance.date, new Date(date)),
+            eq(Attendance.leaveRequestId, leaveRequestId),
             eq(Attendance.userId, String(userId)),
           ),
         )
@@ -89,12 +89,12 @@ export const attendanceRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "attendance",
-      //   "getById",
-      //   "Không có quyền xem quyền truy cập",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "attendance",
+        "getById",
+        "Không có quyền xem quyền truy cập",
+      );
       const { id } = input;
       const result = await ctx.db
         .select()
@@ -153,12 +153,12 @@ export const attendanceRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "attendance",
-      //   "update",
-      //   "Không có quyền cập nhật quyền truy cập",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "attendance",
+        "update",
+        "Không có quyền cập nhật quyền truy cập",
+      );
       const { id, status } = input;
       const [updated] = await ctx.db
         .update(Attendance)
@@ -177,12 +177,12 @@ export const attendanceRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      // await checkPermissionOrThrow(
-      //   ctx,
-      //   "attendance",
-      //   "delete",
-      //   "Không có quyền xóa quyền truy cập",
-      // );
+      await checkPermissionOrThrow(
+        ctx,
+        "attendance",
+        "delete",
+        "Không có quyền xóa quyền truy cập",
+      );
       const { id } = input;
       const deleted = await ctx.db
         .delete(Attendance)
