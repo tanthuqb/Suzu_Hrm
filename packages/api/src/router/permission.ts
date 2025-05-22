@@ -13,7 +13,7 @@ export const permissionRouter = createTRPCRouter({
       ctx,
       "permission",
       "getAllActions",
-      "Không có quyền xoá vai trò",
+      "Không có quyền xem danh sách action",
     );
     try {
       const actions = getAllTrpcActions();
