@@ -31,7 +31,8 @@
     "./radio-group": "./src/radio-group.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
     "./command": "./src/command.tsx",
-    "./date-picker": "./src/date-picker.tsx"
+    "./date-picker": "./src/date-picker.tsx",
+    "./tooltip": "./src/tooltip.tsx"
   },
   "license": "MIT",
   "scripts": {
@@ -55,7 +56,7 @@
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-switch": "^1.2.2",
     "@radix-ui/react-tabs": "^1.1.3",
-    "@radix-ui/react-tooltip": "^1.1.8",
+    "@radix-ui/react-tooltip": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",

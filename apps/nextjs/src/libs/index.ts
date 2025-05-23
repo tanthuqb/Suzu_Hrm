@@ -25,3 +25,32 @@ export function toISOStringSafe(val: any): string {
   }
   throw new Error("Invalid datetime value");
 }
+
+export const IMAGE_VALIDATION = {
+  maxSize: 5 * 1024 * 1024,
+  minSize: 1024,
+  allowedTypes: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+  maxWidth: 2048,
+  maxHeight: 2048,
+  minWidth: 100,
+  minHeight: 100,
+};
+
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return (
+    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  );
+};
+
+export function getRelativePath(url: string) {
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
+}

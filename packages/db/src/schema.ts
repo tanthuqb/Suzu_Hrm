@@ -129,6 +129,7 @@ export const HRMUser = pgTable("users", (t) => ({
     onDelete: "set null",
     onUpdate: "cascade",
   }),
+  avatar: t.varchar("avatar_url", { length: 255 }),
   phone: t.varchar("phone", { length: 255 }).notNull(),
   status: userStatusEnumValue("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true })

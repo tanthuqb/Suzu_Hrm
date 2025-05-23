@@ -9,6 +9,21 @@ createJiti(fileURLToPath(import.meta.url))("./src/env");
 
 /** @type {import("next").NextConfig} */
 const config = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3000",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "suzu-hrm-nextjs.vercel.app",
+        pathname: "/uploads/**",
+      },
+    ],
+  },
   productionBrowserSourceMaps: true,
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [

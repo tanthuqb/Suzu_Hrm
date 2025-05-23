@@ -2,7 +2,13 @@ import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { FullHrmUser, UserStatusEnum } from "@acme/db";
-import { Department, HRMUser, Role, SalarySlip } from "@acme/db/schema";
+import {
+  Department,
+  HRMUser,
+  Position,
+  Role,
+  SalarySlip,
+} from "@acme/db/schema";
 import { adminAuthClient } from "@acme/supabase";
 
 import type { ImportUsersResult } from "../types/index";
@@ -134,15 +140,17 @@ export const userRouter = createTRPCRouter({
           salary: SalarySlip,
           role: Role,
           department: Department,
+          position: Position,
         })
         .from(HRMUser)
         .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
         .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
+        .leftJoin(Position, eq(HRMUser.positionId, Position.id))
         .where(eq(HRMUser.id, id));
 
       if (result.length === 0 || !result[0]?.user) return null;
-      const { user, salary, role, department } = result[0];
+      const { user, salary, role, department, position } = result[0];
 
       return {
         ...user,
@@ -150,6 +158,10 @@ export const userRouter = createTRPCRouter({
         latestSalarySlip: salary ?? undefined,
         role: role && role.id ? { id: role.id, name: role.name } : undefined,
         roleName: role?.name,
+        position:
+          position && position.id
+            ? { id: position.id, name: position.name }
+            : undefined,
 
         departments:
           department && department.id
@@ -342,5 +354,22 @@ export const userRouter = createTRPCRouter({
         where: (fields, { eq }) =>
           eq(fields.departmentId, departmentId) && eq(fields.status, "active"),
       });
+    }),
+  updateAvatar: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        avatar: z.string().url("avatarUrl phải là một URL hợp lệ"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, avatar } = input;
+      const user = await ctx.db.query.HRMUser.findFirst({
+        where: eq(HRMUser.id, id),
+      });
+      if (!user) {
+        throw new Error("Người dùng không tồn tại");
+      }
+      return ctx.db.update(HRMUser).set({ avatar }).where(eq(HRMUser.id, id));
     }),
 });

@@ -119,7 +119,7 @@ importers:
         version: 11.1.0(@tanstack/react-query@5.74.4(react@19.0.0))(@trpc/client@11.1.0(@trpc/server@11.1.0(typescript@5.8.3))(typescript@5.8.3))(@trpc/server@11.1.0(typescript@5.8.3))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.3)
       '@uidotdev/usehooks':
         specifier: github:uidotdev/usehooks
-        version: https://codeload.github.com/uidotdev/usehooks/tar.gz/3ff6b7b02e636c362b4654ccadddfbe904cb5899(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: https://codeload.github.com/uidotdev/usehooks/tar.gz/51a94c76b471482c9bf69e1594259c0364870791(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -153,6 +153,9 @@ importers:
       superjson:
         specifier: 2.2.2
         version: 2.2.2
+      uuidv4:
+        specifier: ^6.2.13
+        version: 6.2.13
       zod:
         specifier: 'catalog:'
         version: 3.24.3
@@ -438,7 +441,7 @@ importers:
         specifier: ^1.1.3
         version: 1.1.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-tooltip':
-        specifier: ^1.1.8
+        specifier: ^1.2.3
         version: 1.2.3(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       class-variance-authority:
         specifier: ^0.7.1
@@ -2921,6 +2924,9 @@ packages:
   '@types/tinycolor2@1.4.6':
     resolution: {integrity: sha512-iEN8J0BoMnsWBqjVbWH/c0G0Hh7O21lpR2/+PrvAVgWdzL7eexIFm4JN/Wn10PTcmNdtS6U67r499mlWMXOxNw==}
 
+  '@types/uuid@8.3.4':
+    resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
+
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
@@ -2971,8 +2977,8 @@ packages:
     resolution: {integrity: sha512-aEhgas7aJ6vZnNFC7K4/vMGDGyOiqWcYZPpIWrTKuTAlsvDNKy2GFDqh9smL+iq069ZvR0YzEeq0B8NJlLzjFA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@uidotdev/usehooks@https://codeload.github.com/uidotdev/usehooks/tar.gz/3ff6b7b02e636c362b4654ccadddfbe904cb5899':
-    resolution: {tarball: https://codeload.github.com/uidotdev/usehooks/tar.gz/3ff6b7b02e636c362b4654ccadddfbe904cb5899}
+  '@uidotdev/usehooks@https://codeload.github.com/uidotdev/usehooks/tar.gz/51a94c76b471482c9bf69e1594259c0364870791':
+    resolution: {tarball: https://codeload.github.com/uidotdev/usehooks/tar.gz/51a94c76b471482c9bf69e1594259c0364870791}
     version: 2.4.1
     engines: {node: '>=16'}
     peerDependencies:
@@ -5785,6 +5791,14 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  uuid@8.3.2:
+    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    hasBin: true
+
+  uuidv4@6.2.13:
+    resolution: {integrity: sha512-AXyzMjazYB3ovL3q051VLH06Ixj//Knx7QnUSi1T//Ie3io6CpsPu9nVMOx5MoLWh6xV0B9J0hIaxungxXUbPQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
@@ -8072,6 +8086,8 @@ snapshots:
 
   '@types/tinycolor2@1.4.6': {}
 
+  '@types/uuid@8.3.4': {}
+
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 22.14.1
@@ -8153,7 +8169,7 @@ snapshots:
       '@typescript-eslint/types': 8.30.1
       eslint-visitor-keys: 4.2.0
 
-  '@uidotdev/usehooks@https://codeload.github.com/uidotdev/usehooks/tar.gz/3ff6b7b02e636c362b4654ccadddfbe904cb5899(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@uidotdev/usehooks@https://codeload.github.com/uidotdev/usehooks/tar.gz/51a94c76b471482c9bf69e1594259c0364870791(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -11415,6 +11431,13 @@ snapshots:
       react: 19.0.0
 
   util-deprecate@1.0.2: {}
+
+  uuid@8.3.2: {}
+
+  uuidv4@6.2.13:
+    dependencies:
+      '@types/uuid': 8.3.4
+      uuid: 8.3.2
 
   v8-compile-cache-lib@3.0.1: {}
 
