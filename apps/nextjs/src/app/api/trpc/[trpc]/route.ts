@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
+import type { FullSession } from "@acme/auth";
 import { appRouter, createTRPCContext } from "@acme/api";
 import { validateToken } from "@acme/auth";
 import { createServerClient } from "@acme/supabase";
@@ -42,8 +43,19 @@ const handler = async (req: NextRequest) => {
     console.log(">>> Session:", session);
 
     // Validate token and get HRM user data
-    const validatedSession = session?.access_token
+    const validatedSessionRaw = session?.access_token
       ? await validateToken(session.access_token)
+      : null;
+    const validatedSession: FullSession | null = validatedSessionRaw
+      ? {
+          authUser: validatedSessionRaw.user_metadata,
+          hrmUser: {
+            ...validatedSessionRaw.user,
+            roleId: validatedSessionRaw.user.roleId ?? "",
+            roleName: validatedSessionRaw.user.roleName ?? "",
+          },
+          expires: validatedSessionRaw.expires,
+        }
       : null;
 
     const response = await fetchRequestHandler({

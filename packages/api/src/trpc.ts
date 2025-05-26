@@ -38,27 +38,6 @@ const isomorphicGetSession = async (
   return auth();
 };
 
-export async function checkPermission(
-  roleId: string,
-  module: string,
-  action: string,
-) {
-  if (!roleId) return false;
-
-  const result = await db
-    .select()
-    .from(Permission)
-    .where(
-      and(
-        eq(Permission.roleId, roleId),
-        eq(Permission.module, module),
-        eq(Permission.action, action),
-      ),
-    );
-
-  return result.length > 0 && result[0]?.allow === true;
-}
-
 /**
  * 1. CONTEXT
  *
@@ -76,6 +55,18 @@ export const createTRPCContext = async (opts: {
   session: FullSession | null;
 }) => {
   const session = await isomorphicGetSession(opts.headers);
+  let permissions: { module: string; action: string; allow: boolean }[] = [];
+  if (session?.hrmUser.roleId) {
+    const rawPermissions = await db
+      .select()
+      .from(Permission)
+      .where(eq(Permission.roleId, session.hrmUser.roleId));
+    permissions = rawPermissions.map((p) => ({
+      module: p.module,
+      action: p.action,
+      allow: p.allow ?? false,
+    }));
+  }
 
   const source = opts.headers.get("x-trpc-source") ?? "unknown";
   console.log(">>> tRPC Request from", source, "by", session?.hrmUser);
@@ -83,7 +74,7 @@ export const createTRPCContext = async (opts: {
   return {
     session,
     db,
-    checkPermission,
+    permissions,
   };
 };
 

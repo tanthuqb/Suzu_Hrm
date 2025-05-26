@@ -69,8 +69,21 @@ export async function checkPermissionOrThrow(
   action: string,
   errorMessage = "Không có quyền truy cập",
 ) {
-  const roleId = ctx.session?.hrmUser?.roleId ?? "";
-  const hasPermission = await ctx.checkPermission(roleId, module, action);
+  // console.log("Checking permission for module:", ctx.permission);
+  // const roleId = ctx.session?.hrmUser?.roleId ?? "";
+  // const hasPermission = await ctx.checkPermission(roleId, module, action);
+  // if (!hasPermission) {
+  //   throw new TRPCError({
+  //     code: "FORBIDDEN",
+  //     message: errorMessage,
+  //   });
+  // }
+  const hasPermission =
+    ctx.permissions?.some(
+      (p: any) =>
+        p.module === module && p.action === action && p.allow === true,
+    ) ?? false;
+
   if (!hasPermission) {
     throw new TRPCError({
       code: "FORBIDDEN",

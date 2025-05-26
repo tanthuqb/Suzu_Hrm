@@ -14,8 +14,12 @@ export default function UsersError({ error, reset }: Props) {
   const router = useRouter();
 
   useEffect(() => {
-    console.error("UsersPage crashed:", error);
-  }, [error]);
+    if (error.data?.code === "FORBIDDEN") {
+      {
+        router.replace("/profile?message=." + error.message);
+      }
+    }
+  }, [error, router]);
 
   const isForbidden = error.data?.code === "FORBIDDEN";
 
