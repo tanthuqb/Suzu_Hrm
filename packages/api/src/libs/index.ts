@@ -69,15 +69,7 @@ export async function checkPermissionOrThrow(
   action: string,
   errorMessage = "Không có quyền truy cập",
 ) {
-  // console.log("Checking permission for module:", ctx.permission);
-  // const roleId = ctx.session?.hrmUser?.roleId ?? "";
-  // const hasPermission = await ctx.checkPermission(roleId, module, action);
-  // if (!hasPermission) {
-  //   throw new TRPCError({
-  //     code: "FORBIDDEN",
-  //     message: errorMessage,
-  //   });
-  // }
+// Removed commented-out debug logs and old checkPermission block for clarity and maintainability.
   const hasPermission =
     ctx.permissions?.some(
       (p: any) =>
