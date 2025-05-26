@@ -115,6 +115,7 @@ export const auth = cache(async (): Promise<FullSession | null> => {
       },
       hrmUser: {
         ...hrmRest,
+        roleId: row.roleId ?? "",
         roleName,
       },
       expires: session.expires_at

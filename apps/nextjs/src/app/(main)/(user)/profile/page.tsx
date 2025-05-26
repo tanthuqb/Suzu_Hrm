@@ -9,9 +9,10 @@ import { ProfileContent } from "../_components/profile";
 
 export default async function ProfilePage() {
   const { status, user, message } = await checkRole(VALID_ROLES);
+
   if (!status) {
     redirect(
-      `/login?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
     );
   }
 
