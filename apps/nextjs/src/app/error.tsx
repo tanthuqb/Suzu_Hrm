@@ -16,7 +16,7 @@ export default function UsersError({ error, reset }: Props) {
   useEffect(() => {
     if (error.data?.code === "FORBIDDEN") {
       {
-        router.replace("/profile?message=." + error.message);
+        router.replace(`/profile?message=${encodeURIComponent(error.message)}`);
       }
     }
   }, [error, router]);
