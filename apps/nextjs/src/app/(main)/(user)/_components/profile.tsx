@@ -130,7 +130,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
   }
 
   const avatarToShow =
-    previewUrl || user?.avatar || "/images/default-avatar.png";
+    previewUrl || user?.avatar || "/uploads/default-avatar.png";
 
   return (
     <div className="container mx-auto p-6">

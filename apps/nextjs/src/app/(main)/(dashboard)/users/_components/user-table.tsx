@@ -182,6 +182,8 @@ export function UserTable() {
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
+              <TableHead>Phòng Ban</TableHead>
+              <TableHead>Vị trí</TableHead>
               <TableHead onClick={() => toggleSort("role")}>Role</TableHead>
               <TableHead onClick={() => toggleSort("status")}>Status</TableHead>
               <TableHead>Salary</TableHead>
@@ -197,6 +199,12 @@ export function UserTable() {
                     {user.firstName}
                   </TableCell>
                   <TableCell>{user.email ? user.email : null}</TableCell>
+                  <TableCell>
+                    {user.departments?.name ? user.departments.name : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {user.positions?.name ? user.positions?.name : "N/A"}
+                  </TableCell>
                   <TableCell>{user.role?.name}</TableCell>
                   <TableCell>
                     <span
