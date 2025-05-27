@@ -7,7 +7,6 @@ import {
   ExternalLink,
   FileText,
   HelpCircle,
-  MessageSquare,
   Search,
   Settings,
   Users,
@@ -31,14 +30,13 @@ import {
 import { Input } from "@acme/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
 
-// Mock data cho FAQ và tài liệu
 const faqData = {
   guides: [
     {
       id: 1,
       question: "Làm thế nào để thiết lập tài khoản email công ty?",
       answer:
-        "Để thiết lập email công ty, bạn cần làm theo các bước sau:\n1. Truy cập vào portal IT tại it.company.com\n2. Đăng nhập bằng thông tin được cung cấp\n3. Chọn 'Email Setup' và làm theo hướng dẫn\n4. Liên hệ IT Support nếu gặp vấn đề",
+        "Để thiết lập email công ty, bạn cần làm theo các bước sau:\n1. Liên hệ thông qua facebook IT team\n2. Đăng nhập bằng thông tin được cung cấp\n3.Thay đổi mật khẩu email được cấp\n.",
       category: "IT",
       attachments: ["email-setup-guide.pdf"],
       lastUpdated: "2024-01-15",
@@ -47,7 +45,7 @@ const faqData = {
       id: 2,
       question: "Quy trình xin nghỉ phép như thế nào?",
       answer:
-        "Quy trình xin nghỉ phép:\n1. Đăng nhập vào hệ thống HR\n2. Chọn 'Leave Request'\n3. Điền thông tin ngày nghỉ và lý do\n4. Gửi yêu cầu cho manager phê duyệt\n5. Nhận thông báo kết quả qua email",
+        "Quy trình xin nghỉ phép:\n1. Đăng nhập vào hệ thống HRM\n2. Chọn 'Form' xong chọn 'Làm việc ở nhà' \n3. Điền thông tin ngày nghỉ và lý do\n4. Gửi yêu cầu cho manager phê duyệt\n5. Nhận thông báo kết quả qua email",
       category: "HR",
       attachments: ["leave-policy.pdf"],
       lastUpdated: "2024-01-10",
@@ -56,7 +54,7 @@ const faqData = {
       id: 3,
       question: "Chính sách làm việc từ xa của công ty?",
       answer:
-        "Công ty cho phép làm việc từ xa với các điều kiện:\n1. Tối đa 2 ngày/tuần\n2. Phải có sự đồng ý của manager\n3. Đảm bảo kết nối internet ổn định\n4. Tham gia đầy đủ các cuộc họp online\n5. Báo cáo tiến độ công việc hàng ngày",
+        "Công ty cho phép làm việc từ xa với các điều kiện:\n1. Phải có sự đồng ý của manager\n2. Đảm bảo kết nối internet ổn định\n3. Tham gia đầy đủ các cuộc họp online\n4. Báo cáo tiến độ công việc hàng ngày",
       category: "Policy",
       attachments: ["remote-work-policy.pdf"],
       lastUpdated: "2024-01-20",
@@ -172,14 +170,6 @@ export default function OnboardingPage() {
               className="pl-10"
             />
           </div>
-          <Button
-            variant="outline"
-            className="flex items-center space-x-2"
-            onClick={() => window.open("/hrm/user/question", "_blank")}
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span>Đặt câu hỏi</span>
-          </Button>
         </div>
 
         {/* Category Filter */}
