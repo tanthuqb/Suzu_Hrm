@@ -27,6 +27,7 @@ export type FullHrmUser = DBUser & {
   latestSalarySlip?: SalarySlipRecord;
   roleName?: string;
   role?: Pick<RoleRecord, "id" | "name">;
+  positions?: Pick<RoleRecord, "id" | "name">;
   departments?: Pick<DepartmentRecord, "id" | "name">;
 };
 

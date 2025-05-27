@@ -85,11 +85,13 @@ export const userRouter = createTRPCRouter({
           salary: SalarySlip,
           role: Role,
           department: Department,
+          position: Position,
         })
         .from(HRMUser)
         .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
         .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
+        .leftJoin(Position, eq(HRMUser.positionId, Position.id))
         .where(where)
         .orderBy(
           order === "desc" ? desc(sortColumn) : asc(sortColumn),
@@ -98,7 +100,7 @@ export const userRouter = createTRPCRouter({
 
       const userMap = new Map<string, FullHrmUser>();
 
-      for (const { user, salary, role, department } of joined) {
+      for (const { user, salary, role, department, position } of joined) {
         if (!userMap.has(user.id)) {
           userMap.set(user.id, {
             ...user,
@@ -107,6 +109,9 @@ export const userRouter = createTRPCRouter({
             role: role ? { id: role.id, name: role.name } : undefined,
             departments: department
               ? { id: department.id, name: department.name }
+              : undefined,
+            positions: position
+              ? { id: position.id, name: position.name }
               : undefined,
           });
         }
