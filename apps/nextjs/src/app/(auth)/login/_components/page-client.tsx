@@ -3,22 +3,18 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { AlertCircle, CheckCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 
 import { handleSignInWithGoogle } from "~/actions/auth";
-import { env } from "~/env";
 import SignInForm from "./sign-in-form";
 import Success from "./success";
 
 export type AuthView = "signin" | "reset-password" | "new-password";
 
 export default function Page() {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentTab] = useState<"signin">("signin");
@@ -73,8 +69,6 @@ export default function Page() {
 
   const resetForm = () => {
     setIsSuccess(false);
-    setPassword("");
-    setConfirmPassword("");
     setError(null);
     setSuccessMessage(null);
     setCurrentView(currentTab);
@@ -101,7 +95,7 @@ export default function Page() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-purple-100 to-white p-4">
+    <div className="flex min-h-screen w-screen items-center justify-center bg-gradient-to-br from-purple-50 via-purple-100 to-white">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="items-center space-y-4 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-xl font-bold text-white">
