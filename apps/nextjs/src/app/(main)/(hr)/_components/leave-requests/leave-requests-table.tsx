@@ -67,9 +67,12 @@ export function LeaveRequestsTable({
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const { data: leavesRequests } = useSuspenseQuery(
-    trpc.leaveRequest.getAll.queryOptions(),
-  );
+  const { data: leavesRequests } = useSuspenseQuery({
+    ...trpc.leaveRequest.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const filteredRequests = leaveRequestId
     ? leavesRequests.filter((request) => request.id === leaveRequestId)

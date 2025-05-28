@@ -1,6 +1,5 @@
 "use client";
 
-import type { InvalidateQueryFilters } from "@tanstack/react-query";
 import { useEffect, useTransition } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";

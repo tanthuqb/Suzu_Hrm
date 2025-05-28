@@ -30,7 +30,12 @@ export default function Permissions() {
   >({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: roles } = useSuspenseQuery(trpc.role.getAll.queryOptions());
+  const { data: roles } = useSuspenseQuery({
+    ...trpc.role.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     if (roles.length && !selectedRole) {
@@ -38,9 +43,12 @@ export default function Permissions() {
     }
   }, [roles, selectedRole]);
 
-  const { data: allActions } = useSuspenseQuery(
-    trpc.permission.getAllActions.queryOptions(),
-  );
+  const { data: allActions } = useSuspenseQuery({
+    ...trpc.permission.getAllActions.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const opts = trpc.permission.getPermissionsByRoleId.queryOptions({
     roleId: selectedRole || ZERO_UUID,

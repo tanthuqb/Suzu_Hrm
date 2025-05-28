@@ -2,7 +2,6 @@
 
 import { useId, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -132,9 +131,9 @@ export default function WFHForm({
               <>
                 <input type="hidden" {...field} />
                 <FormItem>
-                  <FormLabel>Employee ID</FormLabel>
+                  <FormLabel className="mb-1 block">Employee ID</FormLabel>
                   <FormControl>
-                    <div className="select-none rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-800">
+                    <div className="w-full select-none rounded-md border-gray-300 bg-gray-100 px-2 py-1 text-gray-800">
                       {field.value}
                     </div>
                   </FormControl>
@@ -155,7 +154,7 @@ export default function WFHForm({
                     {...field}
                     placeholder="John Doe"
                     value={field.value ?? ""}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-2 py-1 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </FormControl>
                 <FormMessage />

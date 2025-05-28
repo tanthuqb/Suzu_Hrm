@@ -1,12 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import type { ApprovalStatus } from "@acme/db";
-import type { AttendanceRecord } from "@acme/db/schema";
 import { approvalStatusEnum, AttendanceStatus } from "@acme/db";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
@@ -19,8 +17,6 @@ import {
   SelectValue,
 } from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
-
-import { useTRPC } from "~/trpc/react";
 
 const leaveRequestSchema = z.object({
   name: z
@@ -120,9 +116,7 @@ export function LeaveRequestForm({
         <Label>Status</Label>
         <Select
           value={form.watch("approvalStatus")}
-          onValueChange={(value) =>
-            form.setValue("approvalStatus", value as ApprovalStatus)
-          }
+          onValueChange={(value) => form.setValue("approvalStatus", value)}
           disabled={isReadOnly}
         >
           <SelectTrigger>
