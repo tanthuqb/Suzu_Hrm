@@ -52,9 +52,12 @@ export default function DepartmentsPage() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: departments, isFetching } = useSuspenseQuery(
-    trpc.department.getAll.queryOptions(),
-  );
+  const { data: departments, isFetching } = useSuspenseQuery({
+    ...trpc.department.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const [searchField, setSearchField] = useState<"all" | "name" | "office">(
     "all",

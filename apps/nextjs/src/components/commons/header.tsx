@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, User } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
@@ -20,8 +20,20 @@ import type { Notification } from "~/types";
 import { signOut } from "~/actions/auth";
 import { ModeToggle } from "~/components/commons/mode-toggle";
 
-export function Header() {
+interface HeaderProps {
+  title?: string;
+}
+
+export function Header({ title }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const pageTitle =
+    title ??
+    pathname
+      .split("/")
+      .filter(Boolean)
+      .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1))
+      .join(" ");
 
   const [notifications] = useState<Notification[]>([
     {
@@ -61,10 +73,12 @@ export function Header() {
     });
   };
   return (
-    <header className="border-b border-border">
-      <div className="flex h-16 items-center gap-4 px-4">
-        <SidebarTrigger />
-        <div className="flex flex-1 items-center justify-end gap-4">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <div className="flex flex-1 items-center justify-between">
+        <h1 className="text-lg font-semibold">{pageTitle || "Dashboard"}</h1>
+
+        <div className="flex items-center gap-4">
           <div className="relative">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -84,7 +98,6 @@ export function Header() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      // onClick={markAllAsRead}
                       className="h-7 px-2 text-xs"
                     >
                       Mark all as read
@@ -101,7 +114,6 @@ export function Header() {
                     <DropdownMenuItem
                       key={notification.id}
                       className="flex cursor-default flex-col items-start p-3"
-                      // onSelect={() => markAsRead(notification.id)}
                     >
                       <div className="flex w-full items-start gap-2">
                         <div className="flex-1">
@@ -131,6 +143,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -140,19 +153,18 @@ export function Header() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <Link href={"profile"}>
+              <Link href="/profile">
                 <DropdownMenuItem>Profile</DropdownMenuItem>
               </Link>
-              <Link href={"settings"}>
+              <Link href="/settings">
                 <DropdownMenuItem>Settings</DropdownMenuItem>
               </Link>
               <DropdownMenuSeparator />
-              <Link href={""} onClick={() => handleSignOut()}>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
-              </Link>
+              <DropdownMenuItem onClick={handleSignOut}>
+                Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ModeToggle />
         </div>
       </div>
     </header>

@@ -28,17 +28,22 @@ export default async function UsersPage() {
   );
 
   const { state: stateRoles } = await ssrPrefetch(
-    trpc.department.getAll.queryOptions(),
+    trpc.role.getAll.queryOptions(),
   );
 
   const { state: stateDepartments } = await ssrPrefetch(
     trpc.department.getAll.queryOptions(),
   );
 
+  const { state: statePositions } = await ssrPrefetch(
+    trpc.position.getAll.queryOptions(),
+  );
+
   const mergedState = {
     ...stateUsers,
     ...stateRoles,
     ...stateDepartments,
+    ...statePositions,
   };
 
   return (

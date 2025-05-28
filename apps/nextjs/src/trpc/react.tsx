@@ -1,8 +1,8 @@
 "use client";
 
-import type { QueryClient } from "@tanstack/react-query";
+import type { DehydratedState, QueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { HydrationBoundary, QueryClientProvider } from "@tanstack/react-query";
 import {
   createTRPCClient,
   loggerLink,
@@ -29,7 +29,10 @@ const getQueryClient = () => {
 
 export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>();
 
-export function TRPCReactProvider(props: { children: React.ReactNode }) {
+export function TRPCReactProvider(props: {
+  children: React.ReactNode;
+  dehydratedState?: DehydratedState;
+}) {
   const queryClient = getQueryClient();
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
@@ -54,7 +57,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        {props.children}
+        <HydrationBoundary state={props.dehydratedState ?? {}}>
+          {props.children}
+        </HydrationBoundary>
       </TRPCProvider>
     </QueryClientProvider>
   );

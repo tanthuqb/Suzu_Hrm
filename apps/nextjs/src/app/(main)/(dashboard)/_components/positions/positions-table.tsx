@@ -51,12 +51,18 @@ export function PositionsTable() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const { data: positions } = useSuspenseQuery(
-    trpc.position.getAll.queryOptions(),
-  );
-  const { data: departments, isLoading } = useSuspenseQuery(
-    trpc.department.getAll.queryOptions(),
-  );
+  const { data: positions } = useSuspenseQuery({
+    ...trpc.position.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+  const { data: departments, isLoading } = useSuspenseQuery({
+    ...trpc.department.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const createPositionMuation = useMutation(
     trpc.position.create.mutationOptions({

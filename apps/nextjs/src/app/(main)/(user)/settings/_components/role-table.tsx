@@ -61,7 +61,12 @@ export default function RoleManager() {
     data: roles,
     refetch,
     isFetching,
-  } = useSuspenseQuery(trpc.role.getAll.queryOptions());
+  } = useSuspenseQuery({
+    ...trpc.role.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const createRoleMutation = useMutation(
     trpc.role.create.mutationOptions({
@@ -109,7 +114,7 @@ export default function RoleManager() {
   const filteredRoles = roles.filter(
     (role) =>
       role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      role?.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+      role.description?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCreateRole = () => {

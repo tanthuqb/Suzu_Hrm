@@ -58,11 +58,14 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: user, error } = useSuspenseQuery(
-    trpc.user.byId.queryOptions({
+  const { data: user, error } = useSuspenseQuery({
+    ...trpc.user.byId.queryOptions({
       id: userId,
     }),
-  );
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     const message = searchParams.get("message");

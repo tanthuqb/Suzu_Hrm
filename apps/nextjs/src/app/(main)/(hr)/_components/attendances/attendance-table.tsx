@@ -32,9 +32,12 @@ export function AttendancesTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const trpc = useTRPC();
 
-  const { data: attendances, isFetching } = useSuspenseQuery(
-    trpc.attendance.getAll.queryOptions(),
-  );
+  const { data: attendances, isFetching } = useSuspenseQuery({
+    ...trpc.attendance.getAll.queryOptions(),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const handleDelete = async (id: string) => {};
 
