@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -48,6 +48,7 @@ export function UserTable() {
   const [selectedUserRole, setSelectedUserRole] = useState<string | undefined>(
     undefined,
   );
+
   const [selectedUserDepartment, setSelectedUserDepartment] = useState<
     string | undefined
   >(undefined);
@@ -58,6 +59,8 @@ export function UserTable() {
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
 
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
   const trpc = useTRPC();
 
   const input: RouterInputs["user"]["all"] = {
@@ -173,143 +176,162 @@ export function UserTable() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col overflow-hidden p-4">
-        <div
-          className={`rounded-md border transition-opacity ${isFetching ? "opacity-50" : "opacity-100"}`}
-        >
-          <div className="flex-1 overflow-auto">
-            <Table className="h-full w-full min-w-[800px] table-auto border-collapse">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Full Name</TableHead>
-                  <TableHead onClick={() => toggleSort("email")}>
-                    <div className="flex items-center gap-1">
-                      Email
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </TableHead>
-                  <TableHead>Phòng Ban</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead onClick={() => toggleSort("role")}>Role</TableHead>
-                  <TableHead onClick={() => toggleSort("status")}>
-                    Status
-                  </TableHead>
-                  <TableHead>Salary</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="h-full">
-                {data.users.map((user: FullHrmUser) => {
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.firstName + " " + user.lastName}
-                      </TableCell>
-                      <TableCell>{user.email ? user.email : null}</TableCell>
-                      <TableCell>
-                        {user.departments?.name ? user.departments.name : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {user.positions?.name ? user.positions.name : "N/A"}
-                      </TableCell>
-                      <TableCell>{user.role?.name}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            user.status == "active"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                          }`}
-                        >
-                          {user.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={
-                            user.latestSalarySlip?.id
-                              ? `/salary-slip/${user.latestSalarySlip.id}`
-                              : `/salary-slip/create?userId=${user.id}`
-                          }
-                          className={cn(
-                            "text-sm font-medium underline underline-offset-2 transition-all duration-200",
-                            user.latestSalarySlip?.id
-                              ? "text-blue-600 hover:text-blue-800 hover:underline-offset-4"
-                              : "text-green-600 hover:text-green-800 hover:underline-offset-4",
-                          )}
-                        >
-                          {user.latestSalarySlip?.id
-                            ? "View salary"
-                            : "Create salary"}
-                        </Link>
-                      </TableCell>
+      <main className="flex h-full flex-1 flex-col overflow-hidden p-4">
+        <div className="flex flex-1 flex-col rounded-md border bg-white">
+          <div
+            className={`min-h-0 flex-1 rounded-md border transition-opacity ${isFetching ? "opacity-50" : "opacity-100"}`}
+          >
+            <div className="max-h-[calc(100vh-240px)] overflow-y-auto border-t">
+              <Table className="w-full table-auto border-collapse">
+                <TableHeader>
+                  <TableRow className="sticky top-0 bg-white">
+                    <TableHead>Full Name</TableHead>
+                    <TableHead onClick={() => toggleSort("email")}>
+                      <div className="flex items-center gap-1">
+                        Email
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Phòng Ban</TableHead>
+                    <TableHead>Vị trí</TableHead>
+                    <TableHead onClick={() => toggleSort("role")}>
+                      Role
+                    </TableHead>
+                    <TableHead onClick={() => toggleSort("status")}>
+                      Status
+                    </TableHead>
+                    <TableHead>Salary</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="h-full">
+                  {data.users.map((user: FullHrmUser) => {
+                    return (
+                      <TableRow
+                        key={user.id}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <TableCell className="font-medium">
+                          {user.firstName + " " + user.lastName}
+                        </TableCell>
+                        <TableCell>{user.email ? user.email : null}</TableCell>
+                        <TableCell>
+                          {user.departments?.name
+                            ? user.departments.name
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {user.positions?.name ? user.positions.name : "N/A"}
+                        </TableCell>
+                        <TableCell>{user.role?.name}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              user.status == "active"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            }`}
+                          >
+                            {user.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            href={
+                              user.latestSalarySlip?.id
+                                ? `/salary-slip/${user.latestSalarySlip.id}`
+                                : `/salary-slip/create?userId=${user.id}`
+                            }
+                            className={cn(
+                              "text-sm font-medium underline underline-offset-2 transition-all duration-200",
+                              user.latestSalarySlip?.id
+                                ? "text-blue-600 hover:text-blue-800 hover:underline-offset-4"
+                                : "text-green-600 hover:text-green-800 hover:underline-offset-4",
+                            )}
+                          >
+                            {user.latestSalarySlip?.id
+                              ? "View salary"
+                              : "Create salary"}
+                          </Link>
+                        </TableCell>
 
-                      <TableCell className="text-right">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => openModal(user)}
-                          >
-                            Update
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setRole(user.id);
-                            }}
-                          >
-                            Role
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="hidden sm:inline-flex"
-                            onClick={() => {
-                              setDepartment(user.id);
-                            }}
-                          >
-                            Department
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="hidden sm:inline-flex"
-                            onClick={() => {
-                              setPosition(user.id);
-                            }}
-                          >
-                            Position
-                          </Button>
-                        </div>
-                        <SetRoleDialog
-                          isOpen={isRoleDialogOpen}
-                          onClose={() => setIsRoleDialogOpen(false)}
-                          roles={roles}
-                          userId={selectedUserId}
-                          currentRoleName={selectedUserRole}
-                        />
-                        <SetDepartmentDialog
-                          isOpen={isDepartmentDialogOpen}
-                          onClose={() => setIsDepartmentDialogOpen(false)}
-                          departments={departments}
-                          userId={selectedUserId}
-                          currentDepartmentName={selectedUserDepartment}
-                        />
-                        <SetPositionDialog
-                          isOpen={isPositionDialogOpen}
-                          onClose={() => setIsPositionDialogOpen(false)}
-                          positions={positions}
-                          userId={selectedUserId}
-                          currentPositionName={selectedUserPosition}
-                        />
-                      </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => openModal(user)}
+                            >
+                              Update
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setRole(user.id);
+                              }}
+                            >
+                              Role
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
+                                setDepartment(user.id);
+                              }}
+                            >
+                              Department
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
+                                setPosition(user.id);
+                              }}
+                            >
+                              Position
+                            </Button>
+                          </div>
+                          <SetRoleDialog
+                            isOpen={isRoleDialogOpen}
+                            onClose={() => setIsRoleDialogOpen(false)}
+                            roles={roles}
+                            userId={selectedUserId}
+                            currentRoleName={selectedUserRole}
+                          />
+                          <SetDepartmentDialog
+                            isOpen={isDepartmentDialogOpen}
+                            onClose={() => setIsDepartmentDialogOpen(false)}
+                            departments={departments}
+                            userId={selectedUserId}
+                            currentDepartmentName={selectedUserDepartment}
+                          />
+                          <SetPositionDialog
+                            isOpen={isPositionDialogOpen}
+                            onClose={() => setIsPositionDialogOpen(false)}
+                            positions={positions}
+                            userId={selectedUserId}
+                            currentPositionName={selectedUserPosition}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {Array.from({
+                    length: Math.max(0, pageSize - data.users.length),
+                  }).map((_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[48px]">
+                      <TableCell
+                        colSpan={8}
+                        className="border-b border-gray-100"
+                      ></TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
 

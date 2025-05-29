@@ -1,10 +1,11 @@
 "use client";
 
-// import { DashboardStats } from "@/components/dashboard-stats";
-// import { RecentActivities } from "@/components/recent-activities";
-// import { UpcomingEvents } from "@/components/upcoming-events";
-import { Bell, Plus, Search } from "lucide-react";
+import { startTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Bell, LogOut, Search } from "lucide-react";
 
+import { UserStatusEnum } from "@acme/db";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,9 +18,64 @@ import { Input } from "@acme/ui/input";
 import { Separator } from "@acme/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@acme/ui/sidebar";
 
+import { signOut } from "~/actions/auth";
 import { AppSidebar } from "~/components/commons/app-sidebar";
+import { useTRPC } from "~/trpc/react";
+import UserChartSimleBar from "./(main)/(dashboard)/_components/charts/user-charts";
+import CountPositionPage from "./(main)/(dashboard)/_components/dashboards/count-position";
+import { RecentActivities } from "./(main)/(dashboard)/_components/dashboards/recent-activities";
+import { UpcomingEvents } from "./(main)/(dashboard)/_components/dashboards/upcoming-events";
 
+const transformData = (
+  apiData: { month: number | string; count: number | string }[],
+): number[] => {
+  const months = Array.from({ length: 12 }, (_, index) => index + 1);
+  return months.map((month) => {
+    const monthData = apiData.find((item) => Number(item.month) === month);
+    return monthData ? Number(monthData.count) : 0;
+  });
+};
 export default function DashboardPage() {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const currentYear = new Date().getFullYear();
+
+  const handleLogout = async () => {
+    startTransition(async () => {
+      await signOut();
+      router.push("/login");
+    });
+  };
+
+  const { data: countByStatusActiveRespone, error: activeError } =
+    useSuspenseQuery({
+      ...trpc.user.getCountUserByStatus.queryOptions({
+        status: UserStatusEnum.ACTIVE,
+        year: currentYear,
+      }),
+      staleTime: 0,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    });
+
+  const { data: countByStatusSuspendRespone, error: suspendError } =
+    useSuspenseQuery({
+      ...trpc.user.getCountUserByStatus.queryOptions({
+        status: UserStatusEnum.SUSPENDED,
+        year: currentYear,
+      }),
+      staleTime: 0,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    });
+
+  if (activeError || suspendError) {
+    console.error("Error fetching data:", activeError || suspendError);
+  }
+
+  const countByStatusActive = transformData(countByStatusActiveRespone);
+  const countByStatusSuspend = transformData(countByStatusSuspendRespone);
+
   return (
     <>
       <AppSidebar />
@@ -45,9 +101,10 @@ export default function DashboardPage() {
             <Button variant="outline" size="icon">
               <Bell className="h-4 w-4" />
             </Button>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Quick Action
+
+            <Button onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
           </div>
         </header>
@@ -67,72 +124,38 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            {/* <DashboardStats /> */}
-
             {/* Charts and Activities Grid */}
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Chart Placeholder */}
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Employee Growth</CardTitle>
+                  <CardTitle>Nhân viên</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex h-[250px] items-center justify-center rounded-lg bg-muted/50 lg:h-[300px]">
-                    <p className="text-muted-foreground">
-                      Chart will be displayed here
-                    </p>
+                  <div className="flex h-[300px] items-center justify-center rounded-lg bg-muted/50 lg:h-[300px]">
+                    <UserChartSimleBar
+                      countByStatusActive={countByStatusActive}
+                      countByStatusSuspend={countByStatusSuspend}
+                    />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Recent Activities */}
-              {/* <RecentActivities /> */}
+              <RecentActivities />
             </div>
 
             {/* Bottom Grid */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Upcoming Events */}
-              {/* <UpcomingEvents /> */}
+              <UpcomingEvents />
 
               {/* Quick Stats */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Department Overview</CardTitle>
+                  <CardTitle>Position Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Engineering</span>
-                      <span className="text-sm text-muted-foreground">
-                        245 employees
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Sales</span>
-                      <span className="text-sm text-muted-foreground">
-                        156 employees
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Marketing</span>
-                      <span className="text-sm text-muted-foreground">
-                        89 employees
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">HR</span>
-                      <span className="text-sm text-muted-foreground">
-                        23 employees
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Finance</span>
-                      <span className="text-sm text-muted-foreground">
-                        34 employees
-                      </span>
-                    </div>
-                  </div>
+                  <CountPositionPage />
                 </CardContent>
               </Card>
             </div>
