@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgSchema,
   pgTable,
@@ -503,6 +504,43 @@ export const UpdatePositionSchemaInput = createInsertSchema(Position, {
   updatedAt: true,
 });
 export type UpdatePositionInput = z.infer<typeof UpdatePositionSchemaInput>;
+
+/** Audit Logs  */
+export const AuditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+  action: text("action").notNull(),
+  entity: text("entity").notNull(),
+  request: text("request").notNull(),
+  response: text("response").notNull(),
+  payload: jsonb("payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export const CreateAuditLogSchema = createInsertSchema(AuditLogs, {
+  userId: z.string().uuid(),
+  action: z.string().max(255),
+  entity: z.string().max(255),
+  request: z.string().max(1000),
+  response: z.string().max(1000),
+  payload: z.object({}).optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const UpdateAuditLogSchema = CreateAuditLogSchema.extend({
+  id: z.number(),
+});
+export type CreateAuditLogInput = z.infer<typeof CreateAuditLogSchema>;
+export type UpdateAuditLogInput = z.infer<typeof CreateAuditLogSchema> & {
+  id: number;
+};
+export type AuditLogRecord = InferSelectModel<typeof AuditLogs>;
 
 /** RELATIONS **/
 export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({

@@ -1,9 +1,11 @@
+import { log } from "console";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerClient } from "@acme/supabase";
 
 import { env } from "~/env";
+import { logger } from "~/libs/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,10 +13,10 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get("code");
     const next = searchParams.get("next") ?? "/";
 
-    console.log("Auth callback received:", { hasCode: Boolean(code), next });
+    logger.info("Auth callback received", { hasCode: Boolean(code), next });
 
     if (!code) {
-      console.error("No code provided in callback");
+      logger.error("No code provided in callback");
       return NextResponse.redirect(`${origin}/login/invalid-email`);
     }
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase environment variables");
+      logger.error("Missing Supabase environment variables");
       return NextResponse.redirect(`${origin}/auth-code-error`);
     }
 
@@ -34,23 +36,33 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error("Session exchange error:", error);
+      logger.error("Session exchange error", { error: error.message });
       return NextResponse.redirect(`${origin}/login/auth-code-error`);
     }
 
-    // Log complete session information for debugging
-    console.log("Session exchange successful:", {
+    // Check if this is a Google login
+    const isGoogleLogin = data.session.user.app_metadata.provider === "google";
+    const provider = data.session.user.app_metadata.provider ?? "email";
+
+    // Get user agent for device info
+    const userAgent = request.headers.get("user-agent") ?? "unknown";
+    const ipAddress = request.headers.get("x-forwarded-for") ?? "unknown";
+
+    // Log the successful authentication
+    logger.info(`User authenticated via ${provider}`, {
       userId: data.session.user.id,
       email: data.session.user.email,
-      expiresAt: data.session.expires_at,
-      tokenType: data.session.token_type,
-      hasCookies: response.cookies.getAll().length > 0,
+      provider,
+      isGoogleLogin,
+      ipAddress,
+      userAgent,
+      timestamp: new Date().toISOString(),
     });
 
     // Explicitly get and log all cookies for debugging
     const allCookies = response.cookies.getAll();
-    console.log(
-      "Cookies set in response:",
+    logger.info(
+      "Cookies set in response",
       allCookies.map((c) => ({
         name: c.name,
         options: {
@@ -68,12 +80,14 @@ export async function GET(request: NextRequest) {
         (c) => c.name === "sb-access-token" || c.name === "sb-refresh-token",
       )
     ) {
-      console.warn("Warning: Session cookies not found in response");
+      logger.warn("Session cookies not found in response");
     }
 
     return response;
   } catch (error) {
-    console.error("Callback error:", error);
+    logger.error("Error in auth callback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.redirect(`${origin}/login/auth-code-error`);
   }
 }

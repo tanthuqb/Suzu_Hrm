@@ -139,6 +139,7 @@ export function PositionsTable() {
   };
 
   const handleDelete = async () => {
+    console.log("Deleting position with ID:", selectedPositionId);
     try {
       await deletePositionMuation.mutateAsync({
         id: selectedPositionId,
@@ -161,7 +162,7 @@ export function PositionsTable() {
   };
 
   const openDeleteDialog = (position: PositionRecord) => {
-    setSelectedPosition(position);
+    setSelectedPositionId(position.id);
     setIsDeleteDialogOpen(true);
   };
 

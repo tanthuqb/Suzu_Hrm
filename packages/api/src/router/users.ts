@@ -300,6 +300,7 @@ export const userRouter = createTRPCRouter({
           }
 
           authId = data.user.id;
+
           console.log(`✅ Đã tạo Auth user: ${user.email}`);
         }
 

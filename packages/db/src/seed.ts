@@ -50,6 +50,4 @@ async function main() {
       createdAt: new Date(),
     },
   ]);
-
-  console.log("Seed thành công!");
 }

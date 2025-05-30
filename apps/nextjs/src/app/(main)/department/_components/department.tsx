@@ -65,12 +65,6 @@ export default function DepartmentsPage() {
 
   const filteredDepartments = useMemo(() => {
     if (searchField === "all" && !searchTerm) return departments;
-    console.log(
-      "Filtering with term:",
-      searchTerm || "(empty)",
-      "field:",
-      searchField,
-    );
     return departments.filter((dept) => {
       if (!searchTerm) {
         if (searchField === "name") return dept.name && dept.name.trim() !== "";

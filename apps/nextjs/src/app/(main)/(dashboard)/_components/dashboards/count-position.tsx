@@ -1,17 +1,18 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+type PositionCountsResponse = {
+  positionId: string | null;
+  positionName: string | null;
+  count: number;
+}[];
 
-import { useTRPC } from "~/trpc/react";
+interface CountPositionPageProps {
+  positionCounts: PositionCountsResponse;
+  error?: Error;
+}
 
-export default function CountPositionPage() {
-  const trpc = useTRPC();
-
-  const { data: positionCounts, error } = useSuspenseQuery({
-    ...trpc.user.getAllUserCountsByPosition.queryOptions(),
-    staleTime: 0,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
+export default function CountPositionPage({
+  positionCounts,
+  error,
+}: CountPositionPageProps) {
   if (error) {
     console.error("Error fetching position counts:", error);
     return <div>Error loading position counts.</div>;

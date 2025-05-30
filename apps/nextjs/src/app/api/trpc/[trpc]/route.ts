@@ -6,7 +6,7 @@ import { appRouter, createTRPCContext } from "@acme/api";
 import { validateToken } from "@acme/auth";
 import { createServerClient } from "@acme/supabase";
 
-import { env } from "~/env";
+import { logger } from "~/libs/logger";
 
 const setCorsHeaders = (res: Response) => {
   res.headers.set("Access-Control-Allow-Origin", "*");
@@ -23,7 +23,7 @@ export const OPTIONS = () => {
 
 const handler = async (req: NextRequest) => {
   try {
-    console.log(">>> tRPC Request:", {
+    logger.info(">>> Handling tRPC request", {
       url: req.url,
       method: req.method,
     });
@@ -36,11 +36,10 @@ const handler = async (req: NextRequest) => {
     } = await supabase.auth.getSession();
 
     if (sessionError) {
-      console.error(">>> Session Error:", sessionError);
+      logger.error(">>> Error retrieving session from Supabase", sessionError);
       throw sessionError;
     }
-
-    console.log(">>> Session:", session);
+    logger.info(">>> Session retrieved successfully", session);
 
     // Validate token and get HRM user data
     const validatedSessionRaw = session?.access_token
@@ -68,7 +67,7 @@ const handler = async (req: NextRequest) => {
           headers: req.headers,
         }),
       onError({ error, path }) {
-        console.error(`>>> tRPC Error on '${path}'`, error);
+        logger.error(`>>> tRPC Error on '${path}'`, error);
       },
     });
 
@@ -76,7 +75,9 @@ const handler = async (req: NextRequest) => {
     setCorsHeaders(response);
     return response;
   } catch (error) {
-    console.error(">>> Unhandled Error:", error);
+    logger.error(">>> Error in tRPC handler", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
       headers: {

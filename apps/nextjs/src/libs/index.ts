@@ -54,3 +54,13 @@ export function getRelativePath(url: string) {
     return url;
   }
 }
+
+export const transformData = (
+  apiData: { month: number | string; count: number | string }[],
+): number[] => {
+  const months = Array.from({ length: 12 }, (_, index) => index + 1);
+  return months.map((month) => {
+    const monthData = apiData.find((item) => Number(item.month) === month);
+    return monthData ? Number(monthData.count) : 0;
+  });
+};
