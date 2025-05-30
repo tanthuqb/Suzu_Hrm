@@ -4,9 +4,11 @@ import { ZodError } from "zod";
 
 import type { FullSession } from "@acme/auth";
 import { auth, validateToken } from "@acme/auth";
-import { and, eq } from "@acme/db";
+import { eq } from "@acme/db";
 import { db } from "@acme/db/client";
-import { Permission } from "@acme/db/schema";
+import { AuditLogs, Permission } from "@acme/db/schema";
+
+import { logger } from "../../../apps/nextjs/src/libs/logger";
 
 /**
  * Isomorphic Session getter for API requests
@@ -69,7 +71,9 @@ export const createTRPCContext = async (opts: {
   }
 
   const source = opts.headers.get("x-trpc-source") ?? "unknown";
-  console.log(">>> tRPC Request from", source, "by", session?.hrmUser);
+  logger.info(
+    `>>> Creating tRPC context for source: ${source}, session: ${session?.hrmUser.email ?? "none"}`,
+  );
 
   return {
     session,
@@ -132,8 +136,50 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   const result = await next();
 
   const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  logger.info(`[TRPC] ${path} took ${end - start}ms to execute`);
 
+  return result;
+});
+
+/**
+ * Middleware for logging tRPC calls, including mutations and audit logs.
+ * This middleware logs the call details and writes an audit log entry for mutations.
+ * It also handles errors that occur during the logging process.
+ * @see https://trpc.io/docs/server/middleware
+ */
+
+const loggingMiddleware = t.middleware(async (opts) => {
+  const { ctx, next, path, getRawInput, type } = opts;
+  const start = Date.now();
+  const result = await next();
+  const duration = Date.now() - start;
+
+  const isMutation = type === "mutation";
+  if (isMutation) {
+    const userId = ctx.session?.authUser.id ?? "unknown";
+    const rawInput = await getRawInput();
+    logger.info(
+      `[TRPC] ${path} called by user ${userId} with input: ${JSON.stringify(
+        rawInput,
+      )}, took ${duration}ms`,
+    );
+
+    const responseData = (result as any)?.data ?? result ?? {};
+
+    try {
+      await ctx.db.insert(AuditLogs).values({
+        userId,
+        action: path || "unknown",
+        entity: path.split(".")[0] || "unknown",
+        payload: JSON.stringify(rawInput ?? {}),
+        request: JSON.stringify(rawInput ?? {}),
+        response: JSON.stringify(responseData),
+        createdAt: new Date(),
+      });
+    } catch (err) {
+      logger.error("Failed to write AuditLog", { error: err });
+    }
+  }
   return result;
 });
 
@@ -144,7 +190,9 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * tRPC API. It does not guarantee that a user querying is authorized, but you
  * can still access user session data if they are logged in
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(loggingMiddleware);
 
 /**
  * Protected (authenticated) procedure
@@ -157,6 +205,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 
 export const protectedProcedure: typeof publicProcedure = t.procedure
   .use(timingMiddleware)
+  .use(loggingMiddleware)
   .use(({ ctx, next }) => {
     if (!ctx.session?.hrmUser) {
       throw new TRPCError({ code: "UNAUTHORIZED" });

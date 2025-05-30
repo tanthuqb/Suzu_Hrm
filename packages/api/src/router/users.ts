@@ -1,7 +1,8 @@
-import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import type { FullHrmUser, UserStatusEnum } from "@acme/db";
+import type { FullHrmUser } from "@acme/db";
+import { UserStatusEnum } from "@acme/db";
 import {
   Department,
   HRMUser,
@@ -299,6 +300,7 @@ export const userRouter = createTRPCRouter({
           }
 
           authId = data.user.id;
+
           console.log(`✅ Đã tạo Auth user: ${user.email}`);
         }
 
@@ -377,4 +379,66 @@ export const userRouter = createTRPCRouter({
       }
       return ctx.db.update(HRMUser).set({ avatar }).where(eq(HRMUser.id, id));
     }),
+  getCountUserByStatus: protectedProcedure
+    .input(
+      z.object({
+        status: z.nativeEnum(UserStatusEnum),
+        year: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      try {
+        const { status, year } = input;
+
+        const results = await ctx.db
+          .select({
+            month: sql<number>`EXTRACT(MONTH FROM ${HRMUser.createdAt})`,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(HRMUser)
+          .where(
+            year
+              ? and(
+                  eq(HRMUser.status, status),
+                  eq(
+                    sql<number>`EXTRACT(YEAR FROM ${HRMUser.createdAt})`,
+                    year,
+                  ),
+                )
+              : eq(HRMUser.status, status),
+          )
+          .groupBy(sql<number>`EXTRACT(MONTH FROM ${HRMUser.createdAt})`)
+          .orderBy(sql<number>`EXTRACT(MONTH FROM ${HRMUser.createdAt})`)
+          .execute();
+
+        return results;
+      } catch (error) {
+        console.error("Error in getCountUserByStatus:", error);
+        throw new Error("Failed to fetch user counts.");
+      }
+    }),
+  getAllUserCountsByPosition: protectedProcedure.query(async ({ ctx }) => {
+    try {
+      const results = await ctx.db
+        .select({
+          positionId: HRMUser.positionId,
+          positionName: Position.name,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(HRMUser)
+        .leftJoin(Position, eq(HRMUser.positionId, Position.id))
+        .where(eq(HRMUser.status, "active"))
+        .groupBy(HRMUser.positionId, Position.name)
+        .execute();
+
+      return results.map((result) => ({
+        positionId: result.positionId,
+        positionName: result.positionName,
+        count: result.count,
+      }));
+    } catch (error) {
+      console.error("Error in getAllUserCountsByPosition:", error);
+      throw new Error("Failed to fetch user counts by position.");
+    }
+  }),
 });

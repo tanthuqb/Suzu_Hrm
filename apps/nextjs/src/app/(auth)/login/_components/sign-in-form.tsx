@@ -3,7 +3,7 @@ import React from "react";
 
 import { Button } from "@acme/ui/button";
 
-import type { AuthView } from "~/app/login/_components/page-client";
+import type { AuthView } from "./page-client";
 
 interface SignInFormProps {
   handleSignIn: React.FormEventHandler<HTMLFormElement>;

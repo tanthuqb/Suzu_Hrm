@@ -1,12 +1,12 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import type { FullHrmUser } from "@acme/db";
 import { eq } from "@acme/db";
 import { db } from "@acme/db/client";
-import { HRMUser, Permission, Role } from "@acme/db/schema";
+import { HRMUser, Role } from "@acme/db/schema";
 
 import type { FullSession } from "./config";
+import { logger } from "../../../apps/nextjs/src/libs/logger";
 import { createServerClient } from "../../supabase/src";
 import { env } from "../env";
 import {
@@ -37,22 +37,9 @@ export const handleSignInWithGoogle = async () => {
 
   // Only redirect if we have a URL
   if (data.url) {
-    console.log("Redirecting to auth URL:", data.url);
+    logger.info("Redirecting to auth URL:", data.url);
+
     redirect(data.url);
-  }
-
-  return data;
-};
-
-export const signIn = async (email: string, password: string) => {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw new Error(error.message);
   }
 
   return data;
@@ -125,7 +112,7 @@ export const auth = cache(async (): Promise<FullSession | null> => {
 
     return full;
   } catch (error) {
-    console.error("Error during authentication:", error);
+    logger.error("Error during authentication:", error);
     return null;
   }
 });

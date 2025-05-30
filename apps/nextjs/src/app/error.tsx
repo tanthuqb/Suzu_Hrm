@@ -24,7 +24,7 @@ export default function UsersError({ error, reset }: Props) {
   const isForbidden = error.data?.code === "FORBIDDEN";
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6">
+    <div className="flex h-screen w-screen flex-col items-center justify-center space-y-4">
       <h1 className="mb-4 text-3xl font-bold">
         {isForbidden ? "🚫 Không có quyền" : "❗ Đã xảy ra lỗi"}
       </h1>

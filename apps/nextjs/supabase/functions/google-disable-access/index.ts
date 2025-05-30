@@ -149,12 +149,11 @@ async function getGoogleAccessToken() {
     iat,
     exp,
   };
-  console.log("payload", payload);
   const unsignedToken = [
     base64UrlEncode(header),
     base64UrlEncode(payload),
   ].join(".");
-  console.log("unsignedToken", unsignedToken);
+
   const key = await crypto.subtle.importKey(
     "pkcs8",
     pemToArrayBuffer(privateKey),
