@@ -7,6 +7,8 @@ import DashboardClientPage from "~/app/(main)/(dashboard)/_components/dashboards
 import { LoadingSpinner } from "~/components/commons/loading-spiner";
 import { getQueryClient, HydrateClient, prefetch, trpc } from "~/trpc/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   await prefetch(
     trpc.user.getCountUserByStatus.queryOptions({
