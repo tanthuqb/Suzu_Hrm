@@ -1,21 +1,27 @@
-import { dehydrate } from "@tanstack/react-query";
+import { Suspense } from "react";
 
 import AuditLogsTable from "~/app/(main)/(dashboard)/_components/logs/audit-logs-table";
-import { getQueryClient, HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { LoadingSpinner } from "~/components/commons/loading-spiner";
+import { HydrateClient, trpc } from "~/trpc/server";
+import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+
+export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
-  await prefetch(
+  const { state } = await ssrPrefetch(
     trpc.auditlog.getAll.queryOptions({
       page: 1,
       pageSize: 20,
     }),
   );
 
-  const state = dehydrate(getQueryClient());
   return (
     <HydrateClient state={state}>
-      <div className="container mx-auto py-6">
-        <AuditLogsTable />
+      <div className="h-full min-h-screen w-full px-4 py-6">
+        <Suspense fallback={<LoadingSpinner />}>
+          <h1 className="mb-4 text-2xl font-bold">Audit Logs</h1>
+          <AuditLogsTable />
+        </Suspense>
       </div>
     </HydrateClient>
   );

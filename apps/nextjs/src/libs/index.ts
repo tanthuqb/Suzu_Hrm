@@ -1,3 +1,5 @@
+import type { DehydratedState } from "@tanstack/react-query";
+
 export function enumToArray<T extends Record<string, string | number>>(
   enumObj: T,
 ) {
@@ -64,3 +66,12 @@ export const transformData = (
     return monthData ? Number(monthData.count) : 0;
   });
 };
+
+export function mergeDehydratedStates(
+  states: DehydratedState[],
+): DehydratedState {
+  return {
+    queries: states.flatMap((s) => s.queries),
+    mutations: states.flatMap((s) => s.mutations),
+  };
+}

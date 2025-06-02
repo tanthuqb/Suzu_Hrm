@@ -324,9 +324,6 @@ importers:
 
   packages/db:
     dependencies:
-      '@acme/nextjs':
-        specifier: workspace:^
-        version: link:../../apps/nextjs
       '@vercel/postgres':
         specifier: ^0.10.0
         version: 0.10.0

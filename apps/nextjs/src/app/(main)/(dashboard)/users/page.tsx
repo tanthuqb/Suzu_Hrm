@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { checkRole } from "~/actions/auth";
 import { UserStatusModal } from "~/components/Modals/UserStatusModal";
 import { UserStatusModalProvider } from "~/context/UserStatusModalContext";
+import { mergeDehydratedStates } from "~/libs";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import UserTableClient from "./_components/user-page-client";
@@ -39,12 +40,12 @@ export default async function UsersPage() {
     trpc.position.getAll.queryOptions(),
   );
 
-  const mergedState = {
-    ...stateUsers,
-    ...stateRoles,
-    ...stateDepartments,
-    ...statePositions,
-  };
+  const mergedState = mergeDehydratedStates([
+    stateUsers,
+    stateRoles,
+    stateDepartments,
+    statePositions,
+  ]);
 
   return (
     <HydrateClient state={mergedState}>

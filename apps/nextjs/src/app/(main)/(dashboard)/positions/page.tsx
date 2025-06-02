@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { checkRole } from "~/actions/auth";
+import { mergeDehydratedStates } from "~/libs";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import { PositionsTable } from "../_components/positions/positions-table";
@@ -18,11 +19,8 @@ export default async function PositionsPage() {
   const { state: stateDepartment } = await ssrPrefetch(
     trpc.department.getAll.queryOptions(),
   );
-  const mergedState = {
-    ...statePostion,
-    ...stateDepartment,
-  };
 
+  const mergedState = mergeDehydratedStates([statePostion, stateDepartment]);
   return (
     <HydrateClient state={mergedState}>
       <div className="container py-10">
