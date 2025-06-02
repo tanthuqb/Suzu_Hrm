@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 
 import type { UserStatusEnum } from "../constants/user-status";
 import type {
+  AuditLogRecord,
   DepartmentRecord,
   HRMUser,
   RoleRecord,
@@ -123,4 +124,8 @@ export interface FullAttendanceRecord {
   approvedByName: string | null;
   office: string | null;
   departmentName: string | null;
+}
+
+export interface RecentActivity extends AuditLogRecord {
+  user: DBUser | null;
 }

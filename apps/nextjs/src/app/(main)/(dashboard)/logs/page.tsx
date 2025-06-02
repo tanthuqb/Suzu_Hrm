@@ -1,19 +1,17 @@
 import { Suspense } from "react";
-import { dehydrate } from "@tanstack/react-query";
 
 import AuditLogsTable from "~/app/(main)/(dashboard)/_components/logs/audit-logs-table";
 import { LoadingSpinner } from "~/components/commons/loading-spiner";
-import { getQueryClient, HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { HydrateClient, trpc } from "~/trpc/server";
+import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 
 export default async function AuditLogsPage() {
-  await prefetch(
+  const { state } = await ssrPrefetch(
     trpc.auditlog.getAll.queryOptions({
       page: 1,
       pageSize: 20,
     }),
   );
-
-  const state = dehydrate(getQueryClient());
   return (
     <HydrateClient state={state}>
       <div className="h-full min-h-screen w-full px-4 py-6">

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { and, desc, eq, sql } from "@acme/db";
-import { AuditLogs } from "@acme/db/schema";
+import { AuditLogs, HRMUser } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -18,6 +18,7 @@ export const auditlogRouter = createTRPCRouter({
         payload: z.string().optional(),
         page: z.number().min(1).default(1),
         pageSize: z.number().min(1).max(100).default(20),
+        email: z.string().email().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -30,10 +31,13 @@ export const auditlogRouter = createTRPCRouter({
       const page = input.page ?? 1;
       const pageSize = input.pageSize ?? 20;
       const offset = (page - 1) * pageSize;
-      const query = ctx.db.select().from(AuditLogs);
+      const query = ctx.db
+        .select()
+        .from(AuditLogs)
+        .leftJoin(HRMUser, eq(AuditLogs.userId, HRMUser.id));
       const whereConditions = [];
-      if (input.userId) {
-        whereConditions.push(eq(AuditLogs.userId, input.userId));
+      if (input.email) {
+        whereConditions.push(eq(HRMUser.email, input.email));
       }
       if (input.action) {
         whereConditions.push(eq(AuditLogs.action, input.action));
@@ -56,14 +60,15 @@ export const auditlogRouter = createTRPCRouter({
       }
       const countQuery = ctx.db
         .select({ count: sql<number>`count(*)` })
-        .from(AuditLogs);
+        .from(AuditLogs)
+        .leftJoin(HRMUser, eq(AuditLogs.userId, HRMUser.id));
 
       if (whereConditions.length > 0) {
         countQuery.where(and(...whereConditions));
       }
 
       const [countResult] = await countQuery.execute();
-      const totalCount = countResult?.count || 0;
+      const totalCount = countResult?.count ?? 0;
 
       const logs = await query
         .orderBy(desc(AuditLogs.createdAt))
@@ -71,11 +76,19 @@ export const auditlogRouter = createTRPCRouter({
         .offset(offset)
         .execute();
 
+      const formattedLogs = logs.map((row) => ({
+        ...row.audit_logs,
+        user: row.users,
+      }));
+
       return {
-        logs,
-        totalCount,
-        page,
-        pageSize,
+        logs: formattedLogs,
+        pagination: {
+          total: totalCount,
+          page,
+          pageSize,
+          totalPages: Math.ceil(totalCount / pageSize),
+        },
       };
     }),
 });

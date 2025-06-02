@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { checkRole } from "~/actions/auth";
+import { mergeDehydratedStates } from "~/libs";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import Permissions from "../_components/Permission-Client";
@@ -20,10 +21,7 @@ export default async function PermissionsPage() {
     trpc.permission.getAllActions.queryOptions(),
   );
 
-  const mergedState = {
-    ...stateRole,
-    ...statePermission,
-  };
+  const mergedState = mergeDehydratedStates([stateRole, statePermission]);
 
   return (
     <HydrateClient state={mergedState}>
