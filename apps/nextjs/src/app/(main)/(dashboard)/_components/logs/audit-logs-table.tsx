@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { CalendarIcon, Download, Filter } from "lucide-react";
+import { CalendarIcon, Filter } from "lucide-react";
 
 import { cn } from "@acme/ui";
 import { Badge } from "@acme/ui/badge";
@@ -35,8 +35,10 @@ import {
   TableHeader,
   TableRow,
 } from "@acme/ui/table";
+import { toast } from "@acme/ui/toast";
+import { emailSchema } from "@acme/validators";
 
-import { trpc } from "~/trpc/server";
+import { useTRPC } from "~/trpc/react";
 
 interface FilterState {
   userId?: string;
@@ -48,6 +50,7 @@ interface FilterState {
   endDate?: Date;
   page: number;
   pageSize: number;
+  email?: string;
 }
 
 export default function AuditLogsTable() {
@@ -55,45 +58,37 @@ export default function AuditLogsTable() {
     page: 1,
     pageSize: 20,
   });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const trpc = useTRPC();
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading } = {
-    data: {
-      logs: [
-        // Mock data for demonstration
-        {
-          id: "1",
-          userId: "user123",
-          action: "create",
-          entity: "post",
-          request: '{"title": "New Post"}',
-          response: '{"id": "1", "title": "New Post"}',
-          createdAt: new Date().toISOString(),
-        },
-      ],
-      totalCount: 1,
-      totalPages: 1,
-    },
-    isLoading: false,
-  };
-
-  // const { data, isLoading } = useSuspenseQuery({
-  //   ...trpc.auditlog.getAll.queryOptions({
-  //     page: filters.page,
-  //     pageSize: filters.pageSize,
-  //   }),
-  //   staleTime: Number.POSITIVE_INFINITY,
-  //   refetchOnMount: false,
-  //   refetchOnWindowFocus: false,
-  // });
+  const { data, isLoading } = useSuspenseQuery({
+    ...trpc.auditlog.getAll.queryOptions({
+      ...appliedFilters,
+    }),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const handleFilterChange = (key: keyof FilterState, value: any) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: key !== "page" ? 1 : value, // Reset to page 1 when filtering
+      page: key !== "page" ? 1 : value,
     }));
+  };
+
+  const applyFilters = () => {
+    if (filters.email && filters.email.trim() !== "") {
+      const result = emailSchema.safeParse(filters.email);
+      if (!result.success) {
+        toast("Email không hợp lệ hoặc không đúng định dạng");
+        return;
+      }
+    }
+    setAppliedFilters({ ...filters, page: 1 });
   };
 
   const clearFilters = () => {
@@ -101,42 +96,6 @@ export default function AuditLogsTable() {
       page: 1,
       pageSize: 20,
     });
-  };
-
-  const exportToCSV = () => {
-    if (!data.logs) return;
-
-    const headers = [
-      "ID",
-      "User ID",
-      "Action",
-      "Entity",
-      "Request",
-      "Response",
-      "Created At",
-    ];
-    const csvContent = [
-      headers.join(","),
-      ...data.logs.map((log) =>
-        [
-          log.id,
-          log.userId,
-          log.action,
-          log.entity,
-          log.request,
-          log.response,
-          format(new Date(log.createdAt), "dd/MM/yyyy HH:mm:ss"),
-        ].join(","),
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `audit-logs-${format(new Date(), "dd-MM-yyyy")}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
   };
 
   const getActionBadgeVariant = (action: string) => {
@@ -172,10 +131,6 @@ export default function AuditLogsTable() {
                 <Filter className="mr-2 h-4 w-4" />
                 Bộ lọc
               </Button>
-              {/* <Button variant="outline" size="sm" onClick={exportToCSV}>
-                <Download className="mr-2 h-4 w-4" />
-                Xuất CSV
-              </Button> */}
             </div>
           </div>
         </CardHeader>
@@ -184,19 +139,19 @@ export default function AuditLogsTable() {
           <CardContent className="border-t">
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
-                <Label htmlFor="userId">User ID</Label>
+                <Label htmlFor="Email">Email</Label>
                 <Input
-                  id="userId"
-                  placeholder="Nhập User ID..."
-                  value={filters.userId || ""}
-                  onChange={(e) => handleFilterChange("userId", e.target.value)}
+                  id="email"
+                  placeholder="Nhập Email..."
+                  value={filters.email ?? ""}
+                  onChange={(e) => handleFilterChange("email", e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="action">Action</Label>
                 <Select
-                  value={filters.action || ""}
+                  value={filters.action ?? ""}
                   onValueChange={(value) => handleFilterChange("action", value)}
                 >
                   <SelectTrigger>
@@ -217,7 +172,7 @@ export default function AuditLogsTable() {
                 <Input
                   id="entity"
                   placeholder="Nhập entity..."
-                  value={filters.entity || ""}
+                  value={filters.entity ?? ""}
                   onChange={(e) => handleFilterChange("entity", e.target.value)}
                 />
               </div>
@@ -227,7 +182,7 @@ export default function AuditLogsTable() {
                 <Input
                   id="request"
                   placeholder="Nhập request..."
-                  value={filters.request || ""}
+                  value={filters.request ?? ""}
                   onChange={(e) =>
                     handleFilterChange("request", e.target.value)
                   }
@@ -314,7 +269,14 @@ export default function AuditLogsTable() {
                 </Select>
               </div>
 
-              <div className="flex items-end">
+              <div className="flex items-end gap-2">
+                <Button
+                  variant="default"
+                  onClick={applyFilters}
+                  className="w-full"
+                >
+                  Tìm kiếm
+                </Button>
                 <Button
                   variant="outline"
                   onClick={clearFilters}
@@ -327,13 +289,14 @@ export default function AuditLogsTable() {
           </CardContent>
         )}
 
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto rounded-t-md border border-b-0">
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>User ID</TableHead>
+                  <TableHead>User Email</TableHead>
                   <TableHead>Action</TableHead>
                   <TableHead>Entity</TableHead>
                   <TableHead>Request</TableHead>
@@ -360,6 +323,9 @@ export default function AuditLogsTable() {
                       <TableCell className="font-medium">{log.id}</TableCell>
                       <TableCell className="font-mono text-sm">
                         {log.userId}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {log.user?.email!}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getActionBadgeVariant(log.action)}>
@@ -390,54 +356,62 @@ export default function AuditLogsTable() {
             </Table>
           </div>
 
-          {/* Pagination */}
-          {data && data.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Hiển thị {(filters.page - 1) * filters.pageSize + 1} đến{" "}
-                {Math.min(filters.page * filters.pageSize, data.totalCount)}{" "}
-                trong tổng số {data.totalCount} bản ghi
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFilterChange("page", filters.page - 1)}
-                  disabled={filters.page <= 1}
-                >
-                  Trước
-                </Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from(
-                    { length: Math.min(5, data.totalPages) },
-                    (_, i) => {
-                      const pageNumber = i + 1;
-                      return (
-                        <Button
-                          key={pageNumber}
-                          variant={
-                            filters.page === pageNumber ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => handleFilterChange("page", pageNumber)}
-                        >
-                          {pageNumber}
-                        </Button>
-                      );
-                    },
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFilterChange("page", filters.page + 1)}
-                  disabled={filters.page >= data.totalPages}
-                >
-                  Sau
-                </Button>
-              </div>
+          <div className="flex items-center justify-between rounded-b-md border-x border-b bg-white px-4 py-2">
+            <div className="text-sm text-muted-foreground">
+              Page {filters.page} / {data.pagination.totalPages}
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleFilterChange("page", filters.page - 1)}
+                disabled={filters.page <= 1}
+              >
+                <span className="sr-only">Trang trước</span>
+                <svg width="20" height="20" fill="none">
+                  <path
+                    d="M13 16l-4-4 4-4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Button>
+              <span className="text-sm">{filters.page}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleFilterChange("page", filters.page + 1)}
+                disabled={filters.page >= data.pagination.totalPages}
+              >
+                <span className="sr-only">Trang sau</span>
+                <svg width="20" height="20" fill="none">
+                  <path
+                    d="M7 8l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Button>
+              <span className="ml-4">Show</span>
+              <select
+                className="rounded border px-2 py-1 text-sm"
+                value={filters.pageSize}
+                onChange={(e) =>
+                  handleFilterChange("pageSize", Number(e.target.value))
+                }
+              >
+                {[10, 20, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -66,6 +66,16 @@ export default function DashboardClientPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: recentActivities } = useSuspenseQuery({
+    ...trpc.auditlog.getAll.queryOptions({
+      page: 1,
+      pageSize: 5,
+    }),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
   const countByStatusActive = transformData(countByStatusActiveRespone);
   const countByStatusSuspend = transformData(countByStatusSuspendRespone);
 
@@ -134,7 +144,7 @@ export default function DashboardClientPage() {
               </Card>
 
               {/* Recent Activities */}
-              <RecentActivities />
+              <RecentActivities recentActivities={recentActivities.logs} />
             </div>
 
             {/* Bottom Grid */}

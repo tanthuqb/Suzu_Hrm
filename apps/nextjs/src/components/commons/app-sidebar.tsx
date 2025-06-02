@@ -99,6 +99,7 @@ const navigationItems = [
     children: [
       { title: "Role Manager", path: "/settings/roles" },
       { title: "Role & Permission", path: "/settings/role-permissions" },
+      { title: "Audit Log", path: "/logs" },
       { title: "Import Suzu", path: "/imports" },
     ],
   },
