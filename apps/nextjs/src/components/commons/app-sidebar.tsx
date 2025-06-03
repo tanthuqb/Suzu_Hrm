@@ -1,5 +1,6 @@
 "use client";
 
+import { title } from "process";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -7,6 +8,7 @@ import {
   BookOpen,
   Building,
   ChevronDown,
+  Pencil,
   Send,
   Settings,
   UserPen,
@@ -51,6 +53,15 @@ const navigationItems = [
     title: "Kiến Thức",
     icon: BookOpen,
     children: [{ title: "Tài nguyên nhân viên", path: "/resources" }],
+  },
+  {
+    title: "Quản Lý Bài Viết",
+    icon: Pencil,
+    children: [
+      { title: "Bài Viết", path: "/posts" },
+      { title: "Danh Mục Bài Viết", path: "/post-categories" },
+      { title: "Tags Bài Viết", path: "/post-tags" },
+    ],
   },
   {
     title: "Thông Tin Cá Nhân",

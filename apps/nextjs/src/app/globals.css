@@ -54,4 +54,40 @@
     width: 100%;
     overflow: hidden;
   }
+
+  .editor-container .ProseMirror {
+    min-height: 300px;
+    outline: none;
+  }
+
+  .editor-container .is-active {
+    background-color: #e9e9e9;
+  }
+
+  .prose h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .prose p {
+    margin-bottom: 0.75rem;
+  }
+
+  .prose ul,
+  .prose ol {
+    margin-left: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prose img {
+    max-width: 100%;
+    height: auto;
+  }
 }
