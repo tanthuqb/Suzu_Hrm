@@ -5,6 +5,7 @@ import { authRouter } from "./auth";
 import { departmentRouter } from "./department";
 import { hrRouter } from "./hr";
 import { leaveRequestRouter } from "./leave-requests";
+import { noteRouter } from "./notes";
 import { permissionRouter } from "./permission";
 import { positionRouter } from "./position";
 import { roleRouter } from "./role";
@@ -23,4 +24,5 @@ export const rootRouter = createTRPCRouter({
   attendance: attendanceRouter,
   leaveRequest: leaveRequestRouter,
   position: positionRouter,
+  notes: noteRouter,
 });

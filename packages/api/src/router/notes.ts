@@ -1,3 +1,4 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -5,9 +6,9 @@ import { z } from "zod";
 import { CreateNoteSchema, Notes } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const noteRouter = createTRPCRouter({
+export const noteRouter = {
   getAllNotes: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
@@ -118,6 +119,6 @@ export const noteRouter = createTRPCRouter({
       .select({ count: count() })
       .from(Notes)
       .execute();
-    return countResult[0]?.count || 0;
+    return countResult[0]?.count ?? 0;
   }),
-});
+} satisfies TRPCRouterRecord;

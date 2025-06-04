@@ -1,3 +1,4 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -11,14 +12,14 @@ import {
 } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const postsRouter = createTRPCRouter({
+export const postsRouter = {
   getAllPosts: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
       "posts",
-      "getAll",
+      "getAllPosts",
       "Không có quyền xem tất cả bài viết",
     );
     return await ctx.db
@@ -35,7 +36,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getByAuthor",
+        "getPostsByAuthor",
         "Không có quyền xem bài viết của tác giả này",
       );
       const { authorId } = input;
@@ -51,7 +52,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getById",
+        "getPostById",
         "Không có quyền xem bài viết này",
       );
       const { id } = input;
@@ -78,10 +79,10 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "create",
+        "createPost",
         "Không có quyền tạo bài viết",
       );
-      const { title, content, authorId, status } = input;
+      const { title, content, authorId, status, attachments } = input;
 
       const post = await ctx.db
         .insert(Posts)
@@ -90,6 +91,7 @@ export const postsRouter = createTRPCRouter({
           content,
           authorId,
           status,
+          attachments,
         })
         .returning();
 
@@ -111,10 +113,10 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "update",
+        "updatePost",
         "Không có quyền cập nhật bài viết",
       );
-      const { id, title, content, authorId, status } = input;
+      const { id, title, content, authorId, status, attachments } = input;
       const post = await ctx.db
         .update(Posts)
         .set({
@@ -122,6 +124,7 @@ export const postsRouter = createTRPCRouter({
           content,
           authorId,
           status,
+          attachments,
         })
         .where(eq(Posts.id, id))
         .returning();
@@ -139,7 +142,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "delete",
+        "deletePost",
         "Không có quyền xóa bài viết",
       );
       const { id } = input;
@@ -161,7 +164,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getTags",
+        "getPostTags",
         "Không có quyền xem tags của bài viết này",
       );
       const { postId } = input;
@@ -177,7 +180,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "addTag",
+        "addPostTag",
         "Không có quyền thêm tag vào bài viết",
       );
       const { postId, tagId } = input;
@@ -204,7 +207,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "removeTag",
+        "removePostTag",
         "Không có quyền xóa tag khỏi bài viết",
       );
       const { postId, tagId } = input;
@@ -315,7 +318,7 @@ export const postsRouter = createTRPCRouter({
     await checkPermissionOrThrow(
       ctx,
       "posts",
-      "getCount",
+      "getPostCount",
       "Không có quyền xem số lượng bài viết",
     );
 
@@ -326,4 +329,4 @@ export const postsRouter = createTRPCRouter({
 
     return result[0]?.count ?? 0;
   }),
-});
+} satisfies TRPCRouterRecord;

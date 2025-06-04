@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  json,
   jsonb,
   pgEnum,
   pgSchema,
@@ -556,6 +557,7 @@ export const Posts = pgTable("posts", {
     onUpdate: "cascade",
   }),
   status: postStatus("status").notNull(),
+  attachments: json("attachments").$type<string[]>().default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -564,6 +566,7 @@ export const CreatePostSchema = createInsertSchema(Posts, {
   content: z.string().max(1000),
   authorId: z.string().uuid(),
   status: z.enum(postStatusValues),
+  attachments: z.array(z.string()).optional(),
 }).omit({
   id: true,
   createdAt: true,
