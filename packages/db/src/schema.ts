@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -20,6 +21,7 @@ import {
   approvalStatusEnumValues,
   attendanceStatusEnumValues,
 } from "./constants";
+import { postStatusValues } from "./constants/post-status";
 
 export const attendanceStatusEnum = pgEnum("attendance_status", [
   "1",
@@ -47,6 +49,8 @@ export const approvalStatusEnum = pgEnum("approval_status", [
   "approved",
   "rejected",
 ]);
+
+const postStatus = pgEnum("status", postStatusValues);
 
 /** Supabase Auth Schema */
 const auth = pgSchema("auth");
@@ -542,8 +546,157 @@ export type UpdateAuditLogInput = z.infer<typeof CreateAuditLogSchema> & {
 };
 export type AuditLogRecord = InferSelectModel<typeof AuditLogs>;
 
+/** POST TABLE */
+export const Posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  authorId: uuid("author_id").references(() => HRMUser.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  status: postStatus("status").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export const CreatePostSchema = createInsertSchema(Posts, {
+  title: z.string().max(255),
+  content: z.string().max(1000),
+  authorId: z.string().uuid(),
+  status: z.enum(postStatusValues),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type CreatePostInput = z.infer<typeof CreatePostSchema>;
+export type UpdatePostiInput = z.infer<typeof CreatePostSchema> & {
+  id: string;
+};
+export type PostRecord = InferSelectModel<typeof Posts>;
+
+/** Notes TABLE */
+export const Notes = pgTable("notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postId: uuid("post_id").references(() => Posts.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  userId: uuid("user_id").references(() => HRMUser.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export const CreateNoteSchema = createInsertSchema(Notes, {
+  postId: z.string().uuid(),
+  userId: z.string().uuid(),
+  content: z.string().max(1000),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type CreateNoteInput = z.infer<typeof CreateNoteSchema>;
+export type UpdateNoteInput = z.infer<typeof CreateNoteSchema> & {
+  id: string;
+};
+export type NoteRecord = InferSelectModel<typeof Notes>;
+
+/** TAGs */
+export const Tags = pgTable("tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const CreateTagSchema = createInsertSchema(Tags, {
+  name: z.string().min(1).max(50),
+  slug: z.string().min(1).max(50),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type CreateTagInput = z.infer<typeof CreateTagSchema>;
+export type TagRecord = InferSelectModel<typeof Tags>;
+export type UpdateTagInput = z.infer<typeof CreateTagSchema> & {
+  id: string;
+};
+
+export const PostTags = pgTable(
+  "post_tags",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => Posts.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => Tags.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
+    id: uuid("id").primaryKey().defaultRandom(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniquePostTag: unique("unique_post_tag").on(t.postId, t.tagId),
+  }),
+);
+
+export const CreatePostTagSchema = createInsertSchema(PostTags, {
+  postId: z.string().uuid(),
+  tagId: z.string().uuid(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+export type CreatePostTagInput = z.infer<typeof CreatePostTagSchema>;
+export type PostTagRecord = InferSelectModel<typeof PostTags>;
+export type UpdatePostTagInput = z.infer<typeof CreateTagSchema> & {
+  id: string;
+};
+
 /** RELATIONS **/
-export const leaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
+export const PostsRelations = relations(Posts, ({ one, many }) => ({
+  author: one(HRMUser, {
+    fields: [Posts.authorId],
+    references: [HRMUser.id],
+  }),
+  postTags: many(PostTags),
+  notes: many(Notes),
+}));
+
+export const PostTagsRelations = relations(PostTags, ({ one }) => ({
+  post: one(Posts, {
+    fields: [PostTags.postId],
+    references: [Posts.id],
+  }),
+  tag: one(Tags, {
+    fields: [PostTags.tagId],
+    references: [Tags.id],
+  }),
+}));
+
+export const TagsRelations = relations(Tags, ({ many }) => ({
+  postTags: many(PostTags),
+}));
+
+export const NotesRelations = relations(Notes, ({ one }) => ({
+  post: one(Posts, {
+    fields: [Notes.postId],
+    references: [Posts.id],
+  }),
+  user: one(HRMUser, {
+    fields: [Notes.userId],
+    references: [HRMUser.id],
+  }),
+}));
+
+export const LeaveRequestsRelations = relations(LeaveRequests, ({ one }) => ({
   user: one(HRMUser, {
     fields: [LeaveRequests.userId],
     references: [HRMUser.id],
@@ -622,6 +775,8 @@ export const PermissionRelations = relations(Permission, ({ one }) => ({
 }));
 
 export const schema = {
+  Tags,
+  PostTags,
   HRMUser,
   SalarySlip,
   Asset,
@@ -644,4 +799,10 @@ export default {
   WorkflowStepRelations,
   AttendanceRelations,
   DepartmentRelations,
+  PostsRelations,
+  TagsRelations,
+  PostTagsRelations,
+  LeaveRequestsRelations,
+  NotesRelations,
+  RoleRelations,
 };
