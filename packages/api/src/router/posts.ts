@@ -1,7 +1,9 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
+import { postStatusValues } from "@acme/db";
 import {
   CreatePostSchema,
   HRMUser,
@@ -11,31 +13,112 @@ import {
 } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const postsRouter = createTRPCRouter({
-  getAllPosts: protectedProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "posts",
-      "getAll",
-      "Không có quyền xem tất cả bài viết",
-    );
-    return await ctx.db
-      .select()
-      .from(Posts)
-      .leftJoin(HRMUser, eq(Posts.authorId, HRMUser.id))
-      .leftJoin(PostTags, eq(PostTags.postId, Posts.id))
-      .leftJoin(Tags, eq(PostTags.tagId, Tags.id))
-      .orderBy(desc(Posts.createdAt));
-  }),
+export const postsRouter = {
+  getAllPosts: protectedProcedure
+    .input(
+      z.object({
+        page: z.number().default(1),
+        pageSize: z.number().default(10),
+        status: z
+          .enum(postStatusValues)
+          .optional()
+          .default(postStatusValues[2]),
+        search: z.string().optional(),
+        authorId: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "posts",
+        "getAllPosts",
+        "Không có quyền xem tất cả bài viết",
+      );
+      const query = ctx.db
+        .select()
+        .from(Posts)
+        .leftJoin(HRMUser, eq(Posts.authorId, HRMUser.id))
+        .leftJoin(PostTags, eq(PostTags.postId, Posts.id))
+        .leftJoin(Tags, eq(PostTags.tagId, Tags.id));
+
+      const countQuery = ctx.db.select({ count: count() }).from(Posts);
+
+      if (input.search) {
+        query.where(like(Posts.title, `%${input.search}%`));
+      }
+
+      if (input.authorId) {
+        query.where(eq(Posts.authorId, input.authorId));
+      }
+
+      if (input.search) {
+        countQuery.where(like(Posts.title, `%${input.search}%`));
+      }
+
+      if (input.authorId) {
+        countQuery.where(eq(Posts.authorId, input.authorId));
+      }
+
+      const [totalCount] = await countQuery;
+
+      const offset = (input.page - 1) * input.pageSize;
+      query.orderBy(desc(Posts.createdAt)).limit(input.pageSize).offset(offset);
+
+      const posts = await query;
+
+      const processedPosts = [];
+      const postMap = new Map();
+
+      for (const row of posts) {
+        const postId = row.posts.id;
+
+        if (!postMap.has(postId)) {
+          postMap.set(postId, {
+            ...row.posts,
+            author: row.users,
+            tags: [],
+            post_tags: [],
+          });
+        }
+
+        const post = postMap.get(postId);
+
+        if (
+          row.tags &&
+          row.tags.id &&
+          !post.tags.some((t: any) => t.id === row.tags!.id)
+        ) {
+          post.tags.push(row.tags);
+        }
+
+        if (
+          row.post_tags &&
+          row.post_tags.id &&
+          !post.post_tags.some((pt: any) => pt.id === row.post_tags!.id)
+        ) {
+          post.post_tags.push(row.post_tags);
+        }
+      }
+
+      return {
+        posts: Array.from(postMap.values()),
+        pagination: {
+          totalCount: totalCount?.count ?? 0,
+          page: input.page,
+          pageSize: input.pageSize,
+          totalPages: Math.ceil((totalCount?.count ?? 0) / input.pageSize),
+        },
+      };
+    }),
   getPostsByAuthor: protectedProcedure
     .input(z.object({ authorId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getByAuthor",
+        "getPostsByAuthor",
         "Không có quyền xem bài viết của tác giả này",
       );
       const { authorId } = input;
@@ -51,7 +134,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getById",
+        "getPostById",
         "Không có quyền xem bài viết này",
       );
       const { id } = input;
@@ -78,10 +161,10 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "create",
+        "createPost",
         "Không có quyền tạo bài viết",
       );
-      const { title, content, authorId, status } = input;
+      const { title, content, authorId, status, attachments } = input;
 
       const post = await ctx.db
         .insert(Posts)
@@ -90,6 +173,7 @@ export const postsRouter = createTRPCRouter({
           content,
           authorId,
           status,
+          attachments,
         })
         .returning();
 
@@ -111,10 +195,10 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "update",
+        "updatePost",
         "Không có quyền cập nhật bài viết",
       );
-      const { id, title, content, authorId, status } = input;
+      const { id, title, content, authorId, status, attachments } = input;
       const post = await ctx.db
         .update(Posts)
         .set({
@@ -122,6 +206,7 @@ export const postsRouter = createTRPCRouter({
           content,
           authorId,
           status,
+          attachments,
         })
         .where(eq(Posts.id, id))
         .returning();
@@ -139,7 +224,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "delete",
+        "deletePost",
         "Không có quyền xóa bài viết",
       );
       const { id } = input;
@@ -161,7 +246,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "getTags",
+        "getPostTags",
         "Không có quyền xem tags của bài viết này",
       );
       const { postId } = input;
@@ -177,7 +262,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "addTag",
+        "addPostTag",
         "Không có quyền thêm tag vào bài viết",
       );
       const { postId, tagId } = input;
@@ -204,7 +289,7 @@ export const postsRouter = createTRPCRouter({
       await checkPermissionOrThrow(
         ctx,
         "posts",
-        "removeTag",
+        "removePostTag",
         "Không có quyền xóa tag khỏi bài viết",
       );
       const { postId, tagId } = input;
@@ -315,7 +400,7 @@ export const postsRouter = createTRPCRouter({
     await checkPermissionOrThrow(
       ctx,
       "posts",
-      "getCount",
+      "getPostCount",
       "Không có quyền xem số lượng bài viết",
     );
 
@@ -326,4 +411,4 @@ export const postsRouter = createTRPCRouter({
 
     return result[0]?.count ?? 0;
   }),
-});
+} satisfies TRPCRouterRecord;

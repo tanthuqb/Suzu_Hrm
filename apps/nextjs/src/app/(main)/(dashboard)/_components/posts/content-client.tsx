@@ -3,20 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Bold,
   FileText,
   Heading1,
   Heading2,
-  Image as ImageIcon,
+  ImageIcon,
   Italic,
-  Link as LinkIcon,
+  LinkIcon,
   List,
   ListOrdered,
   Plus,
@@ -26,6 +22,7 @@ import {
 } from "lucide-react";
 import { Label } from "recharts";
 
+import { postStatus } from "@acme/db";
 import { Badge } from "@acme/ui/badge";
 import { Button } from "@acme/ui/button";
 import {
@@ -39,23 +36,56 @@ import {
 import { Input } from "@acme/ui/input";
 import { Switch } from "@acme/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
+import { toast } from "@acme/ui/toast";
+import { isUUID } from "@acme/validators";
+
+import { useTiptapEditor } from "~/hooks/useTiptapEditor";
+import { useTRPC } from "~/trpc/react";
 
 interface FileWithPreview {
   file: File;
   previewUrl?: string;
 }
 
-export default function PostClientPage() {
+interface PostClientPageProps {
+  userId: string;
+  postId?: string;
+}
+
+export default function PostClientPage({
+  userId,
+  postId,
+}: PostClientPageProps) {
   const router = useRouter();
+  const trpc = useTRPC();
+
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
   const [newAttachment, setNewAttachment] = useState("");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const isValidId = postId && isUUID(postId);
+
+  const postQuery = isValidId
+    ? useSuspenseQuery({
+        ...trpc.posts.getPostById.queryOptions({ id: postId }),
+        staleTime: Number.POSITIVE_INFINITY,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      })
+    : { data: null, isLoading: false };
+
+  const { data: post, isLoading } = postQuery;
+
+  const { editor, EditorContent, content, setContent } = useTiptapEditor({
+    initialContent: post?.posts.content || "",
+    placeholder: "Viết nội dung bài viết của bạn ở đây...",
+  });
 
   useEffect(() => {
     return () => {
+      console.log("Cleaning up file previews", files);
       files.forEach((fileObj) => {
         if (fileObj.previewUrl) {
           URL.revokeObjectURL(fileObj.previewUrl);
@@ -64,38 +94,109 @@ export default function PostClientPage() {
     };
   }, [files]);
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit,
-      Image,
-      Link.configure({
-        openOnClick: false,
-      }),
-      Placeholder.configure({
-        placeholder: "Viết nội dung bài viết của bạn ở đây...",
-      }),
-    ],
-    content: "",
-  });
+  useEffect(() => {
+    if (post?.posts && editor) {
+      setTitle(post.posts.title ?? "");
+      if (Array.isArray(post.tags)) {
+        setTags(post.tags.map((tag) => tag.name));
+      } else if (post.tags?.name) {
+        setTags([post.tags.name]);
+      } else {
+        setTags([]);
+      }
+      setAttachments(post.posts.attachments ?? []);
+    }
+  }, [post, editor]);
+
+  const createPostMuatation = useMutation(
+    trpc.posts.createPost.mutationOptions({
+      onSuccess: () => {
+        toast("Bài viết đã được tạo thành công!", {
+          description: "Bạn có thể xem bài viết trong danh sách bài viết.",
+        });
+        router.push("/posts");
+      },
+      onError: (error) => {
+        toast.error("Không thể tạo bài viết. Vui lòng thử lại sau.");
+      },
+    }),
+  );
+
+  const updatePostMutation = useMutation(
+    trpc.posts.updatePost.mutationOptions({
+      onSuccess: () => {
+        toast("Bài viết đã được cập nhật thành công!", {
+          description: "Bạn có thể xem bài viết trong danh sách bài viết.",
+        });
+        router.push("/posts");
+      },
+      onError: (error) => {
+        toast.error("Không thể cập nhật bài viết. Vui lòng thử lại sau.");
+      },
+    }),
+  );
+
+  const deletePostMutation = useMutation(
+    trpc.posts.deletePost.mutationOptions({
+      onSuccess: () => {
+        toast("Bài viết đã được xóa thành công!", {
+          description: "Bạn có thể xem danh sách bài viết để xác nhận.",
+        });
+        router.push("/posts");
+      },
+      onError: (error) => {
+        console.error("Lỗi khi xóa bài viết:", error);
+        toast.error("Không thể xóa bài viết. Vui lòng thử lại sau.");
+      },
+    }),
+  );
 
   const handleSaveDraft = () => {
-    // Lưu nháp logic
-    console.log("Lưu nháp", {
+    const payload = {
       title,
-      content: editor?.getHTML(),
+      content: editor?.getHTML() ?? "",
+      status: postStatus.DRAFT as "draft",
+      authorId: userId,
       tags,
       attachments,
+    };
+    if (isValidId) {
+      updatePostMutation.mutate({
+        id: postId,
+        ...payload,
+      });
+    } else {
+      createPostMuatation.mutate({
+        ...payload,
+      });
+    }
+    toast("Bài viết đã được lưu dưới dạng nháp!", {
+      description: "Bạn có thể tiếp tục chỉnh sửa hoặc xuất bản sau.",
     });
   };
 
   const handlePublish = () => {
-    // Xuất bản logic
-    console.log("Xuất bản", {
+    const payload = {
       title,
-      content: editor?.getHTML(),
+      content: editor?.getHTML() ?? "",
+      status: postStatus.PENDING as "pending",
+      authorId: userId,
       tags,
       attachments,
+    };
+
+    if (isValidId) {
+      updatePostMutation.mutate({
+        id: postId,
+        ...payload,
+      });
+    } else {
+      createPostMuatation.mutate({
+        ...payload,
+      });
+    }
+    toast("Bài viết đã được gửi để xem xét!", {
+      description: "Bài viết sẽ được xuất bản sau khi được phê duyệt.",
     });
   };
 
@@ -174,8 +275,45 @@ export default function PostClientPage() {
     }
   }, [editor]);
 
+  if (postId && !isValidId) {
+    return (
+      <div className="p-8 text-center">
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+          <X className="h-8 w-8 text-red-600" />
+        </div>
+        <h2 className="mb-2 text-2xl font-bold text-red-600">
+          ID bài viết không hợp lệ
+        </h2>
+        <p className="mb-6 text-gray-600">
+          ID "{postId}" không đúng định dạng UUID. Vui lòng kiểm tra lại URL.
+        </p>
+        <Button onClick={() => router.push("/posts")}>
+          Quay lại danh sách bài viết
+        </Button>
+      </div>
+    );
+  }
+
   if (!editor) {
-    return null;
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p>Đang tải trình soạn thảo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (postId && isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p>Đang tải dữ liệu bài viết...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -192,7 +330,7 @@ export default function PostClientPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Tạo bài viết mới
+              {postId ? "Cập nhật bài viết" : "Tạo bài viết mới"}
             </h1>
           </div>
         </div>
@@ -298,7 +436,7 @@ export default function PostClientPage() {
                 </div>
 
                 <div className="min-h-[300px] rounded-md border p-4">
-                  <EditorContent editor={editor} />
+                  {editor && <EditorContent editor={editor} />}
                 </div>
               </div>
             </CardContent>
@@ -362,7 +500,7 @@ export default function PostClientPage() {
                 </Button>
               </div>
 
-              {attachments.length > 0 && (
+              {Array.isArray(attachments) && attachments.length > 0 && (
                 <div className="space-y-2">
                   {attachments.map((attachment, index) => (
                     <div
@@ -459,7 +597,17 @@ export default function PostClientPage() {
               Lưu nháp
             </Button>
             <Button type="button" onClick={handlePublish}>
-              Xuất bản
+              {postId ? (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Cập nhật
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Xuất bản
+                </>
+              )}
             </Button>
           </div>
         </TabsContent>
