@@ -18,6 +18,7 @@ export const sendLeaveRequest = async (
   leaveRequestsInput: any,
 ): Promise<{ data: any[] | null; error: PostgrestError | null }> => {
   const supabase = await createServerClient();
+  console.log("leaveRequestsInput", leaveRequestsInput);
   const { error, data } = await supabase
     .from("leave_requests")
     .insert({

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
@@ -63,28 +63,21 @@ export function UserTable() {
 
   const trpc = useTRPC();
 
-  const input: RouterInputs["user"]["all"] = {
-    page,
-    pageSize,
-    search: debouncedSearch,
-    sortBy: sortBy,
-    order,
-  };
+  const input = useMemo(
+    () => ({
+      page,
+      pageSize,
+      search: debouncedSearch,
+      sortBy,
+      order,
+    }),
+    [page, pageSize, debouncedSearch, sortBy, order],
+  );
 
   const queryOptions = trpc.user.all.queryOptions(input);
 
-  const suspenseOpts =
-    queryOptions.queryKey.length > 0
-      ? {
-          ...queryOptions,
-          refetchOnMount: false,
-          refetchOnWindowFocus: false,
-          staleTime: Number.POSITIVE_INFINITY,
-        }
-      : ({} as any);
-
-  const { data, isFetching } = useSuspenseQuery({
-    ...suspenseOpts,
+  const { data, isFetching } = useQuery({
+    ...trpc.user.all.queryOptions(input),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -93,19 +86,19 @@ export function UserTable() {
     isFetching: boolean;
   };
 
-  const { data: roles } = useSuspenseQuery({
+  const { data: roles } = useQuery({
     ...trpc.role.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
-  const { data: departments } = useSuspenseQuery({
+  const { data: departments } = useQuery({
     ...trpc.department.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
-  const { data: positions } = useSuspenseQuery({
+  const { data: positions } = useQuery({
     ...trpc.position.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,

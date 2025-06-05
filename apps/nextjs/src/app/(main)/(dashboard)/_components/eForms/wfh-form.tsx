@@ -8,8 +8,8 @@ import { CalendarIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import type { AuthUser } from "@acme/db";
-import type { DepartmentRecord } from "@acme/db/schema";
+import type { AuthUser, FullHrmUser } from "@acme/db";
+import type { DepartmentRecord, PositionRecord } from "@acme/db/schema";
 import {
   approvalStatusEnum,
   AttendanceStatus,
@@ -43,6 +43,10 @@ import { sendLeaveRequest } from "~/actions/eForm";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   userId: z.string().min(1, { message: "User ID is required." }),
+  position: z.string().optional(),
+  email: z.string().email({
+    message: "Email must be a valid email address.",
+  }),
   departmentId: z.string().optional(),
   startDate: z
     .date()
@@ -80,9 +84,12 @@ export default function WFHForm({
   user,
   departments,
 }: {
-  user: AuthUser;
+  user: AuthUser & {
+    positions?: FullHrmUser["positions"];
+  };
   departments: DepartmentRecord[];
 }) {
+  console.log("WFHForm user", user);
   const uid = useId();
   const startUid = `${uid}-start`;
   const endUid = `${uid}-end`;
@@ -90,7 +97,9 @@ export default function WFHForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: `${user.lastName} ${user.firstName}`,
+      email: user.email ?? "",
       userId: user.id,
+      position: user.positions?.name ?? "",
       departmentId: user.departments?.name,
       reason: "",
       startDate: undefined,
@@ -123,42 +132,98 @@ export default function WFHForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <div className="space-y-2">
+            <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
+              <span className="mr-1 text-blue-600">📆</span>
+              <strong className="mr-1">Ngày phép còn lại:</strong> {0} ngày
+            </div>
+            <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
+              <span className="mr-1 text-orange-500">⏱️</span>
+              <strong className="mr-1">Đã sử dụng:</strong> {0} ngày
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+          <div className="w-full">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <>
+                  <input type="hidden" {...field} />
+                  <FormItem>
+                    <FormLabel className="block font-medium text-gray-700">
+                      Email
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={true}
+                        readOnly={true}
+                        className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2 text-gray-800"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </>
+              )}
+            />
+          </div>
+
+          <div className="w-full">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="block font-medium text-gray-700">
+                    Full Name
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="John Doe"
+                      value={field.value ?? ""}
+                      className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="w-full">
           <FormField
             control={form.control}
-            name="userId"
+            name="position"
             render={({ field }) => (
               <>
                 <input type="hidden" {...field} />
                 <FormItem>
-                  <FormLabel className="mb-1 block">Employee ID</FormLabel>
+                  <FormLabel className="block font-medium text-gray-700">
+                    Position
+                  </FormLabel>
                   <FormControl>
-                    <div className="w-full select-none rounded-md border-gray-300 bg-gray-100 px-2 py-1 text-gray-800">
-                      {field.value}
-                    </div>
+                    <Input
+                      {...field}
+                      disabled={true}
+                      readOnly={true}
+                      value={
+                        field.value === null ||
+                        field.value === undefined ||
+                        field.value === ""
+                          ? "Not assigned"
+                          : field.value
+                      }
+                      className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2 text-gray-800"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               </>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="John Doe"
-                    value={field.value ?? ""}
-                    className="w-full rounded-md border border-gray-300 px-2 py-1 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
             )}
           />
         </div>
@@ -224,36 +289,6 @@ export default function WFHForm({
             </FormItem>
           )}
         />
-
-        {/* {usersByDept && usersByDept.length > 0 && (
-          <FormField
-            control={form.control}
-            name="userInDepartment"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Chọn nhân viên trong phòng ban</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Chọn nhân viên" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usersByDept.map((u: any) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.lastName} {u.firstName} - {u.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )} */}
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
@@ -359,10 +394,10 @@ export default function WFHForm({
           name="reason"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reason for Work From Home</FormLabel>
+              <FormLabel>Reason </FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Please provide details about why you need to work from home..."
+                  placeholder="Nhập lý do xin phép ..."
                   className="min-h-[120px]"
                   {...field}
                 />
@@ -375,7 +410,7 @@ export default function WFHForm({
 
         <div className="flex justify-center pt-4">
           <Button type="submit" size="lg" className="w-full px-10 md:w-auto">
-            Submit Request
+            Gửi Yêu Cầu
           </Button>
         </div>
       </form>

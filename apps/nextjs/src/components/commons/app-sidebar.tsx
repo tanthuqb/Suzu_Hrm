@@ -1,6 +1,5 @@
 "use client";
 
-import { title } from "process";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { VALID_ROLES } from "@acme/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@acme/ui/avatar";
 import {
   Collapsible,
@@ -37,88 +37,118 @@ import {
   SidebarRail,
 } from "@acme/ui/sidebar";
 
-const navigationItems = [
-  { type: "header", title: "HRM Admin Menu", path: "/" },
-  { title: "Users", icon: Users, path: "/users" },
-  {
-    title: "Nhân Sự",
-    icon: Users,
-    children: [
-      { title: "Imports Attendances", path: "/import-attendance" },
-      { title: "Chấm Công", path: "/attendances" },
-      { title: "Nghỉ Phép", path: "/leave-requests" },
-    ],
-  },
-  {
-    title: "Kiến Thức",
-    icon: BookOpen,
-    children: [{ title: "Tài nguyên nhân viên", path: "/resources" }],
-  },
-  {
-    title: "Quản Lý Bài Viết",
-    icon: Pencil,
-    children: [
-      { title: "Bài Viết", path: "/posts" },
-      { title: "Danh Mục Bài Viết", path: "/post-categories" },
-      { title: "Tags Bài Viết", path: "/post-tags" },
-    ],
-  },
-  {
-    title: "Thông Tin Cá Nhân",
-    icon: UserPen,
-    children: [
-      { title: "Phiếu Lương", path: "/informations/salary-slip" },
-      { title: "Công Việc", path: "/informations/works" },
-      { title: "Thăng Tiến", path: "/informations/career" },
-    ],
-  },
-  {
-    title: "Form",
-    icon: Send,
-    children: [
-      { title: "Chấm Công", path: "/eForms/time-tracking" },
-      { title: "Nghỉ Phép", path: "/eForms/on-leave" },
-      { title: "Làm Việc Ở Nhà", path: "/eForms/work-from-home" },
-    ],
-  },
-  {
-    title: "Quy Trình",
-    icon: ActivitySquare,
-    children: [
-      { title: "Nhân Viên & Công Ty", path: "/processs/employees-company" },
-      {
-        title: "Nhân Viên & Cấp Trên",
-        path: "/processs/employees-supervisors",
-      },
-      { title: "Đội & Công Ty", path: "/processs/team-company" },
-      { title: "Đội & Đội Khác", path: "/processs/team-to-team" },
-    ],
-  },
-  {
-    title: "Phòng Ban",
-    icon: Send,
-    children: [{ title: "Quản Lý Phòng Ban", path: "/department" }],
-  },
-  {
-    title: "Vị Trí",
-    icon: Send,
-    children: [{ title: "Quản lý Vị Trí", path: "/positions" }],
-  },
-  {
-    title: "Settings",
-    icon: UserPen,
-    children: [
-      { title: "Role Manager", path: "/settings/roles" },
-      { title: "Role & Permission", path: "/settings/role-permissions" },
-      { title: "Audit Log", path: "/logs" },
-      { title: "Import Suzu", path: "/imports" },
-    ],
-  },
-  { type: "footer", title: "Admin User", icon: Users },
-];
+interface AppSidebarProps {
+  role?: string;
+}
 
-export function AppSidebar() {
+export function AppSidebar({ role }: AppSidebarProps) {
   const pathname = usePathname();
+
+  if (!role) return null;
+
+  const navigationItems = [
+    {
+      type: "header",
+      title: "HRM Admin Menu",
+      path: "/",
+      role: VALID_ROLES,
+    },
+    {
+      title: "Users",
+      icon: Users,
+      path: "/users",
+      role: ["admin", "hr"],
+    },
+    {
+      title: "Nhân Sự",
+      icon: Users,
+      role: ["admin", "hr"],
+      children: [
+        { title: "Imports Attendances", path: "/import-attendance" },
+        { title: "Chấm Công", path: "/attendances" },
+        { title: "Nghỉ Phép", path: "/leave-requests" },
+      ],
+    },
+    {
+      title: "Kiến Thức",
+      icon: BookOpen,
+      role: ["admin", "user"],
+      children: [{ title: "Tài nguyên nhân viên", path: "/resources" }],
+    },
+    {
+      title: "Quản Lý Bài Viết",
+      icon: Pencil,
+      role: ["admin", "user"],
+      children: [
+        { title: "Bài Viết", path: "/posts" },
+        { title: "Danh Mục Bài Viết", path: "/post-categories" },
+        { title: "Tags Bài Viết", path: "/post-tags" },
+      ],
+    },
+    {
+      title: "Thông Tin Cá Nhân",
+      icon: UserPen,
+      role: VALID_ROLES,
+      children: [
+        { title: "Phiếu Lương", path: "/informations/salary-slip" },
+        { title: "Công Việc", path: "/informations/works" },
+        { title: "Thăng Tiến", path: "/informations/career" },
+      ],
+    },
+    {
+      title: "Form",
+      icon: Send,
+      role: VALID_ROLES,
+      children: [
+        { title: "Chấm Công", path: "/eForms/time-tracking" },
+        // { title: "Nghỉ Phép", path: "/eForms/on-leave" },
+        { title: "Nghỉ Phép", path: "/eForms/work-from-home" },
+      ],
+    },
+    {
+      title: "Quy Trình",
+      icon: ActivitySquare,
+      role: VALID_ROLES,
+      children: [
+        { title: "Nhân Viên & Công Ty", path: "/processs/employees-company" },
+        {
+          title: "Nhân Viên & Cấp Trên",
+          path: "/processs/employees-supervisors",
+        },
+        { title: "Đội & Công Ty", path: "/processs/team-company" },
+        { title: "Đội & Đội Khác", path: "/processs/team-to-team" },
+      ],
+    },
+    {
+      title: "Phòng Ban",
+      icon: Send,
+      role: ["admin", "hr"],
+      children: [{ title: "Quản Lý Phòng Ban", path: "/department" }],
+    },
+    {
+      title: "Vị Trí",
+      icon: Send,
+      role: ["admin", "hr"],
+      children: [{ title: "Quản lý Vị Trí", path: "/positions" }],
+    },
+    {
+      title: "Settings",
+      icon: UserPen,
+      role: ["admin"],
+      children: [
+        { title: "Role Manager", path: "/settings/roles" },
+        { title: "Role & Permission", path: "/settings/role-permissions" },
+        { title: "Audit Log", path: "/logs" },
+        { title: "Import Suzu", path: "/imports" },
+      ],
+    },
+    {
+      type: "footer",
+      title: "Admin User",
+      icon: Users,
+      role: VALID_ROLES,
+    },
+  ];
 
   const isActive = (path?: string) =>
     !!path && (pathname === path || pathname.startsWith(path + "/"));
@@ -128,7 +158,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r">
-      {/* HEADER */}
       <SidebarHeader className="border-b px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -146,7 +175,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems
-                .filter((item) => item.type !== "footer")
+                .filter(
+                  (item) => item.type !== "footer" && item.role.includes(role),
+                )
                 .map((item) => {
                   if (!item.children) {
                     return (
@@ -187,16 +218,18 @@ export function AppSidebar() {
                       </SidebarMenuItem>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.children.map((sub) => (
-                            <SidebarMenuSubItem key={sub.title}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={isActive(sub.path)}
-                              >
-                                <Link href={sub.path}>{sub.title}</Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
+                          {item.children
+                            .filter((ch) => !!ch.path)
+                            .map((sub) => (
+                              <SidebarMenuSubItem key={sub.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isActive(sub.path)}
+                                >
+                                  <Link href={sub.path}>{sub.title}</Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </Collapsible>
@@ -207,18 +240,13 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* FOOTER */}
       <SidebarFooter className="border-t p-4">
-        {navigationItems
-          .filter((item) => item.type === "footer")
-          .map((item) => (
-            <div key="footer" className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800 text-white">
-                {item.icon && <item.icon className="h-4 w-4" />}
-              </div>
-              <span className="text-sm font-medium">{item.title}</span>
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800 text-white">
+            <Users className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-medium">Admin User</span>
+        </div>
 
         <SidebarMenu className="mt-4">
           <SidebarMenuItem>

@@ -69,7 +69,6 @@ export async function checkPermissionOrThrow(
   action: string,
   errorMessage = "Không có quyền truy cập",
 ) {
-// Removed commented-out debug logs and old checkPermission block for clarity and maintainability.
   const hasPermission =
     ctx.permissions?.some(
       (p: any) =>
