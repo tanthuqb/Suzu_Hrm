@@ -1,8 +1,9 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
+import { postStatusValues } from "@acme/db";
 import {
   CreatePostSchema,
   HRMUser,
@@ -15,21 +16,102 @@ import { checkPermissionOrThrow } from "../libs";
 import { protectedProcedure } from "../trpc";
 
 export const postsRouter = {
-  getAllPosts: protectedProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "posts",
-      "getAllPosts",
-      "Không có quyền xem tất cả bài viết",
-    );
-    return await ctx.db
-      .select()
-      .from(Posts)
-      .leftJoin(HRMUser, eq(Posts.authorId, HRMUser.id))
-      .leftJoin(PostTags, eq(PostTags.postId, Posts.id))
-      .leftJoin(Tags, eq(PostTags.tagId, Tags.id))
-      .orderBy(desc(Posts.createdAt));
-  }),
+  getAllPosts: protectedProcedure
+    .input(
+      z.object({
+        page: z.number().default(1),
+        pageSize: z.number().default(10),
+        status: z
+          .enum(postStatusValues)
+          .optional()
+          .default(postStatusValues[2]),
+        search: z.string().optional(),
+        authorId: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "posts",
+        "getAllPosts",
+        "Không có quyền xem tất cả bài viết",
+      );
+      const query = ctx.db
+        .select()
+        .from(Posts)
+        .leftJoin(HRMUser, eq(Posts.authorId, HRMUser.id))
+        .leftJoin(PostTags, eq(PostTags.postId, Posts.id))
+        .leftJoin(Tags, eq(PostTags.tagId, Tags.id));
+
+      const countQuery = ctx.db.select({ count: count() }).from(Posts);
+
+      if (input.search) {
+        query.where(like(Posts.title, `%${input.search}%`));
+      }
+
+      if (input.authorId) {
+        query.where(eq(Posts.authorId, input.authorId));
+      }
+
+      if (input.search) {
+        countQuery.where(like(Posts.title, `%${input.search}%`));
+      }
+
+      if (input.authorId) {
+        countQuery.where(eq(Posts.authorId, input.authorId));
+      }
+
+      const [totalCount] = await countQuery;
+
+      const offset = (input.page - 1) * input.pageSize;
+      query.orderBy(desc(Posts.createdAt)).limit(input.pageSize).offset(offset);
+
+      const posts = await query;
+
+      const processedPosts = [];
+      const postMap = new Map();
+
+      for (const row of posts) {
+        const postId = row.posts.id;
+
+        if (!postMap.has(postId)) {
+          postMap.set(postId, {
+            ...row.posts,
+            author: row.users,
+            tags: [],
+            post_tags: [],
+          });
+        }
+
+        const post = postMap.get(postId);
+
+        if (
+          row.tags &&
+          row.tags.id &&
+          !post.tags.some((t: any) => t.id === row.tags!.id)
+        ) {
+          post.tags.push(row.tags);
+        }
+
+        if (
+          row.post_tags &&
+          row.post_tags.id &&
+          !post.post_tags.some((pt: any) => pt.id === row.post_tags!.id)
+        ) {
+          post.post_tags.push(row.post_tags);
+        }
+      }
+
+      return {
+        posts: Array.from(postMap.values()),
+        pagination: {
+          totalCount: totalCount?.count ?? 0,
+          page: input.page,
+          pageSize: input.pageSize,
+          totalPages: Math.ceil((totalCount?.count ?? 0) / input.pageSize),
+        },
+      };
+    }),
   getPostsByAuthor: protectedProcedure
     .input(z.object({ authorId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {

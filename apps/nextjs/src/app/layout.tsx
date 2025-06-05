@@ -60,7 +60,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TRPCReactProvider>
             <SidebarProvider>
-              <div className="flex h-full min-h-screen w-full">{children}</div>
+              <div className="flex h-full w-full">{children}</div>
             </SidebarProvider>
           </TRPCReactProvider>
         </ThemeProvider>

@@ -4,7 +4,7 @@ import { attendanceRouter } from "./attendance";
 import { authRouter } from "./auth";
 import { departmentRouter } from "./department";
 import { hrRouter } from "./hr";
-import { leaveRequestRouter } from "./leave-requests";
+import { leaveRequestRouter } from "./leaveRequest";
 import { noteRouter } from "./notes";
 import { permissionRouter } from "./permission";
 import { positionRouter } from "./position";

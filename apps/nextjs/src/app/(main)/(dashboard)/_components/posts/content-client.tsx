@@ -2,22 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import NextImage from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import { Editor, EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import {
   ArrowLeft,
   Bold,
   FileText,
   Heading1,
   Heading2,
-  Image as ImageIcon,
+  ImageIcon,
   Italic,
-  Link as LinkIcon,
+  LinkIcon,
   List,
   ListOrdered,
   Plus,
@@ -44,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@acme/ui/tabs";
 import { toast } from "@acme/ui/toast";
 import { isUUID } from "@acme/validators";
 
+import { useTiptapEditor } from "~/hooks/useTiptapEditor";
 import { useTRPC } from "~/trpc/react";
 
 interface FileWithPreview {
@@ -53,12 +49,14 @@ interface FileWithPreview {
 
 interface PostClientPageProps {
   userId: string;
+  postId?: string;
 }
 
-export default function PostClientPage({ userId }: PostClientPageProps) {
+export default function PostClientPage({
+  userId,
+  postId,
+}: PostClientPageProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const postId = searchParams.get("id");
   const trpc = useTRPC();
 
   const [title, setTitle] = useState("");
@@ -67,9 +65,6 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
   const [attachments, setAttachments] = useState<string[]>([]);
   const [newAttachment, setNewAttachment] = useState("");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [editor, setEditor] = useState<Editor | null>(null);
-
   const isValidId = postId && isUUID(postId);
 
   const postQuery = isValidId
@@ -83,24 +78,10 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
 
   const { data: post, isLoading } = postQuery;
 
-  useEffect(() => {
-    const instance = new Editor({
-      extensions: [
-        StarterKit,
-        Image,
-        Link.configure({ openOnClick: false }),
-        Placeholder.configure({
-          placeholder: "Viết nội dung bài viết của bạn ở đây...",
-        }),
-      ],
-    });
-
-    setEditor(instance);
-
-    return () => {
-      instance.destroy();
-    };
-  }, [editor]);
+  const { editor, EditorContent, content, setContent } = useTiptapEditor({
+    initialContent: post?.posts.content || "",
+    placeholder: "Viết nội dung bài viết của bạn ở đây...",
+  });
 
   useEffect(() => {
     return () => {
@@ -114,9 +95,8 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
   }, [files]);
 
   useEffect(() => {
-    if (editor && post?.posts.content && !isInitialized) {
+    if (post?.posts && editor) {
       setTitle(post.posts.title ?? "");
-
       if (Array.isArray(post.tags)) {
         setTags(post.tags.map((tag) => tag.name));
       } else if (post.tags?.name) {
@@ -124,12 +104,9 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
       } else {
         setTags([]);
       }
-
       setAttachments(post.posts.attachments ?? []);
-      editor.commands.setContent(post.posts.content ?? "");
-      setIsInitialized(true);
     }
-  }, [post, editor, isInitialized]);
+  }, [post, editor]);
 
   const createPostMuatation = useMutation(
     trpc.posts.createPost.mutationOptions({
@@ -175,12 +152,26 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
   );
 
   const handleSaveDraft = () => {
-    // Lưu nháp logic
-    console.log("Lưu nháp", {
+    const payload = {
       title,
-      content: editor?.getHTML(),
+      content: editor?.getHTML() ?? "",
+      status: postStatus.DRAFT as "draft",
+      authorId: userId,
       tags,
       attachments,
+    };
+    if (isValidId) {
+      updatePostMutation.mutate({
+        id: postId,
+        ...payload,
+      });
+    } else {
+      createPostMuatation.mutate({
+        ...payload,
+      });
+    }
+    toast("Bài viết đã được lưu dưới dạng nháp!", {
+      description: "Bạn có thể tiếp tục chỉnh sửa hoặc xuất bản sau.",
     });
   };
 
@@ -204,6 +195,9 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
         ...payload,
       });
     }
+    toast("Bài viết đã được gửi để xem xét!", {
+      description: "Bài viết sẽ được xuất bản sau khi được phê duyệt.",
+    });
   };
 
   const addTag = () => {
@@ -603,7 +597,17 @@ export default function PostClientPage({ userId }: PostClientPageProps) {
               Lưu nháp
             </Button>
             <Button type="button" onClick={handlePublish}>
-              Xuất bản
+              {postId ? (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Cập nhật
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Xuất bản
+                </>
+              )}
             </Button>
           </div>
         </TabsContent>

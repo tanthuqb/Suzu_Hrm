@@ -5,8 +5,12 @@ import type {
   AuditLogRecord,
   DepartmentRecord,
   HRMUser,
+  NoteRecord,
+  PostRecord,
+  PostTagRecord,
   RoleRecord,
   SalarySlipRecord,
+  TagRecord,
 } from "../schema";
 
 // User Types
@@ -128,4 +132,11 @@ export interface FullAttendanceRecord {
 
 export interface RecentActivity extends AuditLogRecord {
   user: DBUser | null;
+}
+
+export interface FullPostRecord extends PostRecord {
+  author: Pick<DBUser, "id" | "firstName" | "lastName" | "email"> | null;
+  notes: Pick<NoteRecord, "id" | "content" | "createdAt" | "userId">[] | null;
+  post_tags: PostTagRecord[] | null;
+  tags: TagRecord[] | null;
 }
