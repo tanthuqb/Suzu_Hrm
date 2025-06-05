@@ -16,5 +16,6 @@ export default function WorkFromHomeForm({ user }: { user: AuthUser }) {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
   return <WFHForm user={user} departments={departments} />;
 }

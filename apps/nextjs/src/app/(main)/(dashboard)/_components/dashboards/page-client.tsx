@@ -19,6 +19,12 @@ import { Separator } from "@acme/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@acme/ui/sidebar";
 
 import { signOut } from "~/actions/auth";
+import {
+  getAuditLogsQuery,
+  getCountUserActiveQuery,
+  getCountUserSuspendedQuery,
+  getUserCountsByPositionQuery,
+} from "~/app/(main)/(dashboard)/_querys/dashboard.queries";
 import { AppSidebar } from "~/components/commons/app-sidebar";
 import { transformData } from "~/libs";
 import { useTRPC } from "~/trpc/react";
@@ -27,7 +33,13 @@ import CountPositionPage from "./count-position";
 import { RecentActivities } from "./recent-activities";
 import { UpcomingEvents } from "./upcoming-events";
 
-export default function DashboardClientPage() {
+interface DashboardClientPageProps {
+  role?: string;
+}
+
+export default function DashboardClientPage({
+  role,
+}: DashboardClientPageProps) {
   const router = useRouter();
   const trpc = useTRPC();
   const currentYear = new Date().getFullYear();
@@ -81,7 +93,7 @@ export default function DashboardClientPage() {
 
   return (
     <>
-      <AppSidebar />
+      <AppSidebar role={role?.toLocaleLowerCase()} />
       <SidebarInset className="flex min-h-screen flex-1 flex-col">
         {/* Header */}
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 lg:px-6">

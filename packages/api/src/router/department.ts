@@ -30,12 +30,12 @@ export const departmentRouter = createTRPCRouter({
     }),
 
   getAll: publicProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "department",
-      "getAll",
-      "Không có quyền xem danh sách phòng ban",
-    );
+    // await checkPermissionOrThrow(
+    //   ctx,
+    //   "department",
+    //   "getAll",
+    //   "Không có quyền xem danh sách phòng ban",
+    // );
     return await ctx.db.select().from(Department).orderBy(Department.createdAt);
   }),
 

@@ -25,6 +25,7 @@
     "@react-pdf/renderer": "^4.3.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "catalog:",
+    "@tanstack/react-query-devtools": "4",
     "@tiptap/extension-code-block": "^2.12.0",
     "@tiptap/extension-color": "^2.12.0",
     "@tiptap/extension-highlight": "^2.12.0",
