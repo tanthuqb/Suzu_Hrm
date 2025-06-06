@@ -1,11 +1,8 @@
-import { Suspense } from "react";
-
 import AuditLogsTable from "~/app/(main)/(dashboard)/_components/logs/audit-logs-table";
-import { LoadingSpinner } from "~/components/commons/loading-spiner";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 
-// export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
   const { state } = await ssrPrefetch(
