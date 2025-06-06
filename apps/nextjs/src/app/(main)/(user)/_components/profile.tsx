@@ -9,27 +9,17 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import {
-  Briefcase,
   Building,
-  Calendar,
   IdCard,
   Mail,
   Phone,
   Upload,
   UserCircle,
 } from "lucide-react";
-import { useFormState } from "react-dom";
 
 import { Badge } from "@acme/ui/badge";
 import { Button } from "@acme/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@acme/ui/card";
-import { Separator } from "@acme/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@acme/ui/card";
 import {
   Table,
   TableBody,
@@ -353,7 +343,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Role</span>
                 <span className="text-sm font-medium">
-                  {user?.roleName ?? "Not assigned"}
+                  {user?.role?.name ?? "Not assigned"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -447,7 +437,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Role ID</TableCell>
-                <TableCell>{user?.roleName ?? "Not assigned"}</TableCell>
+                <TableCell>{user?.role?.name ?? "Not assigned"}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Created At</TableCell>

@@ -185,7 +185,6 @@ export function PositionsTable() {
               <TableHead>Name</TableHead>
               <TableHead>Department ID</TableHead>
               <TableHead>Created At</TableHead>
-              <TableHead>Updated At</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -206,9 +205,6 @@ export function PositionsTable() {
                   <TableCell>{position.departmentId}</TableCell>
                   <TableCell>
                     {formatDate(position.createdAt?.toISOString()!)}
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(position.updatedAt?.toISOString()!)}
                   </TableCell>
 
                   <TableCell className="text-right">

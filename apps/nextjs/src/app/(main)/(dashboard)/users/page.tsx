@@ -8,7 +8,7 @@ import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import UserTableClient from "./_components/user-page-client";
 
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 export default async function UsersPage() {
   const { status, message } = await checkRole(["admin", "hr"]);
   if (!status) {
@@ -18,7 +18,7 @@ export default async function UsersPage() {
   }
   const input = {
     page: 1,
-    pageSize: 10,
+    pageSize: 20,
     search: "",
     sortBy: "email",
     order: "desc" as const,
@@ -40,11 +40,16 @@ export default async function UsersPage() {
     trpc.position.getAll.queryOptions(),
   );
 
+  const { state: stateLatestSalaryByUserIds } = await ssrPrefetch(
+    trpc.salary.getLatestSalaryByUserIds.queryOptions(),
+  );
+
   const mergedState = mergeDehydratedStates([
     stateUsers,
     stateRoles,
     stateDepartments,
     statePositions,
+    stateLatestSalaryByUserIds,
   ]);
 
   return (

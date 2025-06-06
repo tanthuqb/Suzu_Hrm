@@ -32,7 +32,7 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
-    "push": "pnpm with-env drizzle-kit generate  && pnpm with-env drizzle-kit push",
+    "push": "pnpm with-env drizzle-kit generate && pnpm with-env drizzle-kit push && psql $POSTGRES_URL -f migrations/9999_add_indexes.sql",
     "seed": "pnpm build && pnpm with-env node dist/seed.js",
     "studio": "pnpm with-env drizzle-kit studio",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",

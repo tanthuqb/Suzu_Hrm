@@ -36,6 +36,16 @@ export type FullHrmUser = DBUser & {
   departments?: Pick<DepartmentRecord, "id" | "name">;
 };
 
+// Lay User Table List
+export type UserListItem = Pick<
+  DBUser,
+  "id" | "email" | "firstName" | "lastName" | "status"
+> & {
+  role: { id: string; name: string } | null;
+  department: { id: string; name: string } | null;
+  position: { id: string; name: string } | null;
+};
+
 // User With Role
 export interface AuthUser {
   id: string;
