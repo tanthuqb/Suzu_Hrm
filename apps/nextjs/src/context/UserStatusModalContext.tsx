@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 
-import type { FullHrmUser } from "@acme/db";
+import type { FullHrmUser, UserListItem } from "@acme/db";
 import { toast } from "@acme/ui/toast";
 
 import { updateStatus } from "~/actions/auth";
@@ -47,8 +47,8 @@ async function callGoogleDisableAccess(
 
 interface UserStatusModalContextType {
   isOpen: boolean;
-  selectedUser: FullHrmUser | null;
-  openModal: (user: FullHrmUser) => void;
+  selectedUser: FullHrmUser | UserListItem | null;
+  openModal: (user: FullHrmUser | UserListItem) => void;
   closeModal: () => void;
   updateUserStatus: (email: string, newStatus: string) => Promise<void>;
 }
@@ -63,13 +63,15 @@ export const UserStatusModalProvider = ({
   children: React.ReactNode;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<FullHrmUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<
+    FullHrmUser | UserListItem | null
+  >(null);
   const { session, error } = useSupabaseSession();
   if (error) {
     console.error("Error getting session:", error);
   }
 
-  const openModal = (user: FullHrmUser) => {
+  const openModal = (user: FullHrmUser | UserListItem) => {
     setSelectedUser(user);
     setIsOpen(true);
   };

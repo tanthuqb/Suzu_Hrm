@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import type { FullHrmUser } from "@acme/db";
+import type { FullHrmUser, UserListItem } from "@acme/db";
 import { UserStatusEnum } from "@acme/db";
 import {
   Department,
@@ -27,14 +27,14 @@ export const userRouter = createTRPCRouter({
       z
         .object({
           page: z.number().default(1),
-          pageSize: z.number().default(10),
+          pageSize: z.number().default(20),
           search: z.string().optional(),
           sortBy: z.string().optional(),
           order: z.enum(["asc", "desc"]).optional().default("asc"),
         })
         .default({
           page: 1,
-          pageSize: 10,
+          pageSize: 20,
           search: "",
           sortBy: "",
           order: "desc",
@@ -47,25 +47,12 @@ export const userRouter = createTRPCRouter({
         "all",
         "Không có quyền cập nhật người dùng",
       );
+      // phân trang, tìm kiếm, sắp xếp
       const { page, pageSize, search, sortBy, order } = input;
       const offset = (page - 1) * pageSize;
 
-      const [count] = await ctx.db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(HRMUser)
-        .where(
-          search
-            ? or(
-                ilike(HRMUser.firstName, `%${search}%`),
-                ilike(HRMUser.lastName, `%${search}%`),
-                ilike(HRMUser.email, `%${search}%`),
-              )
-            : undefined,
-        )
-        .execute();
-      const total = count?.count ?? 0;
-
-      const where = search
+      // nếu sortBy không có giá trị thì mặc định sắp xếp theo email
+      const whereClause = search
         ? or(
             ilike(HRMUser.firstName, `%${search}%`),
             ilike(HRMUser.lastName, `%${search}%`),
@@ -73,59 +60,60 @@ export const userRouter = createTRPCRouter({
           )
         : undefined;
 
+      // đếm tổng số người dùng
+      const [countResult] = await ctx.db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(HRMUser)
+        .where(whereClause)
+        .execute();
+
+      const total = countResult?.count ?? 0;
+
       const sortColumn =
         sortBy === "firstName"
           ? HRMUser.firstName
           : sortBy === "lastName"
             ? HRMUser.lastName
             : HRMUser.email;
-
-      const joined = await ctx.db
+      // lấy danh sách người dùng với các thông tin liên quan
+      const users = await ctx.db
         .select({
-          user: HRMUser,
-          salary: SalarySlip,
-          role: Role,
-          department: Department,
-          position: Position,
+          id: HRMUser.id,
+          email: HRMUser.email,
+          firstName: HRMUser.firstName,
+          lastName: HRMUser.lastName,
+          status: HRMUser.status,
+          role: {
+            id: Role.id,
+            name: Role.name,
+          },
+          department: {
+            id: Department.id,
+            name: Department.name,
+          },
+          position: {
+            id: Position.id,
+            name: Position.name,
+          },
         })
         .from(HRMUser)
-        .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
         .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
         .leftJoin(Position, eq(HRMUser.positionId, Position.id))
-        .where(where)
-        .orderBy(
-          order === "desc" ? desc(sortColumn) : asc(sortColumn),
-          desc(SalarySlip.createdAt),
-        );
-
-      const userMap = new Map<string, FullHrmUser>();
-
-      for (const { user, salary, role, department, position } of joined) {
-        if (!userMap.has(user.id)) {
-          userMap.set(user.id, {
-            ...user,
-            status: user.status as UserStatusEnum,
-            latestSalarySlip: salary ?? undefined,
-            role: role ? { id: role.id, name: role.name } : undefined,
-            departments: department
-              ? { id: department.id, name: department.name }
-              : undefined,
-            positions: position
-              ? { id: position.id, name: position.name }
-              : undefined,
-          });
-        }
-      }
-
-      const allUsers = Array.from(userMap.values());
-      const users = allUsers.slice(offset, offset + pageSize);
+        .where(whereClause)
+        .orderBy(order === "desc" ? desc(sortColumn) : asc(sortColumn))
+        .limit(pageSize)
+        .offset(offset)
+        .execute();
 
       return {
-        users,
+        users: users.map((u) => ({
+          ...u,
+          status: u.status as UserStatusEnum,
+        })),
         total,
       } satisfies {
-        users: FullHrmUser[];
+        users: UserListItem[];
         total: number;
       };
     }),
@@ -139,7 +127,19 @@ export const userRouter = createTRPCRouter({
         "byId",
         "Không có quyền lấy thông tin người dùng",
       );
+
       const { id } = input;
+
+      // lấy thông tin người dùng và lương mới nhất
+      const latestSalarySub = ctx.db
+        .select({
+          userId: SalarySlip.userId,
+          latestCreatedAt: sql`MAX(${SalarySlip.createdAt})`.as("latest"),
+        })
+        .from(SalarySlip)
+        .groupBy(SalarySlip.userId)
+        .as("latest_salary");
+      // join với bảng người dùng và các bảng liên quan
       const result = await ctx.db
         .select({
           user: HRMUser,
@@ -149,32 +149,39 @@ export const userRouter = createTRPCRouter({
           position: Position,
         })
         .from(HRMUser)
-        .leftJoin(SalarySlip, eq(HRMUser.id, SalarySlip.userId))
+        .leftJoin(latestSalarySub, eq(HRMUser.id, latestSalarySub.userId))
+        .leftJoin(
+          SalarySlip,
+          and(
+            eq(SalarySlip.userId, latestSalarySub.userId),
+            eq(SalarySlip.createdAt, latestSalarySub.latestCreatedAt),
+          ),
+        )
         .leftJoin(Role, eq(HRMUser.roleId, Role.id))
         .leftJoin(Department, eq(HRMUser.departmentId, Department.id))
         .leftJoin(Position, eq(HRMUser.positionId, Position.id))
-        .where(eq(HRMUser.id, id));
+        .where(eq(HRMUser.id, id))
+        .limit(1)
+        .execute();
 
       if (result.length === 0 || !result[0]?.user) return null;
+
       const { user, salary, role, department, position } = result[0];
 
       return {
         ...user,
         status: user.status as UserStatusEnum,
         latestSalarySlip: salary ?? undefined,
-        role: role && role.id ? { id: role.id, name: role.name } : undefined,
-        roleName: role?.name,
-        position:
-          position && position.id
-            ? { id: position.id, name: position.name }
-            : undefined,
-
-        departments:
-          department && department.id
-            ? { id: department.id, name: department.name }
-            : undefined,
-      } as FullHrmUser;
+        role: role?.id ? { id: role.id, name: role.name } : undefined,
+        departments: department?.id
+          ? { id: department.id, name: department.name }
+          : undefined,
+        positions: position?.id
+          ? { id: position.id, name: position.name }
+          : undefined,
+      } satisfies FullHrmUser;
     }),
+
   update: protectedProcedure
     .input(
       z.object({

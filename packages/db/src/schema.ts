@@ -8,7 +8,6 @@ import {
   pgEnum,
   pgSchema,
   pgTable,
-  serial,
   text,
   timestamp,
   unique,
@@ -318,7 +317,7 @@ export const CreateWorkflowStepSchema = createInsertSchema(WorkflowStep, {
 
 /** NOTIFICATION */
 export const Notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => HRMUser.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -512,7 +511,7 @@ export type UpdatePositionInput = z.infer<typeof UpdatePositionSchemaInput>;
 
 /** Audit Logs  */
 export const AuditLogs = pgTable("audit_logs", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => HRMUser.id, {
@@ -662,8 +661,33 @@ export type PostTagRecord = InferSelectModel<typeof PostTags>;
 export type UpdatePostTagInput = z.infer<typeof CreateTagSchema> & {
   id: string;
 };
+/** LEAVE BALANCES */
+export const LeaveBalances = pgTable("leave_balances", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => HRMUser.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  year: integer("year").notNull(),
+  totalDays: integer("total_days").notNull().default(12),
+  usedDays: integer("used_days").notNull().default(0),
+  remainingDays: integer("remaining_days").notNull().default(12),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 /** RELATIONS **/
+
+export const leaveBalanceRelations = relations(LeaveBalances, ({ one }) => ({
+  user: one(HRMUser, {
+    fields: [LeaveBalances.userId],
+    references: [HRMUser.id],
+  }),
+}));
+
 export const PostsRelations = relations(Posts, ({ one, many }) => ({
   author: one(HRMUser, {
     fields: [Posts.authorId],
@@ -724,6 +748,7 @@ export const HRMUserRelations = relations(HRMUser, ({ one, many }) => ({
     fields: [HRMUser.roleId],
     references: [Role.id],
   }),
+  leaveBalances: many(LeaveBalances),
 }));
 export const DepartmentRelations = relations(Department, ({ many }) => ({
   users: many(HRMUser),

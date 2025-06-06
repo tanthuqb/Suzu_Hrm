@@ -1,3 +1,4 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -10,9 +11,9 @@ import {
 } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const leaveRequestRouter = createTRPCRouter({
+export const leaveRequestRouter = {
   getAll: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
@@ -128,4 +129,4 @@ export const leaveRequestRouter = createTRPCRouter({
         .returning();
       return deleted;
     }),
-});
+} satisfies TRPCRouterRecord;
