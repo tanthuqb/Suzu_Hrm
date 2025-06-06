@@ -3,11 +3,7 @@
 import React, { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building,
   IdCard,
@@ -48,7 +44,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
 
   const queryClient = useQueryClient();
 
-  const { data: user, error } = useSuspenseQuery({
+  const { data: user, error } = useQuery({
     ...trpc.user.byId.queryOptions({
       id: userId,
     }),

@@ -57,13 +57,13 @@ export default function RootLayout({
           GeistMono.variable,
         )}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TRPCReactProvider>
-            <SidebarProvider>
+        <TRPCReactProvider>
+          <SidebarProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <div className="flex h-full w-full">{children}</div>
-            </SidebarProvider>
-          </TRPCReactProvider>
-        </ThemeProvider>
+            </ThemeProvider>
+          </SidebarProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

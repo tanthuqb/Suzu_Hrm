@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import {
@@ -61,7 +61,7 @@ export default function RoleManager() {
     data: roles,
     refetch,
     isFetching,
-  } = useSuspenseQuery({
+  } = useQuery({
     ...trpc.role.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -111,7 +111,7 @@ export default function RoleManager() {
     return <div>Loading...</div>;
   }
 
-  const filteredRoles = roles.filter(
+  const filteredRoles = roles?.filter(
     (role) =>
       role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       role.description?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -231,7 +231,7 @@ export default function RoleManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRoles.length === 0 ? (
+                {filteredRoles?.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={3}
@@ -241,7 +241,7 @@ export default function RoleManager() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRoles.map((role) => (
+                  filteredRoles?.map((role) => (
                     <TableRow key={role.id}>
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell className="hidden md:table-cell">

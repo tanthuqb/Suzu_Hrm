@@ -5,7 +5,7 @@ import { LoadingSpinner } from "~/components/commons/loading-spiner";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
   const { state } = await ssrPrefetch(
@@ -18,10 +18,8 @@ export default async function AuditLogsPage() {
   return (
     <HydrateClient state={state}>
       <div className="h-full min-h-screen w-full px-4 py-6">
-        <Suspense fallback={<LoadingSpinner />}>
-          <h1 className="mb-4 text-2xl font-bold">Audit Logs</h1>
-          <AuditLogsTable />
-        </Suspense>
+        <h1 className="mb-4 text-2xl font-bold">Audit Logs</h1>
+        <AuditLogsTable />
       </div>
     </HydrateClient>
   );

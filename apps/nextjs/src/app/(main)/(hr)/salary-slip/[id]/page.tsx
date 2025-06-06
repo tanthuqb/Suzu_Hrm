@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 
 import { isUUID } from "@acme/validators";
@@ -32,14 +31,10 @@ export default async function SalaryPage({
   const fullName = `${user?.lastName} ${user?.firstName}`;
 
   return (
-    <Suspense
-      fallback={<div className="py-10 text-center">Đang tải biểu mẫu...</div>}
-    >
-      <SalarySlipSmartForm
-        id={id}
-        userId={userId ?? user?.id!}
-        name={fullName || "guest"}
-      />
-    </Suspense>
+    <SalarySlipSmartForm
+      id={id}
+      userId={userId ?? user?.id!}
+      name={fullName || "guest"}
+    />
   );
 }

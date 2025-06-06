@@ -1,11 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type {
@@ -52,7 +48,8 @@ export default function DepartmentsPage() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: departments, isFetching } = useSuspenseQuery({
+
+  const { data: departments, isFetching } = useQuery({
     ...trpc.department.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -65,7 +62,7 @@ export default function DepartmentsPage() {
 
   const filteredDepartments = useMemo(() => {
     if (searchField === "all" && !searchTerm) return departments;
-    return departments.filter((dept) => {
+    return departments?.filter((dept) => {
       if (!searchTerm) {
         if (searchField === "name") return dept.name && dept.name.trim() !== "";
         if (searchField === "office")
@@ -192,7 +189,7 @@ export default function DepartmentsPage() {
 
       {/* Info */}
       <div className="mb-2 text-sm text-muted-foreground">
-        Showing {filteredDepartments.length} of {departments.length}
+        Showing {filteredDepartments?.length} of {departments?.length}
       </div>
 
       {/* Table */}
@@ -212,7 +209,7 @@ export default function DepartmentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDepartments.length === 0 ? (
+            {filteredDepartments?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   {searchTerm
@@ -221,7 +218,7 @@ export default function DepartmentsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDepartments.map((d: any) => (
+              filteredDepartments?.map((d: any) => (
                 <TableRow key={d.id}>
                   <TableCell>{d.id}</TableCell>
                   <TableCell className="font-medium">{d.name}</TableCell>
@@ -293,7 +290,7 @@ export default function DepartmentsPage() {
           {selected != null && (
             <DepartmentForm
               department={(() => {
-                const d = departments.find((d) => d.id === selected);
+                const d = departments?.find((d) => d.id === selected);
                 if (!d) return undefined;
                 const office =
                   d.office === "NTL" || d.office === "SKY" ? d.office : null;
@@ -315,7 +312,7 @@ export default function DepartmentsPage() {
           {selected != null && (
             <div className="space-y-2 py-4">
               {(() => {
-                const d = departments.find((d) => d.id === selected);
+                const d = departments?.find((d) => d.id === selected);
                 if (!d) return <div>Department not found</div>;
                 const office =
                   d.office === "NTL" || d.office === "SKY" ? d.office : null;

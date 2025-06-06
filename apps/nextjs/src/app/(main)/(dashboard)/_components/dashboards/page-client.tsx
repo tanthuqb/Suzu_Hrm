@@ -2,7 +2,7 @@
 
 import { startTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, LogOut, Search } from "lucide-react";
 
 import { UserStatusEnum } from "@acme/db";
@@ -19,12 +19,6 @@ import { Separator } from "@acme/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@acme/ui/sidebar";
 
 import { signOut } from "~/actions/auth";
-import {
-  getAuditLogsQuery,
-  getCountUserActiveQuery,
-  getCountUserSuspendedQuery,
-  getUserCountsByPositionQuery,
-} from "~/app/(main)/(dashboard)/_querys/dashboard.queries";
 import { AppSidebar } from "~/components/commons/app-sidebar";
 import { transformData } from "~/libs";
 import { useTRPC } from "~/trpc/react";
@@ -51,7 +45,7 @@ export default function DashboardClientPage({
     });
   };
 
-  const { data: countByStatusActiveRespone } = useSuspenseQuery({
+  const { data: countByStatusActiveRespone } = useQuery({
     ...trpc.user.getCountUserByStatus.queryOptions({
       status: UserStatusEnum.ACTIVE,
       year: currentYear,
@@ -61,7 +55,7 @@ export default function DashboardClientPage({
     refetchOnWindowFocus: false,
   });
 
-  const { data: countByStatusSuspendRespone } = useSuspenseQuery({
+  const { data: countByStatusSuspendRespone } = useQuery({
     ...trpc.user.getCountUserByStatus.queryOptions({
       status: UserStatusEnum.SUSPENDED,
       year: currentYear,
@@ -71,14 +65,14 @@ export default function DashboardClientPage({
     refetchOnWindowFocus: false,
   });
 
-  const { data: positionCounts } = useSuspenseQuery({
+  const { data: positionCounts } = useQuery({
     ...trpc.user.getAllUserCountsByPosition.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
-  const { data: recentActivities } = useSuspenseQuery({
+  const { data: recentActivities } = useQuery({
     ...trpc.auditlog.getAll.queryOptions({
       page: 1,
       pageSize: 5,
@@ -88,8 +82,10 @@ export default function DashboardClientPage({
     refetchOnWindowFocus: false,
   });
 
-  const countByStatusActive = transformData(countByStatusActiveRespone);
-  const countByStatusSuspend = transformData(countByStatusSuspendRespone);
+  const countByStatusActive = transformData(countByStatusActiveRespone! ?? []);
+  const countByStatusSuspend = transformData(
+    countByStatusSuspendRespone! ?? [],
+  );
 
   return (
     <>
@@ -156,7 +152,9 @@ export default function DashboardClientPage({
               </Card>
 
               {/* Recent Activities */}
-              <RecentActivities recentActivities={recentActivities.logs} />
+              <RecentActivities
+                recentActivities={recentActivities?.logs ?? []}
+              />
             </div>
 
             {/* Bottom Grid */}
@@ -170,7 +168,7 @@ export default function DashboardClientPage({
                   <CardTitle>Position Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CountPositionPage positionCounts={positionCounts} />
+                  <CountPositionPage positionCounts={positionCounts! ?? 0} />
                 </CardContent>
               </Card>
             </div>

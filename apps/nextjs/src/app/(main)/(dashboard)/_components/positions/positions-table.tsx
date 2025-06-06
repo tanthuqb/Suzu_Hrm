@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { PositionRecord } from "@acme/db/schema";
@@ -51,17 +47,20 @@ export function PositionsTable() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const { data: positions } = useSuspenseQuery({
+  const { data: positions } = useQuery({
     ...trpc.position.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    enabled: true,
   });
-  const { data: departments, isLoading } = useSuspenseQuery({
+
+  const { data: departments, isLoading } = useQuery({
     ...trpc.department.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    enabled: true,
   });
 
   const createPositionMuation = useMutation(
@@ -189,7 +188,7 @@ export function PositionsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {positions.length === 0 ? (
+            {positions?.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -199,7 +198,7 @@ export function PositionsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              positions.map((position: PositionRecord) => (
+              positions?.map((position: PositionRecord) => (
                 <TableRow key={position.id}>
                   <TableCell className="font-medium">{position.name}</TableCell>
                   <TableCell>{position.departmentId}</TableCell>

@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Edit, Search, Trash2 } from "lucide-react";
 
@@ -67,7 +63,7 @@ export function LeaveRequestsTable({
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const { data: leavesRequests } = useSuspenseQuery({
+  const { data: leavesRequests } = useQuery({
     ...trpc.leaveRequest.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -75,8 +71,8 @@ export function LeaveRequestsTable({
   });
 
   const filteredRequests = leaveRequestId
-    ? leavesRequests.filter((request) => request.id === leaveRequestId)
-    : leavesRequests.filter((request) => {
+    ? leavesRequests?.filter((request) => request.id === leaveRequestId)
+    : leavesRequests?.filter((request) => {
         const nameMatch = request.name
           .toLowerCase()
           .includes(searchName.toLowerCase());
@@ -196,14 +192,14 @@ export function LeaveRequestsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRequests.length === 0 ? (
+            {filteredRequests?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   No leave requests found.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRequests.map((request: LeaveRequestsRecord) => (
+              filteredRequests?.map((request: LeaveRequestsRecord) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">{request.name}</TableCell>
                   <TableCell>{request.departmentId ?? "N/A"}</TableCell>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronLeft,
@@ -59,8 +58,6 @@ import {
 } from "@acme/ui/table";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
-
-import { trpc } from "~/trpc/server";
 
 interface Author {
   id: string;
@@ -214,16 +211,6 @@ export default function PostsTable({
     setFilteredPosts(result);
     setCurrentPage(1);
   }, [posts, statusFilter, authorFilter, searchTerm]);
-
-  // const { data: postsData } = useSuspenseQuery({
-  //   ...trpc.posts.getAllPosts.queryOptions({
-  //     page: currentPage,
-  //     pageSize: postsPerPage,
-  //   }),
-  //   staleTime: Number.POSITIVE_INFINITY,
-  //   refetchOnMount: false,
-  //   refetchOnWindowFocus: false,
-  // });
 
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
