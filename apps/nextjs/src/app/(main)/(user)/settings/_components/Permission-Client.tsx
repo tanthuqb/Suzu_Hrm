@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { Button } from "@acme/ui/button";
 import {
@@ -30,7 +30,7 @@ export default function Permissions() {
   >({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: roles } = useSuspenseQuery({
+  const { data: roles } = useQuery({
     ...trpc.role.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -38,12 +38,12 @@ export default function Permissions() {
   });
 
   useEffect(() => {
-    if (roles.length && !selectedRole) {
+    if (roles?.length && !selectedRole) {
       setSelectedRole(roles[0]?.id!);
     }
   }, [roles, selectedRole]);
 
-  const { data: allActions } = useSuspenseQuery({
+  const { data: allActions } = useQuery({
     ...trpc.permission.getAllActions.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -53,7 +53,8 @@ export default function Permissions() {
   const opts = trpc.permission.getPermissionsByRoleId.queryOptions({
     roleId: selectedRole || ZERO_UUID,
   });
-  const { data: rolePerms } = useSuspenseQuery({
+
+  const { data: rolePerms } = useQuery({
     queryKey: opts.queryKey,
     queryFn: opts.queryFn,
   });
@@ -80,7 +81,7 @@ export default function Permissions() {
 
   const handleSelectAll = () => {
     const all: typeof permissions = {};
-    allActions.forEach((p) => {
+    allActions?.forEach((p) => {
       if (!p.module || !p.action) return;
       const moduleKey = p.module;
       const actionKey = p.action;
@@ -124,7 +125,7 @@ export default function Permissions() {
       </CardHeader>
       <CardContent className="space-y-6">
         <RoleSelector
-          roles={roles}
+          roles={roles!}
           selected={selectedRole}
           onSelect={setSelectedRole}
         />

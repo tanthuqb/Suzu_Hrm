@@ -1,7 +1,13 @@
+import { TRPCReactProvider } from "~/trpc/react";
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <main>{children}</main>;
+  return (
+    <TRPCReactProvider>
+      <main>{children}</main>
+    </TRPCReactProvider>
+  );
 }

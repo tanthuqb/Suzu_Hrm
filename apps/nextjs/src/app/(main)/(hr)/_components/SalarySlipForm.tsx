@@ -2,7 +2,7 @@
 
 import { useEffect, useTransition } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import type { CreateSalarySlipInput, SalarySlipRecord } from "@acme/db/schema";
 import { CreateSalarySlipSchema } from "@acme/db/schema";
@@ -82,13 +82,11 @@ export default function SalarySlipSmartForm({
     }),
   );
 
-  const slip = id
-    ? (
-        useSuspenseQuery(trpc.salary.getById.queryOptions({ id })) as {
-          data: SalarySlipRecord | undefined;
-        }
-      ).data
-    : undefined;
+  const { data: slip } = useQuery({
+    ...trpc.salary.getById.queryOptions({ id: id ?? "" }),
+    enabled: !!id,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
 
   function sanitizeSlip(
     slip: Partial<SalarySlipRecord>,

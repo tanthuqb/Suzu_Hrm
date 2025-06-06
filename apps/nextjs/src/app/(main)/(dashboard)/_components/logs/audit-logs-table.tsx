@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon, Filter } from "lucide-react";
@@ -63,13 +63,14 @@ export default function AuditLogsTable() {
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading } = useSuspenseQuery({
+  const { data, isLoading } = useQuery({
     ...trpc.auditlog.getAll.queryOptions({
       ...appliedFilters,
     }),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    enabled: true,
   });
 
   const handleFilterChange = (key: keyof FilterState, value: any) => {
@@ -311,14 +312,14 @@ export default function AuditLogsTable() {
                       Đang tải...
                     </TableCell>
                   </TableRow>
-                ) : data.logs.length === 0 ? (
+                ) : data?.logs.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="py-8 text-center">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.logs.map((log) => (
+                  data?.logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="font-medium">{log.id}</TableCell>
                       <TableCell className="font-mono text-sm">
@@ -358,7 +359,7 @@ export default function AuditLogsTable() {
 
           <div className="flex items-center justify-between rounded-b-md border-x border-b bg-white px-4 py-2">
             <div className="text-sm text-muted-foreground">
-              Page {filters.page} / {data.pagination.totalPages}
+              Page {filters.page} / {data?.pagination.totalPages}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -383,7 +384,7 @@ export default function AuditLogsTable() {
                 variant="outline"
                 size="icon"
                 onClick={() => handleFilterChange("page", filters.page + 1)}
-                disabled={filters.page >= data.pagination.totalPages}
+                disabled={filters.page >= data?.pagination.totalPages!}
               >
                 <span className="sr-only">Trang sau</span>
                 <svg width="20" height="20" fill="none">

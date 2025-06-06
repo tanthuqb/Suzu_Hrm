@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 
 import type { FullAttendanceRecord } from "@acme/db";
@@ -32,7 +32,7 @@ export function AttendancesTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const trpc = useTRPC();
 
-  const { data: attendances, isFetching } = useSuspenseQuery({
+  const { data: attendances, isFetching } = useQuery({
     ...trpc.attendance.getAll.queryOptions(),
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -44,7 +44,7 @@ export function AttendancesTable() {
   const filteredAttendances = useMemo(() => {
     if (!searchTerm) return attendances;
     const term = searchTerm.toLowerCase();
-    return attendances.filter((att) =>
+    return attendances?.filter((att) =>
       (att.userName ?? "").toLowerCase().includes(term),
     );
   }, [attendances, searchTerm]);
@@ -74,7 +74,7 @@ export function AttendancesTable() {
 
       {/* Info */}
       <div className="mb-2 text-sm text-muted-foreground">
-        Showing {attendances.length} of {attendances.length}
+        Showing {attendances?.length} of {attendances?.length}
       </div>
 
       {/* Table */}
@@ -95,7 +95,7 @@ export function AttendancesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAttendances.length === 0 ? (
+            {filteredAttendances?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   {searchTerm
@@ -104,7 +104,7 @@ export function AttendancesTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAttendances.map((d: FullAttendanceRecord) => (
+              filteredAttendances?.map((d: FullAttendanceRecord) => (
                 <TableRow key={d.id}>
                   <TableCell>{d.id}</TableCell>
                   <TableCell className="font-medium">{d.userName}</TableCell>
@@ -149,7 +149,7 @@ export function AttendancesTable() {
           </DialogHeader>
           {selected != null &&
             (() => {
-              const d = attendances.find(
+              const d = attendances?.find(
                 (d: FullAttendanceRecord) => d.id === selected,
               );
               if (!d) return <div>Attendance not found</div>;

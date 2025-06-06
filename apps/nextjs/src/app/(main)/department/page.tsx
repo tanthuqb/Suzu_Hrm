@@ -1,8 +1,7 @@
-import React, { Suspense } from "react";
+import React from "react";
 import { redirect } from "next/navigation";
 
 import { checkRole } from "~/actions/auth";
-import { LoadingSpinner } from "~/components/commons/loading-spiner";
 import { mergeDehydratedStates } from "~/libs";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
@@ -28,9 +27,7 @@ const Page = async () => {
 
   return (
     <HydrateClient state={mergedState}>
-      <Suspense fallback={<LoadingSpinner />}>
-        <DepartmentsPage />
-      </Suspense>
+      <DepartmentsPage />
     </HydrateClient>
   );
 };

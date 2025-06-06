@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Bold,
@@ -65,18 +65,14 @@ export default function PostClientPage({
   const [attachments, setAttachments] = useState<string[]>([]);
   const [newAttachment, setNewAttachment] = useState("");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
-  const isValidId = postId && isUUID(postId);
-
-  const postQuery = isValidId
-    ? useSuspenseQuery({
-        ...trpc.posts.getPostById.queryOptions({ id: postId }),
-        staleTime: Number.POSITIVE_INFINITY,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-      })
-    : { data: null, isLoading: false };
-
-  const { data: post, isLoading } = postQuery;
+  const isValidId = !!postId && isUUID(postId);
+  const { data: post, isLoading } = useQuery({
+    ...trpc.posts.getPostById.queryOptions({ id: postId ?? "" }),
+    enabled: !!isValidId,
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const { editor, EditorContent, content, setContent } = useTiptapEditor({
     initialContent: post?.posts.content || "",
