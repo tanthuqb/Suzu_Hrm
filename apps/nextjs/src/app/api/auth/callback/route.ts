@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     if (!code) {
       logger.error("No code provided in callback");
-      return NextResponse.redirect(`${origin}/login/invalid-email`);
+      return NextResponse.redirect(`${origin}/login/auth-code-error`);
     }
 
     const supabaseUrl = env.PUBLIC_SUPABASE_URL;

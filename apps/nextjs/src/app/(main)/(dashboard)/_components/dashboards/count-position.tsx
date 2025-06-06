@@ -20,19 +20,20 @@ export default function CountPositionPage({
 
   return (
     <div className="space-y-4">
-      {positionCounts.map((position) => (
-        <div
-          key={position.positionId}
-          className="flex items-center justify-between"
-        >
-          <span className="text-sm font-medium">
-            {position.positionName || "Total Nhân viên"}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {position.count} Nhân viên
-          </span>
-        </div>
-      ))}
+      {positionCounts &&
+        positionCounts.map((position) => (
+          <div
+            key={position.positionId}
+            className="flex items-center justify-between"
+          >
+            <span className="text-sm font-medium">
+              {position.positionName || "Total Nhân viên"}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {position.count} Nhân viên
+            </span>
+          </div>
+        ))}
     </div>
   );
 }
