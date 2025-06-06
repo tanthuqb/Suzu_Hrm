@@ -8,7 +8,7 @@ import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
 import UserTableClient from "./_components/user-page-client";
 
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 export default async function UsersPage() {
   const { status, message } = await checkRole(["admin", "hr"]);
   if (!status) {
