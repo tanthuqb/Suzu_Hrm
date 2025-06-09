@@ -30,6 +30,7 @@ import {
 import { useUserStatusModal } from "~/context/UserStatusModalContext";
 import { useTRPC } from "~/trpc/react";
 import { SetDepartmentDialog } from "./set-department-client";
+import { SetLeaveBalanceDialog } from "./set-leavebalance-client";
 import { SetPositionDialog } from "./set-position-client";
 import { SetRoleDialog } from "./set-role-client";
 
@@ -56,6 +57,11 @@ export function UserTable() {
     string | undefined
   >(undefined);
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
+  const [isLeaveBalanceDialogOpen, setIsLeaveBalanceDialogOpen] =
+    useState(false);
+  const [selectedUserLeaveBalance, setSelectedUserLeaveBalance] = useState<
+    string | undefined
+  >(undefined);
 
   const [selectedUserId, setSelectedUserId] = useState<string>("");
 
@@ -140,6 +146,12 @@ export function UserTable() {
     setSelectedUserPosition(userId);
     setSelectedUserPosition(positionName);
     setIsPositionDialogOpen(true);
+  };
+
+  const setLeaveBalance = (userId: string, leaveBalance?: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserLeaveBalance(leaveBalance);
+    setIsLeaveBalanceDialogOpen(true);
   };
 
   const usersWithLatestSalarySlip = data?.users.map((user) => {
@@ -309,6 +321,16 @@ export function UserTable() {
                               >
                                 Position
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="hidden sm:inline-flex"
+                                onClick={() => {
+                                  setLeaveBalance(user.id);
+                                }}
+                              >
+                                Ngày Nghỉ
+                              </Button>
                             </div>
                             <SetRoleDialog
                               isOpen={isRoleDialogOpen}
@@ -330,6 +352,12 @@ export function UserTable() {
                               positions={positions}
                               userId={selectedUserId}
                               currentPositionName={selectedUserPosition}
+                            />
+                            <SetLeaveBalanceDialog
+                              isOpen={isLeaveBalanceDialogOpen}
+                              onClose={() => setIsLeaveBalanceDialogOpen(false)}
+                              userId={selectedUserId}
+                              // currentLeaveBalance={selectedUserLeaveBalance}
                             />
                           </TableCell>
                         </TableRow>

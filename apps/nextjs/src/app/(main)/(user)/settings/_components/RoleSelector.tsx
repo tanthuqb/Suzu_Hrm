@@ -19,12 +19,14 @@ export function RoleSelector({ roles, selected, onSelect }: RoleSelectorProps) {
         onValueChange={onSelect}
         className="space-y-2"
       >
-        {roles.map((role) => (
-          <div key={role.id} className="flex items-center gap-2">
-            <RadioGroupItem value={role.id} id={role.id} />
-            <Label htmlFor={role.id}>{role.name}</Label>
-          </div>
-        ))}
+        {roles &&
+          roles.length > 0 &&
+          roles.map((role) => (
+            <div key={role.id} className="flex items-center gap-2">
+              <RadioGroupItem value={role.id} id={role.id} />
+              <Label htmlFor={role.id}>{role.name}</Label>
+            </div>
+          ))}
       </RadioGroup>
     </div>
   );

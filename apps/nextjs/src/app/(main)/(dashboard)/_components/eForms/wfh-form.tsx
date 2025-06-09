@@ -1,20 +1,21 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import type { AuthUser, FullHrmUser } from "@acme/db";
-import type { DepartmentRecord, PositionRecord } from "@acme/db/schema";
+import type { AuthUser } from "@acme/db";
 import {
   approvalStatusEnum,
   AttendanceStatus,
   AttendanceStatusLabel,
 } from "@acme/db";
+import { LeaveBalances } from "@acme/db/schema";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import { Calendar } from "@acme/ui/calendar";
@@ -39,6 +40,8 @@ import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
 import { sendLeaveRequest } from "~/actions/eForm";
+import { useTRPC } from "~/trpc/react";
+import { trpc } from "~/trpc/server";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -80,19 +83,12 @@ const formSchema = z.object({
   ApprovalAt: z.date().optional(),
 });
 
-export default function WFHForm({
-  user,
-  departments,
-}: {
-  user: AuthUser & {
-    positions?: FullHrmUser["positions"];
-  };
-  departments: DepartmentRecord[];
-}) {
-  console.log("WFHForm user", user);
+export default function WFHForm({ user }: { user: AuthUser }) {
   const uid = useId();
   const startUid = `${uid}-start`;
   const endUid = `${uid}-end`;
+  const trpc = useTRPC();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -100,7 +96,8 @@ export default function WFHForm({
       email: user.email ?? "",
       userId: user.id,
       position: user.positions?.name ?? "",
-      departmentId: user.departments?.name,
+      departmentId: user.departments?.id,
+      userInDepartment: user.departments?.name ?? "",
       reason: "",
       startDate: undefined,
       endDate: undefined,
@@ -111,9 +108,14 @@ export default function WFHForm({
     },
   });
 
-  const [selectedDepartment, setSelectedDepartment] = useState(
-    user.departments?.name ?? "",
-  );
+  const { data: leaveBalance } = useQuery({
+    ...trpc.leaveRequest.getLeaveBalanceByUserId.queryOptions({
+      userId: user.id,
+    }),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const { error } = await sendLeaveRequest(values);
@@ -129,6 +131,7 @@ export default function WFHForm({
 
     form.reset();
   };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -136,11 +139,13 @@ export default function WFHForm({
           <div className="space-y-2">
             <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
               <span className="mr-1 text-blue-600">📆</span>
-              <strong className="mr-1">Ngày phép còn lại:</strong> {0} ngày
+              <strong className="mr-1">Ngày phép còn lại:</strong>
+              {leaveBalance?.remainingDays} ngày
             </div>
             <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
               <span className="mr-1 text-orange-500">⏱️</span>
-              <strong className="mr-1">Đã sử dụng:</strong> {0} ngày
+              <strong className="mr-1">Đã sử dụng:</strong>
+              {leaveBalance?.usedDays} ngày
             </div>
           </div>
         </div>
@@ -195,6 +200,37 @@ export default function WFHForm({
           </div>
         </div>
 
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  required={true}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(AttendanceStatusLabel).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="w-full">
           <FormField
             control={form.control}
@@ -228,67 +264,38 @@ export default function WFHForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value ?? ""}
-                  onValueChange={field.onChange}
-                  required={true}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Chọn trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(AttendanceStatusLabel).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="departmentId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Department</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value ?? ""}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    setSelectedDepartment(value);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="w-full">
+          <FormField
+            control={form.control}
+            name="departmentId"
+            render={({ field }) => (
+              <>
+                <input type="hidden" {...field} />
+                <FormItem>
+                  <FormLabel className="block font-medium text-gray-700">
+                    Department
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      disabled={true}
+                      readOnly={true}
+                      value={
+                        field.value === null ||
+                        field.value === undefined ||
+                        field.value === ""
+                          ? "Not assigned"
+                          : field.value
+                      }
+                      className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2 text-gray-800"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField

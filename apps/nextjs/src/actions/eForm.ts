@@ -18,7 +18,7 @@ export const sendLeaveRequest = async (
   leaveRequestsInput: any,
 ): Promise<{ data: any[] | null; error: PostgrestError | null }> => {
   const supabase = await createServerClient();
-  console.log("leaveRequestsInput", leaveRequestsInput);
+
   const { error, data } = await supabase
     .from("leave_requests")
     .insert({
@@ -42,7 +42,7 @@ export const sendLeaveRequest = async (
   const leaveRequestId = data.id;
   const htmlContent = await renderWFHEmail({
     name: leaveRequestsInput.name,
-    department: leaveRequestsInput.departmentId,
+    department: leaveRequestsInput.userInDepartment,
     reason: leaveRequestsInput.reason,
     link: `${env.NEXT_PUBLIC_APP_URL}/leave-requests/${leaveRequestId}`,
   });

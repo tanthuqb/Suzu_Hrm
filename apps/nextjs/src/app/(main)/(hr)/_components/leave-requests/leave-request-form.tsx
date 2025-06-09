@@ -52,6 +52,7 @@ interface LeaveRequestFormProps {
   defaultValues?: Partial<LeaveRequestFormValues>;
   isLoading?: boolean;
   isReadOnly?: boolean;
+  isApproveDisabled?: boolean;
   onSubmit: (data: LeaveRequestFormValues) => void;
   onCancel: () => void;
 }
@@ -60,6 +61,7 @@ export function LeaveRequestForm({
   defaultValues,
   isLoading,
   isReadOnly,
+  isApproveDisabled,
   onSubmit,
   onCancel,
 }: LeaveRequestFormProps) {
@@ -117,7 +119,7 @@ export function LeaveRequestForm({
         <Select
           value={form.watch("approvalStatus")}
           onValueChange={(value) => form.setValue("approvalStatus", value)}
-          disabled={isReadOnly}
+          disabled={isApproveDisabled}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select status" />
@@ -136,16 +138,14 @@ export function LeaveRequestForm({
           </span>
         )}
       </div>
-      {!isReadOnly && (
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Đang cập nhật..." : "Cập nhật"}
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Đang cập nhật..." : "Cập nhật"}
+        </Button>
+      </div>
     </form>
   );
 }
