@@ -265,7 +265,7 @@ export function LeaveRequestsTable({
               isLoading={updateMutation.isPending}
               onSubmit={handleUpdate}
               onCancel={() => setIsViewDialogOpen(false)}
-              isApproveDisabled={canApprove}
+              isApproveDisabled={!canApprove}
             />
           </DialogContent>
         </Dialog>
