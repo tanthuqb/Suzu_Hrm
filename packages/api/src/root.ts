@@ -18,7 +18,7 @@ export const appRouter = createTRPCRouter({
   salary: salaryRouter,
   auth: authRouter,
   user: userRouter,
-  hr: hrRouter,
+  // hr: hrRouter,
   // department: departmentRouter,
   acl: aclRouter,
   role: roleRouter,
