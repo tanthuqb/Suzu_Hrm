@@ -32,8 +32,9 @@ interface SetRoleDialogProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  roles: RoleRecord[] | undefined;
+  roles: Pick<RoleRecord, "id" | "name">[] | null;
   currentRoleName?: string;
+  refetchUsers: () => void;
 }
 
 export function SetRoleDialog({
@@ -42,11 +43,11 @@ export function SetRoleDialog({
   userId,
   roles,
   currentRoleName,
+  refetchUsers,
 }: SetRoleDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryClient = useQueryClient();
   const trpc = useTRPC();
 
   const updateMutation = useMutation(
@@ -56,9 +57,7 @@ export function SetRoleDialog({
         setSelectedRoleId("");
         setOpen(false);
         onClose();
-        queryClient.invalidateQueries({
-          queryKey: trpc.user.all.queryKey(),
-        });
+        refetchUsers();
       },
       onError: (err) => {
         toast.error(err.message);

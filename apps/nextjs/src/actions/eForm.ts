@@ -43,6 +43,7 @@ export const sendLeaveRequest = async (
   const htmlContent = await renderWFHEmail({
     name: leaveRequestsInput.name,
     department: leaveRequestsInput.userInDepartment,
+    position: leaveRequestsInput.userPosition,
     reason: leaveRequestsInput.reason,
     link: `${env.NEXT_PUBLIC_APP_URL}/leave-requests/${leaveRequestId}`,
   });

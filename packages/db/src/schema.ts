@@ -835,6 +835,12 @@ export const schema = {
   LeaveRequests,
   Department,
   Permission,
+  Role,
+  Position,
+  AuditLogs,
+  LeaveBalances,
+  Posts,
+  Notes,
 };
 
 export default {
@@ -852,4 +858,6 @@ export default {
   LeaveRequestsRelations,
   NotesRelations,
   RoleRelations,
+  PermissionRelations,
+  leaveBalanceRelations,
 };

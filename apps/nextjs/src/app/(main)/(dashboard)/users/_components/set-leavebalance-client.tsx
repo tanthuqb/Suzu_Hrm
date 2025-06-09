@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 import type { LeaveBalanceRecord } from "@acme/db/schema";
 import { Button } from "@acme/ui/button";
@@ -22,6 +22,7 @@ interface SetLeaveBalanceProps {
   userId: string;
   leaveBalance?: LeaveBalanceRecord;
   currentLeaveBalance?: LeaveBalanceRecord;
+  refetchUsers: () => void;
 }
 
 export function SetLeaveBalanceDialog({
@@ -30,13 +31,13 @@ export function SetLeaveBalanceDialog({
   userId,
   leaveBalance,
   currentLeaveBalance,
+  refetchUsers,
 }: SetLeaveBalanceProps) {
   const [totalDays, setTotalDays] = useState(leaveBalance?.totalDays ?? 12);
   const [usedDays, setUsedDays] = useState(leaveBalance?.usedDays ?? 0);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const queryClient = useQueryClient();
   const trpc = useTRPC();
   const remainingDays = Math.max(0, totalDays - usedDays);
   const updateMutation = useMutation(
@@ -44,9 +45,7 @@ export function SetLeaveBalanceDialog({
       onSuccess: () => {
         toast.success("Cập nhật ngày phép thành công");
         onClose();
-        queryClient.invalidateQueries({
-          queryKey: trpc.leaveRequest.getAll.queryKey(),
-        });
+        refetchUsers();
       },
       onError: (err) => {
         toast.error(err.message);
