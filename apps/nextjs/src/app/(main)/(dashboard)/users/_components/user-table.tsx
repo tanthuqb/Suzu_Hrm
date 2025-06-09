@@ -164,7 +164,7 @@ export function UserTable({
       <main className="flex h-full flex-1 flex-col overflow-hidden p-4">
         <div className="flex flex-1 flex-col rounded-md border bg-white">
           <div
-            className={`min-h-0 flex-1 rounded-md border transition-opacity ${!users ? "opacity-50" : "opacity-100"}`}
+            className={`min-h-0 flex-1 rounded-md border transition-opacity ${!users && (!usersData || usersData.length === 0) ? "opacity-50" : "opacity-100"}`}
           >
             <div className="max-h-[calc(100vh-240px)] overflow-y-auto border-t">
               <Table className="w-full table-auto border-collapse">
