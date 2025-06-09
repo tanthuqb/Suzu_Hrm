@@ -32,8 +32,9 @@ interface SetPositionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  positions: PositionRecord[] | undefined;
+  positions: Pick<PositionRecord, "id" | "name">[] | null;
   currentPositionName?: string;
+  refetchUsers: () => void;
 }
 
 export function SetPositionDialog({
@@ -42,11 +43,12 @@ export function SetPositionDialog({
   userId,
   positions,
   currentPositionName,
+  refetchUsers,
 }: SetPositionDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryClient = useQueryClient();
+
   const trpc = useTRPC();
 
   const updateMutation = useMutation(
@@ -56,9 +58,7 @@ export function SetPositionDialog({
         setSelectedPositionId("");
         setOpen(false);
         onClose();
-        queryClient.invalidateQueries({
-          queryKey: trpc.user.all.queryKey(),
-        });
+        refetchUsers();
       },
       onError: (err) => {
         toast.error(err.message);
@@ -110,7 +110,7 @@ export function SetPositionDialog({
               >
                 {selectedPositionId
                   ? positions?.find(
-                      (position: PositionRecord) =>
+                      (position: Pick<PositionRecord, "id" | "name">) =>
                         position.id === selectedPositionId,
                     )?.name
                   : (currentPositionName ?? "Chọn vị trí...")}
@@ -123,26 +123,28 @@ export function SetPositionDialog({
                 <CommandList>
                   <CommandEmpty>Không có vị trí nào.</CommandEmpty>
                   <CommandGroup>
-                    {positions?.map((position: PositionRecord) => (
-                      <CommandItem
-                        key={position.id}
-                        value={position.name}
-                        onSelect={() => {
-                          setSelectedPositionId(position.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedPositionId === position.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        {position.name}
-                      </CommandItem>
-                    ))}
+                    {positions?.map(
+                      (position: Pick<PositionRecord, "id" | "name">) => (
+                        <CommandItem
+                          key={position.id}
+                          value={position.name}
+                          onSelect={() => {
+                            setSelectedPositionId(position.id);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedPositionId === position.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {position.name}
+                        </CommandItem>
+                      ),
+                    )}
                   </CommandGroup>
                 </CommandList>
               </Command>

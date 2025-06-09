@@ -44,9 +44,11 @@ import { LeaveRequestForm } from "./leave-request-form";
 export function LeaveRequestsTable({
   userId,
   leaveRequestId,
+  currentUserRole,
 }: {
   userId: string;
   leaveRequestId?: string;
+  currentUserRole?: string;
 }) {
   const [searchName, setSearchName] = useState("");
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(
@@ -62,6 +64,10 @@ export function LeaveRequestsTable({
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+
+  const canApprove =
+    currentUserRole?.toLocaleLowerCase() === "admin" ||
+    currentUserRole?.toLocaleLowerCase() === "hr";
 
   const { data: leavesRequests } = useQuery({
     ...trpc.leaveRequest.getAll.queryOptions(),
@@ -257,9 +263,9 @@ export function LeaveRequestsTable({
                     : selectedRequest.approvedAt,
               }}
               isLoading={updateMutation.isPending}
-              isReadOnly={false}
               onSubmit={handleUpdate}
               onCancel={() => setIsViewDialogOpen(false)}
+              isApproveDisabled={!canApprove}
             />
           </DialogContent>
         </Dialog>

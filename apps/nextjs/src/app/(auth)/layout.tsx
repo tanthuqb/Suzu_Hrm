@@ -5,9 +5,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <TRPCReactProvider>
-      <main>{children}</main>
-    </TRPCReactProvider>
-  );
+  return <TRPCReactProvider>{children}</TRPCReactProvider>;
 }

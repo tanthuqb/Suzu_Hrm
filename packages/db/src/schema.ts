@@ -679,6 +679,25 @@ export const LeaveBalances = pgTable("leave_balances", {
     .notNull(),
 });
 
+export const CreateLeaveBalanceSchema = createInsertSchema(LeaveBalances, {
+  userId: z.string().uuid(),
+  year: z.number().int(),
+  totalDays: z.number().int().default(12),
+  usedDays: z.number().int().default(0),
+  remainingDays: z.number().int().default(12),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type CreateLeaveBalanceInput = z.infer<typeof CreateLeaveBalanceSchema>;
+export type UpdateLeaveBalanceInput = z.infer<
+  typeof CreateLeaveBalanceSchema
+> & {
+  id: string;
+};
+export type LeaveBalanceRecord = InferSelectModel<typeof LeaveBalances>;
+
 /** RELATIONS **/
 
 export const leaveBalanceRelations = relations(LeaveBalances, ({ one }) => ({
@@ -816,6 +835,12 @@ export const schema = {
   LeaveRequests,
   Department,
   Permission,
+  Role,
+  Position,
+  AuditLogs,
+  LeaveBalances,
+  Posts,
+  Notes,
 };
 
 export default {
@@ -833,4 +858,6 @@ export default {
   LeaveRequestsRelations,
   NotesRelations,
   RoleRelations,
+  PermissionRelations,
+  leaveBalanceRelations,
 };

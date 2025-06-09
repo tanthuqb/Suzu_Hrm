@@ -2,10 +2,12 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { and, eq } from "@acme/db";
+import { and, desc, eq } from "@acme/db";
 import {
   Attendance,
+  CreateLeaveBalanceSchema,
   CreateLeaveRequestsSchema,
+  LeaveBalances,
   LeaveRequests,
   UpdateLeaveRequestsSchema,
 } from "@acme/db/schema";
@@ -88,6 +90,47 @@ export const leaveRequestRouter = {
         });
       }
       if (approvalStatus == "approved") {
+        // Lấy leave balance hiện tại
+        const [leaveBalance] = await ctx.db
+          .select()
+          .from(LeaveBalances)
+          .where(
+            and(
+              eq(LeaveBalances.userId, String(userId)),
+              eq(LeaveBalances.year, new Date().getFullYear()),
+            ),
+          )
+          .limit(1)
+          .execute();
+
+        if (!leaveBalance) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Không tìm thấy ngày phép cho người dùng này",
+          });
+        }
+
+        const daysRequested = 1;
+        // Kiểm tra số ngày phép còn lại
+        if (leaveBalance.remainingDays < daysRequested) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Đã hết ngày phép còn lại",
+          });
+        }
+        // Cập nhật số ngày đã sử dụng và còn lại
+        const newUsedDays = leaveBalance.usedDays + daysRequested;
+        const newRemainingDays = leaveBalance.totalDays - newUsedDays;
+
+        await ctx.db
+          .update(LeaveBalances)
+          .set({
+            usedDays: newUsedDays,
+            remainingDays: newRemainingDays,
+          })
+          .where(eq(LeaveBalances.id, leaveBalance.id));
+
+        // Thêm attendance record
         const [attendance] = await ctx.db
           .select()
           .from(Attendance)
@@ -97,6 +140,7 @@ export const leaveRequestRouter = {
               eq(Attendance.leaveRequestId, id),
             ),
           );
+        // Nếu đã có attendance record, không thêm mới
         if (attendance) {
           return false;
         } else {
@@ -128,5 +172,103 @@ export const leaveRequestRouter = {
         .where(eq(LeaveRequests.id, id))
         .returning();
       return deleted;
+    }),
+
+  upsertLeaveBalance: protectedProcedure
+    .input(
+      CreateLeaveBalanceSchema.extend({
+        id: z.string().uuid().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      await checkPermissionOrThrow(
+        ctx,
+        "leaveRequest",
+        "upsertLeaveBalance",
+        "Không có quyền tạo/cập nhật ngày phép",
+      );
+      const {
+        userId,
+        year,
+        totalDays,
+        usedDays = 0,
+        remainingDays,
+        id,
+      } = input;
+
+      // Kiểm tra đã có leave balance cho user & year chưa
+      const [existing] = await ctx.db
+        .select()
+        .from(LeaveBalances)
+        .where(
+          and(eq(LeaveBalances.userId, userId), eq(LeaveBalances.year, year)),
+        )
+        .limit(1)
+        .execute();
+
+      if (existing) {
+        // Nếu đã có, update
+        const updated = await ctx.db
+          .update(LeaveBalances)
+          .set({
+            totalDays,
+            usedDays,
+            remainingDays: remainingDays ?? totalDays - usedDays,
+            year,
+          })
+          .where(eq(LeaveBalances.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        // Nếu chưa có, insert
+        const inserted = await ctx.db
+          .insert(LeaveBalances)
+          .values({
+            userId,
+            year,
+            totalDays,
+            usedDays,
+            remainingDays: remainingDays ?? totalDays - usedDays,
+          })
+          .returning();
+        return inserted;
+      }
+    }),
+  getLeaveBalanceByUserId: protectedProcedure
+    .input(z.object({ userId: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "leaveRequest",
+      //   "getLeaveBalanceByUserId",
+      //   "Không có quyền xem ngày phép của người dùng",
+      // );
+      const { userId } = input;
+      const result = await ctx.db
+        .select()
+        .from(LeaveBalances)
+        .where(
+          and(
+            eq(LeaveBalances.userId, userId),
+            eq(LeaveBalances.year, new Date().getFullYear()),
+          ),
+        )
+        .orderBy(desc(LeaveBalances.year))
+        .execute();
+      if (!result.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Không tìm thấy ngày phép cho người dùng này",
+        });
+      }
+      return (
+        result[0] ?? {
+          userId,
+          year: new Date().getFullYear(),
+          totalDays: 0,
+          usedDays: 0,
+          remainingDays: 0,
+        }
+      );
     }),
 } satisfies TRPCRouterRecord;

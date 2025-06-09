@@ -7,11 +7,13 @@ import { Text } from "@react-email/text";
 export default function WorkFromHomeEmailTemplate({
   name,
   department,
+  position,
   reason,
   link,
 }: {
   name: string;
   department: string;
+  position: string;
   reason: string;
   link: string;
 }) {
@@ -54,8 +56,9 @@ export default function WorkFromHomeEmailTemplate({
             <Text
               style={{ fontSize: "16px", lineHeight: "1.5", color: "#3c4043" }}
             >
-              Tôi tên là <strong>{name}</strong>, hiện là nhân viên công tác tại
-              bộ phận <strong>{department}</strong>.
+              Tôi tên là <strong>{name}</strong>, hiện là nhân viên công ty công
+              tác tại bộ phận <strong>{department}</strong> với chức vụ
+              <strong>{position}</strong>
             </Text>
             <Text
               style={{ fontSize: "16px", lineHeight: "1.5", color: "#3c4043" }}

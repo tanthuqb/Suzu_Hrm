@@ -11,10 +11,9 @@ import {
 } from "@acme/ui/card";
 
 import { checkRole } from "~/actions/auth";
-import WorkFromHomeForm from "~/app/(main)/(dashboard)/_components/eForms/form-work-from-home";
-import { mergeDehydratedStates } from "~/libs";
 import { HydrateClient, trpc } from "~/trpc/server";
 import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import WFHForm from "../../_components/eForms/wfh-form";
 
 export default async function Page() {
   const { status, user, message } = await checkRole(VALID_ROLES);
@@ -25,16 +24,14 @@ export default async function Page() {
     );
   }
 
-  const { state: stateDepartments } = await ssrPrefetch(
-    trpc.department.getAll.queryOptions(),
+  const { state } = await ssrPrefetch(
+    trpc.leaveRequest.getLeaveBalanceByUserId.queryOptions({
+      userId: user!.id,
+    }),
   );
-  const { state: statePositions } = await ssrPrefetch(
-    trpc.position.getAll.queryOptions(),
-  );
-  const mergedState = mergeDehydratedStates([stateDepartments, statePositions]);
 
   return (
-    <HydrateClient state={mergedState}>
+    <HydrateClient state={state}>
       <Card className="w-full shadow-lg">
         <CardHeader className="rounded-t-lg bg-gradient-to-r from-blue-50 to-indigo-50 pb-6 text-center">
           <CardTitle className="text-2xl font-bold text-primary">
@@ -47,7 +44,7 @@ export default async function Page() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <WorkFromHomeForm user={user!} />
+          <WFHForm user={user!} />;
         </CardContent>
       </Card>
     </HydrateClient>

@@ -73,6 +73,10 @@ export const checkAuth = async (): Promise<{
       name,
       permissions( id, action )
     ),
+    position:position_id (
+      id, 
+      name
+    ),
     department:department_id (
       id,
       name
@@ -81,7 +85,6 @@ export const checkAuth = async (): Promise<{
     )
     .eq("email", authUser.user.email)
     .maybeSingle();
-
   if (dbError || !rows) {
     return {
       status: false,
@@ -100,6 +103,9 @@ export const checkAuth = async (): Promise<{
   const department = Array.isArray(rows.department)
     ? rows.department[0]
     : rows.department;
+  const position = Array.isArray(rows.position)
+    ? rows.position[0]
+    : rows.position;
 
   if (!role) {
     return {
@@ -123,6 +129,12 @@ export const checkAuth = async (): Promise<{
         }
       : undefined,
     role: role,
+    positions: position
+      ? {
+          id: position.id,
+          name: position.name,
+        }
+      : undefined,
     permissions: Array.isArray(role.permissions)
       ? role.permissions.map((permission: any) => ({
           action: permission.action,
@@ -200,6 +212,7 @@ export const checkRole = async (
 
   const userRole = (auth.user.roleName ?? "").toLowerCase();
   const validRoles = VALID_ROLES.map((r) => r.toLowerCase());
+
   const allowedRoles = roles.map((r) => r.toLowerCase());
 
   if (!userRole || !validRoles.includes(userRole)) {

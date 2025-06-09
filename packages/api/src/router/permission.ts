@@ -78,12 +78,12 @@ export const permissionRouter = createTRPCRouter({
   getPermissionsByRoleId: protectedProcedure
     .input(z.object({ roleId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      await checkPermissionOrThrow(
-        ctx,
-        "permission",
-        "getPermissionsByRoleId",
-        "Không có quyền xem quyền theo role ID",
-      );
+      // await checkPermissionOrThrow(
+      //   ctx,
+      //   "permission",
+      //   "getPermissionsByRoleId",
+      //   "Không có quyền xem quyền theo role ID",
+      // );
       try {
         const permissions = await ctx.db
           .select({

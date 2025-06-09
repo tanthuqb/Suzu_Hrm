@@ -32,8 +32,9 @@ interface SetDepartmentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
-  departments: DepartmentRecord[] | undefined;
+  departments: Pick<DepartmentRecord, "id" | "name">[] | null;
   currentDepartmentName?: string;
+  refetchUsers: () => void;
 }
 
 export function SetDepartmentDialog({
@@ -42,11 +43,12 @@ export function SetDepartmentDialog({
   userId,
   departments,
   currentDepartmentName,
+  refetchUsers,
 }: SetDepartmentDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryClient = useQueryClient();
+
   const trpc = useTRPC();
 
   const updateMutation = useMutation(
@@ -56,9 +58,7 @@ export function SetDepartmentDialog({
         setSelectedDepartmentId("");
         setOpen(false);
         onClose();
-        queryClient.invalidateQueries({
-          queryKey: trpc.user.all.queryKey(),
-        });
+        refetchUsers();
       },
       onError: (err) => {
         toast.error(err.message);
@@ -111,7 +111,7 @@ export function SetDepartmentDialog({
               >
                 {selectedDepartmentId
                   ? departments?.find(
-                      (department: DepartmentRecord) =>
+                      (department: Pick<DepartmentRecord, "id" | "name">) =>
                         department.id === selectedDepartmentId,
                     )?.name
                   : (currentDepartmentName ?? "Chọn phòng ban...")}
@@ -124,26 +124,28 @@ export function SetDepartmentDialog({
                 <CommandList>
                   <CommandEmpty>No role found.</CommandEmpty>
                   <CommandGroup>
-                    {departments?.map((department: DepartmentRecord) => (
-                      <CommandItem
-                        key={department.id}
-                        value={department.name}
-                        onSelect={() => {
-                          setSelectedDepartmentId(department.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedDepartmentId === department.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        {department.name}
-                      </CommandItem>
-                    ))}
+                    {departments?.map(
+                      (department: Pick<DepartmentRecord, "id" | "name">) => (
+                        <CommandItem
+                          key={department.id}
+                          value={department.name}
+                          onSelect={() => {
+                            setSelectedDepartmentId(department.id);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedDepartmentId === department.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {department.name}
+                        </CommandItem>
+                      ),
+                    )}
                   </CommandGroup>
                 </CommandList>
               </Command>
