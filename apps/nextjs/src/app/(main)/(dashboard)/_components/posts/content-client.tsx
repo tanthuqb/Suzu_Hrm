@@ -81,7 +81,6 @@ export default function PostClientPage({
 
   useEffect(() => {
     return () => {
-      console.log("Cleaning up file previews", files);
       files.forEach((fileObj) => {
         if (fileObj.previewUrl) {
           URL.revokeObjectURL(fileObj.previewUrl);

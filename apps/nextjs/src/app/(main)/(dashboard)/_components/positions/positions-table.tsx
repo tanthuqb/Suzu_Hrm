@@ -138,7 +138,6 @@ export function PositionsTable() {
   };
 
   const handleDelete = async () => {
-    console.log("Deleting position with ID:", selectedPositionId);
     try {
       await deletePositionMuation.mutateAsync({
         id: selectedPositionId,

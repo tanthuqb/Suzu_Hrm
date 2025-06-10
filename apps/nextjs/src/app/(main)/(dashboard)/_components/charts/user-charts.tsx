@@ -11,14 +11,17 @@ import {
   YAxis,
 } from "recharts";
 
+import type { MonthCount } from "~/libs/data/users";
+
 interface UserChartSimleBarProps {
-  countByStatusActive: number[];
-  countByStatusSuspend: number[];
+  countByStatusActive: MonthCount[];
+  countByStatusSuspend: MonthCount[];
 }
 
 export default class UserChartSimleBar extends PureComponent<UserChartSimleBarProps> {
   render() {
     const { countByStatusActive, countByStatusSuspend } = this.props;
+
     const months = [
       "January",
       "February",
@@ -36,8 +39,8 @@ export default class UserChartSimleBar extends PureComponent<UserChartSimleBarPr
 
     const data = months.map((month, index) => ({
       name: month,
-      active: countByStatusActive[index] ?? 0,
-      suspended: countByStatusSuspend[index] ?? 0,
+      active: countByStatusActive[index]?.count ?? 0,
+      suspended: countByStatusSuspend[index]?.count ?? 0,
     }));
 
     return (

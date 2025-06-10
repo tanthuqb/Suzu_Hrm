@@ -165,14 +165,14 @@ export const getCountUserByStatus = async (
   year?: number,
 ): Promise<MonthCount[]> => {
   const supabase = await createServerClient();
-  let query = supabase.from("users").select("createdAt").eq("status", status);
+  let query = supabase.from("users").select("created_at").eq("status", status);
 
   if (year) {
     const start = new Date(`${year}-01-01`);
     const end = new Date(`${year + 1}-01-01`);
     query = query
-      .gte("createdAt", start.toISOString())
-      .lt("createdAt", end.toISOString());
+      .gte("created_at", start.toISOString())
+      .lt("created_at", end.toISOString());
   }
 
   const { data, error } = await query;
@@ -184,7 +184,7 @@ export const getCountUserByStatus = async (
   }));
 
   for (const row of data ?? []) {
-    const month = new Date(row.createdAt).getMonth();
+    const month = new Date(row.created_at).getMonth();
     if (month >= 0 && month < 12 && monthCounts[month]) {
       monthCounts[month].count++;
     }

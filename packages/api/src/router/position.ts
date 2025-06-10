@@ -1,3 +1,4 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -10,9 +11,9 @@ import {
 } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure, publicProcedure } from "../trpc";
 
-export const positionRouter = createTRPCRouter({
+export const positionRouter = {
   create: protectedProcedure
     .input(CreatePositionSchemaInput)
     .mutation(async ({ input, ctx }) => {
@@ -113,4 +114,4 @@ export const positionRouter = createTRPCRouter({
         .returning();
       return { success: true };
     }),
-});
+} satisfies TRPCRouterRecord;
