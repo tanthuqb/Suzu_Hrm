@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
 import { CalendarIcon, Filter } from "lucide-react";
 
 import { cn } from "@acme/ui";
@@ -38,7 +36,8 @@ import {
 import { toast } from "@acme/ui/toast";
 import { emailSchema } from "@acme/validators";
 
-import { useTRPC } from "~/trpc/react";
+import type { AuditLogPagination } from "~/libs/data/auditlog";
+import { formatDate } from "~/libs";
 
 interface FilterState {
   userId?: string;
@@ -47,31 +46,60 @@ interface FilterState {
   request?: string;
   response?: string;
   startDate?: Date;
+  payload?: string;
   endDate?: Date;
   page: number;
   pageSize: number;
   email?: string;
 }
 
-export default function AuditLogsTable() {
+export default function AuditLogsTable({
+  initialData,
+}: {
+  initialData?: AuditLogPagination;
+}) {
   const [filters, setFilters] = useState<FilterState>({
     page: 1,
     pageSize: 20,
   });
-  const [appliedFilters, setAppliedFilters] = useState(filters);
-  const trpc = useTRPC();
 
-  const [showFilters, setShowFilters] = useState(false);
+  const isDefaultFilter =
+    filters.page === 1 &&
+    filters.pageSize === 20 &&
+    !filters.email &&
+    !filters.action &&
+    !filters.entity &&
+    !filters.request &&
+    !filters.response &&
+    !filters.payload &&
+    !filters.userId &&
+    !filters.startDate &&
+    !filters.endDate;
 
   const { data, isLoading } = useQuery({
-    ...trpc.auditlog.getAll.queryOptions({
-      ...appliedFilters,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    enabled: true,
+    queryKey: ["audit-logs", filters],
+    queryFn: async () => {
+      const query = new URLSearchParams({
+        page: filters.page.toString(),
+        pageSize: filters.pageSize.toString(),
+        email: filters.email ?? "",
+        action: filters.action ?? "",
+        entity: filters.entity ?? "",
+        request: filters.request ?? "",
+        response: filters.response ?? "",
+        payload: filters.payload ?? "",
+        userId: filters.userId ?? "",
+        startDate: filters.startDate ? filters.startDate.toISOString() : "",
+        endDate: filters.endDate ? filters.endDate.toISOString() : "",
+      }).toString();
+      const res = await fetch(`/api/audit-logs?${query}`);
+      if (!res.ok) throw new Error("Failed to fetch audit logs");
+      return (await res.json()) as AuditLogPagination;
+    },
+    initialData: isDefaultFilter ? initialData : undefined,
   });
+
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleFilterChange = (key: keyof FilterState, value: any) => {
     setFilters((prev) => ({
@@ -89,7 +117,7 @@ export default function AuditLogsTable() {
         return;
       }
     }
-    setAppliedFilters({ ...filters, page: 1 });
+    setFilters((prev) => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -203,7 +231,7 @@ export default function AuditLogsTable() {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {filters.startDate ? (
-                        format(filters.startDate, "dd/MM/yyyy", { locale: vi })
+                        formatDate(filters.startDate.toISOString())
                       ) : (
                         <span>Chọn ngày bắt đầu</span>
                       )}
@@ -233,7 +261,7 @@ export default function AuditLogsTable() {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {filters.endDate ? (
-                        format(filters.endDate, "dd/MM/yyyy", { locale: vi })
+                        formatDate(filters.endDate.toISOString())
                       ) : (
                         <span>Chọn ngày kết thúc</span>
                       )}
@@ -295,8 +323,6 @@ export default function AuditLogsTable() {
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>User ID</TableHead>
                   <TableHead>User Email</TableHead>
                   <TableHead>Action</TableHead>
                   <TableHead>Entity</TableHead>
@@ -321,12 +347,8 @@ export default function AuditLogsTable() {
                 ) : (
                   data?.logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.id}</TableCell>
                       <TableCell className="font-mono text-sm">
-                        {log.userId}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {log.user?.email!}
+                        {log.users?.email!}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getActionBadgeVariant(log.action)}>
@@ -341,14 +363,7 @@ export default function AuditLogsTable() {
                         {log.response}
                       </TableCell>
                       <TableCell>
-                        {log.createdAt &&
-                          format(
-                            new Date(log.createdAt),
-                            "dd/MM/yyyy HH:mm:ss",
-                            {
-                              locale: vi,
-                            },
-                          )}
+                        {log.created_at && formatDate(log.created_at)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -384,7 +399,7 @@ export default function AuditLogsTable() {
                 variant="outline"
                 size="icon"
                 onClick={() => handleFilterChange("page", filters.page + 1)}
-                disabled={filters.page >= data?.pagination.totalPages!}
+                disabled={filters.page >= (data?.pagination.totalPages ?? 1)}
               >
                 <span className="sr-only">Trang sau</span>
                 <svg width="20" height="20" fill="none">

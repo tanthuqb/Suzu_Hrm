@@ -11,8 +11,7 @@ import {
 } from "@acme/ui/card";
 
 import { checkRole } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getLeaveBalanceByUserId } from "~/libs/data/leaverequest";
 import WFHForm from "../../_components/eForms/wfh-form";
 
 export default async function Page() {
@@ -24,29 +23,34 @@ export default async function Page() {
     );
   }
 
-  const { state } = await ssrPrefetch(
-    trpc.leaveRequest.getLeaveBalanceByUserId.queryOptions({
-      userId: user!.id,
-    }),
+  const leaveBalance = await getLeaveBalanceByUserId(
+    user!.id,
+    new Date().getFullYear(),
   );
 
+  if (!leaveBalance) {
+    redirect(
+      `/profile?message=${encodeURIComponent(
+        "Bạn không có số dư nghỉ phép để gửi đơn.",
+      )}`,
+    );
+  }
+
   return (
-    <HydrateClient state={state}>
-      <Card className="w-full shadow-lg">
-        <CardHeader className="rounded-t-lg bg-gradient-to-r from-blue-50 to-indigo-50 pb-6 text-center">
-          <CardTitle className="text-2xl font-bold text-primary">
-            Đơn xin làm việc tại nhà hoặc nghỉ phép
-          </CardTitle>
-          <CardDescription className="mt-2 text-muted-foreground">
-            Vui lòng điền đầy đủ thông tin để gửi đơn xin làm việc tại nhà hoặc
-            nghỉ phép. Chúng tôi sẽ xem xét và phản hồi trong thời gian sớm nhất
-            thông qua email.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <WFHForm user={user!} />;
-        </CardContent>
-      </Card>
-    </HydrateClient>
+    <Card className="w-full shadow-lg">
+      <CardHeader className="rounded-t-lg bg-gradient-to-r from-blue-50 to-indigo-50 pb-6 text-center">
+        <CardTitle className="text-2xl font-bold text-primary">
+          Đơn xin làm việc tại nhà hoặc nghỉ phép
+        </CardTitle>
+        <CardDescription className="mt-2 text-muted-foreground">
+          Vui lòng điền đầy đủ thông tin để gửi đơn xin làm việc tại nhà hoặc
+          nghỉ phép. Chúng tôi sẽ xem xét và phản hồi trong thời gian sớm nhất
+          thông qua email.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6">
+        <WFHForm user={user!} leaveBalance={leaveBalance} />;
+      </CardContent>
+    </Card>
   );
 }

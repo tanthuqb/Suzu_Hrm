@@ -12,7 +12,19 @@ interface UserPosition {
   position: { id: string; name: string } | null;
 }
 
-export async function getAllPositions() {
+export interface Position {
+  id: string;
+  name: string;
+  department_id: string;
+  created_at: Date;
+  updated_at: Date;
+  department?: {
+    id: string;
+    name: string;
+  };
+}
+
+export async function getAllPositions(): Promise<Position[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("positions")
@@ -21,7 +33,7 @@ export async function getAllPositions() {
     )
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  return data;
+  return data as unknown as Position[];
 }
 
 export async function getPositionById(id: number) {
@@ -53,9 +65,17 @@ export async function getAllUserCountsByPosition(
 
   const countsMap = new Map<string, UserPositionCount>();
 
-  for (const item of users) {
+  for (const item of data ?? ([] as UserPosition[])) {
     const posId = item.position_id;
-    const posName = item.position?.name ?? "Unknown";
+
+    let posName = "Unknown";
+    if (
+      Array.isArray(item.position) &&
+      item.position.length > 0 &&
+      item.position[0]
+    ) {
+      posName = item.position[0].name ?? "Unknown";
+    }
 
     if (!posId) continue;
 
