@@ -1,4 +1,16 @@
+import type { UserStatusEnum } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
+
+export interface UserPositionCount {
+  positionId: string;
+  positionName: string;
+  count: number;
+}
+
+interface UserPosition {
+  position_id: string | null;
+  position: { id: string; name: string } | null;
+}
 
 export async function getAllPositions() {
   const supabase = await createServerClient();
@@ -21,4 +33,42 @@ export async function getPositionById(id: number) {
     .single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function getAllUserCountsByPosition(
+  status: UserStatusEnum.ACTIVE,
+) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("position_id, position:position_id(id, name)")
+    .eq("status", status);
+
+  const users = data as unknown as UserPosition[];
+
+  if (error) {
+    console.error("Supabase error:", error.message);
+    throw new Error("Failed to fetch user counts by position");
+  }
+
+  const countsMap = new Map<string, UserPositionCount>();
+
+  for (const item of users) {
+    const posId = item.position_id;
+    const posName = item.position?.name ?? "Unknown";
+
+    if (!posId) continue;
+
+    if (!countsMap.has(posId)) {
+      countsMap.set(posId, {
+        positionId: posId,
+        positionName: posName,
+        count: 1,
+      });
+    } else {
+      countsMap.get(posId)!.count += 1;
+    }
+  }
+
+  return Array.from(countsMap.values());
 }

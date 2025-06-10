@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import Page from "./_components/page-client";
 
 export default function LoginPage() {
-  return <Page />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Page />
+    </Suspense>
+  );
 }

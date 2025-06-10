@@ -1,54 +1,48 @@
+import { redirect } from "next/navigation";
+
 import { UserStatusEnum, VALID_ROLES } from "@acme/db";
 
 import { checkRole } from "~/actions/auth";
 import DashboardClientPage from "~/app/(main)/(dashboard)/_components/dashboards/page-client";
-import { mergeDehydratedStates } from "~/libs";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
-
-export const dynamic = "force-dynamic";
+import { getAllAuditLogs } from "~/libs/data/auditlog";
+import { getAllUserCountsByPosition } from "~/libs/data/positions";
+import { getCountUserByStatus } from "~/libs/data/users";
 
 export default async function DashboardPage() {
-  const { user } = await checkRole(VALID_ROLES);
+  const { status, user, message } = await checkRole(VALID_ROLES);
+
+  if (!status) {
+    redirect(
+      `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
+    );
+  }
 
   const year = new Date().getFullYear();
 
-  const { state: stateActive } = await ssrPrefetch(
-    trpc.user.getCountUserByStatus.queryOptions({
-      status: UserStatusEnum.ACTIVE,
-      year,
-    }),
+  const usersActive = await getCountUserByStatus(UserStatusEnum.ACTIVE, year);
+
+  const usersSuspended = await getCountUserByStatus(
+    UserStatusEnum.SUSPENDED,
+    year,
   );
 
-  const { state: stateSuspended } = await ssrPrefetch(
-    trpc.user.getCountUserByStatus.queryOptions({
-      status: UserStatusEnum.SUSPENDED,
-      year,
-    }),
+  const positionCounts = await getAllUserCountsByPosition(
+    UserStatusEnum.ACTIVE,
   );
-
-  const { state: statePosition } = await ssrPrefetch(
-    trpc.user.getAllUserCountsByPosition.queryOptions(),
-  );
-  const { state: stateAudit } = await ssrPrefetch(
-    trpc.auditlog.getAll.queryOptions({
-      page: 1,
-      pageSize: 5,
-    }),
-  );
-
-  const mergedState = mergeDehydratedStates([
-    stateActive,
-    stateSuspended,
-    statePosition,
-    stateAudit,
-  ]);
+  const auditlogs = await getAllAuditLogs({
+    page: 1,
+    pageSize: 5,
+  });
 
   return (
-    <HydrateClient state={mergedState}>
-      <div className="flex h-full w-full">
-        <DashboardClientPage role={user?.roleName} />
-      </div>
-    </HydrateClient>
+    <div className="flex h-full w-full">
+      <DashboardClientPage
+        role={user?.roleName}
+        usersActive={usersActive}
+        usersSuspended={usersSuspended}
+        positionCounts={positionCounts}
+        recentActivities={auditlogs.logs}
+      />
+    </div>
   );
 }

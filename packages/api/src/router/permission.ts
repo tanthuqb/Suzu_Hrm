@@ -1,3 +1,4 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -5,9 +6,9 @@ import { z } from "zod";
 import { Permission, Role } from "@acme/db/schema";
 
 import { checkPermissionOrThrow, getAllTrpcActions } from "../libs/index";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const permissionRouter = createTRPCRouter({
+export const permissionRouter = {
   getAllActions: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
@@ -166,4 +167,4 @@ export const permissionRouter = createTRPCRouter({
         });
       }
     }),
-});
+} satisfies TRPCRouterRecord;

@@ -1,12 +1,13 @@
+import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 
 import { and, desc, eq, sql } from "@acme/db";
 import { AuditLogs, HRMUser } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
-export const auditlogRouter = createTRPCRouter({
+export const auditlogRouter = {
   getAll: protectedProcedure
     .input(
       z.object({
@@ -91,4 +92,4 @@ export const auditlogRouter = createTRPCRouter({
         },
       };
     }),
-});
+} satisfies TRPCRouterRecord;

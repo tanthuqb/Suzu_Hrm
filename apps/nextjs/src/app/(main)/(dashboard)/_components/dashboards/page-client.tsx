@@ -2,10 +2,8 @@
 
 import { startTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { Bell, LogOut, Search } from "lucide-react";
 
-import { UserStatusEnum } from "@acme/db";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,10 +16,10 @@ import { Input } from "@acme/ui/input";
 import { Separator } from "@acme/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@acme/ui/sidebar";
 
+import type { AuditLog } from "~/libs/data/auditlog";
+import type { MonthCount } from "~/libs/data/users";
 import { signOut } from "~/actions/auth";
 import { AppSidebar } from "~/components/commons/app-sidebar";
-import { transformData } from "~/libs";
-import { useTRPC } from "~/trpc/react";
 import UserChartSimleBar from "./../charts/user-charts";
 import CountPositionPage from "./count-position";
 import { RecentActivities } from "./recent-activities";
@@ -29,14 +27,24 @@ import { UpcomingEvents } from "./upcoming-events";
 
 interface DashboardClientPageProps {
   role?: string;
+  usersActive?: MonthCount[];
+  usersSuspended?: MonthCount[];
+  positionCounts?: {
+    positionId: string;
+    positionName: string;
+    count: number;
+  }[];
+  recentActivities?: AuditLog[];
 }
 
 export default function DashboardClientPage({
   role,
+  usersActive,
+  usersSuspended,
+  positionCounts,
+  recentActivities,
 }: DashboardClientPageProps) {
   const router = useRouter();
-  const trpc = useTRPC();
-  const currentYear = new Date().getFullYear();
 
   const handleLogout = async () => {
     startTransition(async () => {
@@ -44,48 +52,6 @@ export default function DashboardClientPage({
       router.push("/login");
     });
   };
-
-  const { data: countByStatusActiveRespone } = useQuery({
-    ...trpc.user.getCountUserByStatus.queryOptions({
-      status: UserStatusEnum.ACTIVE,
-      year: currentYear,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: countByStatusSuspendRespone } = useQuery({
-    ...trpc.user.getCountUserByStatus.queryOptions({
-      status: UserStatusEnum.SUSPENDED,
-      year: currentYear,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: positionCounts } = useQuery({
-    ...trpc.user.getAllUserCountsByPosition.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: recentActivities } = useQuery({
-    ...trpc.auditlog.getAll.queryOptions({
-      page: 1,
-      pageSize: 5,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const countByStatusActive = transformData(countByStatusActiveRespone! ?? []);
-  const countByStatusSuspend = transformData(
-    countByStatusSuspendRespone! ?? [],
-  );
 
   return (
     <>
@@ -144,17 +110,15 @@ export default function DashboardClientPage({
                 <CardContent>
                   <div className="flex h-[300px] items-center justify-center rounded-lg bg-muted/50 lg:h-[300px]">
                     <UserChartSimleBar
-                      countByStatusActive={countByStatusActive}
-                      countByStatusSuspend={countByStatusSuspend}
+                      countByStatusActive={usersActive!}
+                      countByStatusSuspend={usersSuspended!}
                     />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Recent Activities */}
-              <RecentActivities
-                recentActivities={recentActivities?.logs ?? []}
-              />
+              <RecentActivities recentActivities={recentActivities ?? []} />
             </div>
 
             {/* Bottom Grid */}
@@ -168,7 +132,7 @@ export default function DashboardClientPage({
                   <CardTitle>Position Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CountPositionPage positionCounts={positionCounts! ?? 0} />
+                  <CountPositionPage positionCounts={positionCounts!} />
                 </CardContent>
               </Card>
             </div>

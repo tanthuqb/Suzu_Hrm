@@ -1,7 +1,9 @@
-import { checkPermissionOrThrow } from "../libs";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import type { TRPCRouterRecord } from "@trpc/server";
 
-export const aclRouter = createTRPCRouter({
+import { checkPermissionOrThrow } from "../libs";
+import { protectedProcedure } from "../trpc";
+
+export const aclRouter = {
   getPermissions: protectedProcedure.query(async ({ ctx }) => {
     await checkPermissionOrThrow(
       ctx,
@@ -23,4 +25,4 @@ export const aclRouter = createTRPCRouter({
 
     return permissions.map((p: { action: any }) => p.action);
   }),
-});
+} satisfies TRPCRouterRecord;
