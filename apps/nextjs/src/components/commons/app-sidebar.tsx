@@ -123,7 +123,7 @@ export function AppSidebar({ role }: AppSidebarProps) {
       title: "Phòng Ban",
       icon: Send,
       role: ["admin", "hr"],
-      children: [{ title: "Quản Lý Phòng Ban", path: "/department" }],
+      children: [{ title: "Quản Lý Phòng Ban", path: "/departments" }],
     },
     {
       title: "Vị Trí",

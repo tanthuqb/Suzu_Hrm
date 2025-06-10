@@ -1,14 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
-import type {
-  CreateDepartmentInput,
-  DepartmentRecord,
-  UpdateDepartmentInput,
-} from "@acme/db/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@acme/ui/alert-dialog";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -35,26 +41,25 @@ import {
 } from "@acme/ui/table";
 import { toast } from "@acme/ui/toast";
 
+import type { Department } from "~/libs/data/departments";
 import { formatDate } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
-import { DepartmentForm } from "./_forms/department-form";
+import { DepartmentForm } from "./department-form";
 
-export default function DepartmentsPage() {
-  const trpc = useTRPC();
-
+export default function DepartmentsPage({
+  departments,
+}: {
+  departments: Department[];
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: departments, isFetching } = useQuery({
-    ...trpc.department.getAll.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+  const trpc = useTRPC();
+  const router = useRouter();
 
   const [searchField, setSearchField] = useState<"all" | "name" | "office">(
     "all",
@@ -62,7 +67,7 @@ export default function DepartmentsPage() {
 
   const filteredDepartments = useMemo(() => {
     if (searchField === "all" && !searchTerm) return departments;
-    return departments?.filter((dept) => {
+    return departments.filter((dept) => {
       if (!searchTerm) {
         if (searchField === "name") return dept.name && dept.name.trim() !== "";
         if (searchField === "office")
@@ -88,9 +93,7 @@ export default function DepartmentsPage() {
         toast.success(`Đã thêm phòng ban`);
         setIsCreateOpen(false);
         setSelected(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.department.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -104,9 +107,7 @@ export default function DepartmentsPage() {
         toast.success(`Đã cập nhật phòng ban`);
         setIsEditOpen(false);
         setSelected(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.department.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -121,9 +122,7 @@ export default function DepartmentsPage() {
         setIsViewOpen(false);
         setIsEditOpen(false);
         setSelected(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.department.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -131,20 +130,42 @@ export default function DepartmentsPage() {
     }),
   );
 
-  const handleDelete = (id: string) => {
-    if (confirm("Delete this department?")) {
-      deleteDepartment.mutate({ id });
+  const handleDelete = async () => {
+    if (deleteId) {
+      await deleteDepartment.mutateAsync({ id: deleteId });
+      setDeleteId(null);
     }
   };
 
-  const handleCreate = (vals: CreateDepartmentInput) => {
-    createDepartment.mutate({ ...vals });
+  const handleCreate = async (vals: Department) => {
+    try {
+      await createDepartment.mutateAsync({
+        ...vals,
+        office:
+          vals.office === "NTL" || vals.office === "SKY"
+            ? vals.office
+            : undefined,
+        description: vals.description === null ? undefined : vals.description,
+      });
+    } catch (error) {
+      console.error("Không tạo được phòng ban", error);
+    }
   };
 
-  const handleEdit = (vals: UpdateDepartmentInput) => {
-    updateDepartment.mutate({
-      ...vals,
-    });
+  const handleEdit = async (vals: Department) => {
+    try {
+      await updateDepartment.mutateAsync({
+        ...vals,
+        id: selected!,
+        office:
+          vals.office === "NTL" || vals.office === "SKY"
+            ? vals.office
+            : undefined,
+        description: vals.description === null ? undefined : vals.description,
+      });
+    } catch (error) {
+      console.error("Không cập nhật được phòng ban", error);
+    }
   };
 
   return (
@@ -189,14 +210,15 @@ export default function DepartmentsPage() {
 
       {/* Info */}
       <div className="mb-2 text-sm text-muted-foreground">
-        Showing {filteredDepartments?.length} of {departments?.length}
+        Showing {filteredDepartments.length} of {departments.length}
       </div>
 
       {/* Table */}
       <div
-        className={`overflow-x-auto rounded-md border transition-opacity ${
-          isFetching ? "opacity-50" : "opacity-100"
-        }`}
+        className={
+          `overflow-x-auto rounded-md border transition-opacity ` +
+          (filteredDepartments.length === 0 ? "opacity-50" : "")
+        }
       >
         <Table>
           <TableHeader>
@@ -209,7 +231,7 @@ export default function DepartmentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDepartments?.length === 0 ? (
+            {filteredDepartments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   {searchTerm
@@ -218,7 +240,7 @@ export default function DepartmentsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDepartments?.map((d: any) => (
+              filteredDepartments.map((d: any) => (
                 <TableRow key={d.id}>
                   <TableCell>{d.id}</TableCell>
                   <TableCell className="font-medium">{d.name}</TableCell>
@@ -253,7 +275,7 @@ export default function DepartmentsPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => handleDelete(d.id)}
+                        onClick={() => setDeleteId(d.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -290,7 +312,7 @@ export default function DepartmentsPage() {
           {selected != null && (
             <DepartmentForm
               department={(() => {
-                const d = departments?.find((d) => d.id === selected);
+                const d = departments.find((d) => d.id === selected);
                 if (!d) return undefined;
                 const office =
                   d.office === "NTL" || d.office === "SKY" ? d.office : null;
@@ -312,11 +334,11 @@ export default function DepartmentsPage() {
           {selected != null && (
             <div className="space-y-2 py-4">
               {(() => {
-                const d = departments?.find((d) => d.id === selected);
+                const d = departments.find((d) => d.id === selected);
                 if (!d) return <div>Department not found</div>;
                 const office =
                   d.office === "NTL" || d.office === "SKY" ? d.office : null;
-                const department: DepartmentRecord = {
+                const department: Department = {
                   ...d,
                   office,
                 };
@@ -341,6 +363,34 @@ export default function DepartmentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteDepartment.isPending || !!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Bạn có muốn xóa phòng ban này
+              không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDelete}
+              disabled={deleteDepartment.isPending}
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

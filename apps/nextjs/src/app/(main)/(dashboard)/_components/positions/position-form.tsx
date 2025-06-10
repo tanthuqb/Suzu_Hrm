@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import type { DepartmentRecord, PositionRecord } from "@acme/db/schema";
+import type { DepartmentRecord } from "@acme/db/schema";
 import { Button } from "@acme/ui/button";
 import {
   Form,
@@ -24,17 +24,18 @@ import {
   SelectValue,
 } from "@acme/ui/select";
 
+import type { Position } from "~/libs/data/positions";
+
 const formSchema = z.object({
   name: z
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(100, "Name must be at most 100 characters"),
-  departmentId: z.string().optional(),
+  department_id: z.string().optional(),
 });
 
 interface PositionFormProps {
-  position?: PositionRecord | null;
-  isLoading?: boolean;
+  position?: Position | null;
   departments?: DepartmentRecord[] | null;
   onSubmit: (data: any) => void;
   onCancel: () => void;
@@ -42,7 +43,6 @@ interface PositionFormProps {
 
 export function PositionForm({
   position,
-  isLoading = false,
   onSubmit,
   departments,
   onCancel,
@@ -52,11 +52,11 @@ export function PositionForm({
     defaultValues: position
       ? {
           name: position.name,
-          departmentId: position.departmentId,
+          department_id: position.department_id.toString(),
         }
       : {
           name: "",
-          departmentId: "",
+          department_id: "",
         },
   });
 
@@ -93,7 +93,7 @@ export function PositionForm({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
           <FormField
             control={form.control}
-            name="departmentId"
+            name="department_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Phòng Ban</FormLabel>

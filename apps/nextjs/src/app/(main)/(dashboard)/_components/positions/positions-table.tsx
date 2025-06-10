@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
-import type { PositionRecord } from "@acme/db/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,36 +33,30 @@ import {
 } from "@acme/ui/table";
 import { toast } from "@acme/ui/toast";
 
+import type { Department } from "~/libs/data/departments";
+import type { Position } from "~/libs/data/positions";
 import { formatDate } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
 import { PositionForm } from "./position-form";
 
-export function PositionsTable() {
+export function PositionsTable({
+  positions,
+  departments,
+}: {
+  positions: Position[];
+  departments: Department[];
+}) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState<any | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(
+    null,
+  );
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const { data: positions } = useQuery({
-    ...trpc.position.getAll.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    enabled: true,
-  });
-
-  const { data: departments, isLoading } = useQuery({
-    ...trpc.department.getAll.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    enabled: true,
-  });
-
+  const router = useRouter();
   const createPositionMuation = useMutation(
     trpc.position.create.mutationOptions({
       onSuccess: () => {
@@ -70,9 +64,7 @@ export function PositionsTable() {
           description: "Vị trí mới đã được thêm vào.",
         });
         setIsCreateOpen(false);
-        queryClient.invalidateQueries({
-          queryKey: trpc.position.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError: (error) => {
         toast("Error", {
@@ -91,9 +83,7 @@ export function PositionsTable() {
         });
         setIsEditOpen(false);
         setSelectedPosition(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.position.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError: (error) => {
         toast("Error", {
@@ -112,9 +102,7 @@ export function PositionsTable() {
         });
         setIsViewOpen(false);
         setSelectedPosition(null);
-        queryClient.invalidateQueries({
-          queryKey: trpc.position.getAll.queryKey(),
-        });
+        router.refresh();
       },
       onError: (error) => {
         toast("Error", {
@@ -125,12 +113,12 @@ export function PositionsTable() {
     }),
   );
 
-  const handleEdit = async (position: PositionRecord) => {
+  const handleEdit = async (position: Position) => {
     try {
       await updatePositionMuation.mutateAsync({
         id: selectedPositionId,
         name: position.name,
-        departmentId: position.departmentId,
+        departmentId: position.department_id,
       });
     } catch (error) {
       console.error("Không cập nhật được vị trí", error);
@@ -147,11 +135,12 @@ export function PositionsTable() {
     }
   };
 
-  const handleCreate = async (data: PositionRecord) => {
+  const handleCreate = async (data: Position) => {
     try {
+      console.log("Creating position with data:", data);
       await createPositionMuation.mutateAsync({
         name: data.name,
-        departmentId: data.departmentId,
+        departmentId: data.department_id,
       });
       setIsCreateOpen(false);
     } catch (error) {
@@ -159,7 +148,7 @@ export function PositionsTable() {
     }
   };
 
-  const openDeleteDialog = (position: PositionRecord) => {
+  const openDeleteDialog = (position: Position) => {
     setSelectedPositionId(position.id);
     setIsDeleteDialogOpen(true);
   };
@@ -187,7 +176,7 @@ export function PositionsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {positions?.length === 0 ? (
+            {positions.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -197,12 +186,17 @@ export function PositionsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              positions?.map((position: PositionRecord) => (
+              positions.map((position: Position) => (
                 <TableRow key={position.id}>
                   <TableCell className="font-medium">{position.name}</TableCell>
-                  <TableCell>{position.departmentId}</TableCell>
+                  <TableCell>{position.department_id.toString()}</TableCell>
                   <TableCell>
-                    {formatDate(position.createdAt?.toISOString()!)}
+                    {position.created_at &&
+                      formatDate(
+                        typeof position.created_at === "string"
+                          ? position.created_at
+                          : position.created_at.toISOString(),
+                      )}
                   </TableCell>
 
                   <TableCell className="text-right">
@@ -253,7 +247,6 @@ export function PositionsTable() {
             <DialogDescription>Thêm vị trí mới</DialogDescription>
           </DialogHeader>
           <PositionForm
-            isLoading={isLoading}
             departments={departments}
             onSubmit={handleCreate}
             onCancel={() => setIsCreateOpen(false)}
@@ -272,7 +265,6 @@ export function PositionsTable() {
           </DialogHeader>
           {selectedPosition != null && (
             <PositionForm
-              isLoading={isLoading}
               departments={departments}
               position={selectedPosition}
               onSubmit={handleEdit}
@@ -296,13 +288,16 @@ export function PositionsTable() {
               </div>
               <div className="mb-2">
                 <span className="font-semibold">Phòng ban: </span>
-                {selectedPosition.department.name}
+                {selectedPosition.department?.name}
               </div>
               <div className="mb-2">
                 <span className="font-semibold">Ngày tạo: </span>
-                {selectedPosition.createdAt
-                  ? formatDate(selectedPosition.createdAt.toISOString())
-                  : ""}
+                {selectedPosition.created_at &&
+                  formatDate(
+                    typeof selectedPosition.created_at === "string"
+                      ? selectedPosition.created_at
+                      : selectedPosition.created_at.toISOString(),
+                  )}
               </div>
               <div className="flex justify-end">
                 <Button onClick={() => setIsViewOpen(false)}>Close</Button>

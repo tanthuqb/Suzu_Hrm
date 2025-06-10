@@ -2,7 +2,6 @@
 
 import { useId } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -15,7 +14,6 @@ import {
   AttendanceStatus,
   AttendanceStatusLabel,
 } from "@acme/db";
-import { LeaveBalances } from "@acme/db/schema";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import { Calendar } from "@acme/ui/calendar";
@@ -39,9 +37,8 @@ import {
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
+import type { LeaveBalanceRecord } from "~/libs/data/leaverequest";
 import { sendLeaveRequest } from "~/actions/eForm";
-import { useTRPC } from "~/trpc/react";
-import { trpc } from "~/trpc/server";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -83,12 +80,16 @@ const formSchema = z.object({
   ApprovalAt: z.date().optional(),
 });
 
-export default function WFHForm({ user }: { user: AuthUser }) {
+export default function WFHForm({
+  user,
+  leaveBalance,
+}: {
+  user: AuthUser;
+  leaveBalance: LeaveBalanceRecord;
+}) {
   const uid = useId();
   const startUid = `${uid}-start`;
   const endUid = `${uid}-end`;
-  const trpc = useTRPC();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -106,15 +107,6 @@ export default function WFHForm({ user }: { user: AuthUser }) {
       ApprovalBy: "",
       ApprovalAt: undefined,
     },
-  });
-
-  const { data: leaveBalance } = useQuery({
-    ...trpc.leaveRequest.getLeaveBalanceByUserId.queryOptions({
-      userId: user.id,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -140,12 +132,12 @@ export default function WFHForm({ user }: { user: AuthUser }) {
             <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
               <span className="mr-1 text-blue-600">📆</span>
               <strong className="mr-1">Ngày phép còn lại:</strong>
-              {leaveBalance?.remainingDays} ngày
+              {leaveBalance.remaining_days ?? 0} ngày
             </div>
             <div className="flex items-center rounded-md bg-white bg-opacity-50 p-2 shadow-sm">
               <span className="mr-1 text-orange-500">⏱️</span>
               <strong className="mr-1">Đã sử dụng:</strong>
-              {leaveBalance?.usedDays} ngày
+              {leaveBalance.used_days ?? 0} ngày
             </div>
           </div>
         </div>
@@ -155,23 +147,20 @@ export default function WFHForm({ user }: { user: AuthUser }) {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <>
-                  <input type="hidden" {...field} />
-                  <FormItem>
-                    <FormLabel className="block font-medium text-gray-700">
-                      Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        disabled={true}
-                        readOnly={true}
-                        className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2 text-gray-800"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </>
+                <FormItem>
+                  <FormLabel className="block font-medium text-gray-700">
+                    Email
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      disabled={true}
+                      readOnly={true}
+                      className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 p-2 text-gray-800"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
           </div>
@@ -267,7 +256,7 @@ export default function WFHForm({ user }: { user: AuthUser }) {
         <div className="w-full">
           <FormField
             control={form.control}
-            name="departmentId"
+            name="userInDepartment"
             render={({ field }) => (
               <>
                 <input type="hidden" {...field} />
