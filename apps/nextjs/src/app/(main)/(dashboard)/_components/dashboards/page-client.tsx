@@ -118,7 +118,7 @@ export default function DashboardClientPage({
               </Card>
 
               {/* Recent Activities */}
-              <RecentActivities recentActivities={recentActivities!} />
+              <RecentActivities recentActivities={recentActivities ?? []} />
             </div>
 
             {/* Bottom Grid */}
