@@ -20,7 +20,11 @@ export default async function LeaveRequestDetailPage({
         <h1 className="text-2xl font-bold tracking-tight">
           Leave Request Detail
         </h1>
-        <LeaveRequestsTable userId={user?.id!} leaveRequestId={id} />
+        <LeaveRequestsTable
+          userId={user?.id!}
+          leaveRequestId={id}
+          currentUserRole={user?.roleName}
+        />
       </div>
     </HydrateClient>
   );

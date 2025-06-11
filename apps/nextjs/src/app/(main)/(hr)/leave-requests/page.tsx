@@ -27,7 +27,10 @@ export default async function LeaveManagementPage() {
             Xem, Tìm kiếm và quản lý nghỉ phép
           </p>
         </div>
-        <LeaveRequestsTable userId={user?.id!} />
+        <LeaveRequestsTable
+          userId={user?.id!}
+          currentUserRole={user?.roleName}
+        />
       </div>
     </HydrateClient>
   );

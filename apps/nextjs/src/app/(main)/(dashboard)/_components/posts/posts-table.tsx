@@ -10,7 +10,6 @@ import {
   ChevronsRight,
   Edit2,
   Eye,
-  FileText,
   Filter,
   Plus,
   Search,
@@ -59,6 +58,8 @@ import {
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
+import type { GetAllPostsResponse, Post } from "~/libs/data/posts";
+
 interface Author {
   id: string;
   name: string;
@@ -66,7 +67,7 @@ interface Author {
 }
 
 interface PostsTableProps {
-  initialPosts?: FullPostRecord[];
+  initialPosts?: GetAllPostsResponse;
 }
 
 // Mock data
@@ -118,7 +119,11 @@ const mockPosts: FullPostRecord[] = [
   },
 ];
 
-const StatusBadge = ({ status }: { status: FullPostRecord["status"] }) => {
+const StatusBadge = ({
+  status,
+}: {
+  status: GetAllPostsResponse["posts"][number]["status"];
+}) => {
   const statusConfig = {
     published: { label: "Đã xuất bản", variant: "default" as const },
     draft: { label: "Bản nháp", variant: "default" as const },
@@ -147,17 +152,17 @@ const StatusBadge = ({ status }: { status: FullPostRecord["status"] }) => {
   );
 };
 
-export default function PostsTable({
-  initialPosts = mockPosts,
-}: PostsTableProps) {
+export default function PostsTable({ initialPosts }: PostsTableProps) {
   const router = useRouter();
-  const [posts, setPosts] = useState<FullPostRecord[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<FullPostRecord[]>([]);
+  const [posts, setPosts] = useState<GetAllPostsResponse["posts"]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<
+    GetAllPostsResponse["posts"]
+  >([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [postsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    FullPostRecord["status"] | "all"
+    GetAllPostsResponse["posts"][number]["status"] | "all"
   >("all");
   const [authorFilter, setAuthorFilter] = useState<string>("all");
 
@@ -165,11 +170,11 @@ export default function PostsTable({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<FullPostRecord | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    status: "draft" as FullPostRecord["status"],
+    status: "draft" as GetAllPostsResponse["posts"][number]["status"],
     authorId: "user-1",
     tags: [] as string[],
     attachments: [] as string[],
@@ -177,15 +182,17 @@ export default function PostsTable({
   const [newTag, setNewTag] = useState("");
 
   useEffect(() => {
-    const postsWithAuthorNames = initialPosts.map((post) => {
-      const author = mockAuthors.find((author) => author.id === post.authorId);
+    const postsWithAuthorNames = initialPosts?.posts.map((post: Post) => {
+      const author = mockAuthors.find(
+        (author) => author.id === post.authorId.id,
+      );
       return {
         ...post,
         authorName: author?.name || "Unknown",
       };
     });
-    setPosts(postsWithAuthorNames);
-    setFilteredPosts(postsWithAuthorNames);
+    setPosts(postsWithAuthorNames!);
+    setFilteredPosts(postsWithAuthorNames!);
   }, [initialPosts]);
 
   useEffect(() => {
@@ -196,7 +203,7 @@ export default function PostsTable({
     }
 
     if (authorFilter !== "all") {
-      result = result.filter((post) => post.authorId === authorFilter);
+      result = result.filter((post) => post.authorId.id === authorFilter);
     }
 
     if (searchTerm) {
@@ -240,9 +247,9 @@ export default function PostsTable({
         title: post.title,
         content: post.content,
         status: post.status,
-        authorId: post.authorId!,
+        authorId: post.authorId.id,
         tags: Array.isArray(post.tags) ? post.tags.map((tag) => tag.name) : [],
-        attachments: post.attachments!,
+        attachments: post.attachments,
       });
       setIsEditDialogOpen(true);
     }
@@ -275,30 +282,23 @@ export default function PostsTable({
       return;
     }
 
-    const newPost: FullPostRecord = {
+    const newPost: Post = {
       id: `550e8400-e29b-41d4-a716-${Date.now()}`,
       title: formData.title,
       content: formData.content,
       status: formData.status,
-      authorId: formData.authorId,
+      authorId: {
+        id: formData.authorId,
+        name:
+          mockAuthors.find((a) => a.id === formData.authorId)?.name ||
+          "Unknown",
+      },
       post_tags: [],
       tags: [],
       notes: [],
-      author: {
-        id: formData.authorId,
-        firstName:
-          mockAuthors
-            .find((a) => a.id === formData.authorId)
-            ?.name.split(" ")[0] || "Unknown",
-        lastName:
-          mockAuthors
-            .find((a) => a.id === formData.authorId)
-            ?.name.split(" ")[1] || "Unknown",
-        email: mockAuthors.find((a) => a.id === formData.authorId)?.name || "",
-      },
       attachments: formData.attachments,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
     };
 
     setPosts([newPost, ...posts]);
@@ -988,7 +988,7 @@ export default function PostsTable({
                     Ngày tạo
                   </Label>
                   <p className="text-sm">
-                    {selectedPost.createdAt?.toLocaleDateString("vi-VN")}
+                    {selectedPost.created_at.toLocaleDateString("vi-VN")}
                   </p>
                 </div>
                 <div>
@@ -996,7 +996,7 @@ export default function PostsTable({
                     Ngày cập nhật
                   </Label>
                   <p className="text-sm">
-                    {selectedPost.updatedAt?.toLocaleDateString("vi-VN")}
+                    {selectedPost.updated_at.toLocaleDateString("vi-VN")}
                   </p>
                 </div>
               </div>

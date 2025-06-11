@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { checkRole } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getAllAttendances } from "~/libs/data/attendances";
 import { AttendancesTable } from "../_components/attendances/attendance-table";
 
 export default async function LeaveManagementPage() {
@@ -13,11 +12,20 @@ export default async function LeaveManagementPage() {
     );
   }
 
-  const { state } = await ssrPrefetch(trpc.attendance.getAll.queryOptions());
+  const attendances = await getAllAttendances({
+    page: 1,
+    pageSize: 20,
+  });
 
   return (
-    <HydrateClient state={state}>
-      <AttendancesTable />
-    </HydrateClient>
+    <div className="container mx-auto py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Quản lý nghỉ phép</h1>
+        <p className="text-muted-foreground">
+          Danh sách các đơn xin nghỉ phép của nhân viên
+        </p>
+      </div>
+      <AttendancesTable initialData={attendances} />
+    </div>
   );
 }
