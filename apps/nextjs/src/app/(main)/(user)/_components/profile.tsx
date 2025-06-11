@@ -26,11 +26,12 @@ import {
 } from "@acme/ui/table";
 import { toast } from "@acme/ui/toast";
 
+import type { UserByIdResult } from "~/libs/data/users";
 import { uploadFile } from "~/actions/upload";
 import { formatDate, getRelativePath } from "~/libs/index";
 import { useTRPC } from "~/trpc/react";
 
-export const ProfileContent = ({ userId }: { userId: string }) => {
+export const ProfileContent = ({ userData }: { userData: UserByIdResult }) => {
   const trpc = useTRPC();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -41,17 +42,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
     url: null,
   });
   const [uploading, setUploading] = useState(false);
-
-  const queryClient = useQueryClient();
-
-  const { data: user, error } = useQuery({
-    ...trpc.user.byId.queryOptions({
-      id: userId,
-    }),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+  const userId = userData.id;
 
   useEffect(() => {
     const message = searchParams.get("message");
@@ -69,9 +60,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
         toast("Success", {
           description: "Cập nhật ảnh đại diện thành công",
         });
-        queryClient.invalidateQueries({
-          queryKey: trpc.user.byId.queryKey(),
-        });
+        router.refresh();
       },
       onError: (error) => {
         toast("Error", {
@@ -90,6 +79,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     setFile(selected ?? null);
+
     if (selected) {
       setPreviewUrl(URL.createObjectURL(selected));
     } else {
@@ -110,16 +100,8 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
     }
   };
 
-  if (error) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <h1 className="text-2xl font-bold">Error: {error.message}</h1>
-      </div>
-    );
-  }
-
   const avatarToShow =
-    previewUrl || user?.avatar || "/uploads/default-avatar.png";
+    previewUrl || userData.avatar || "/uploads/default-avatar.png";
 
   return (
     <div className="container mx-auto p-6">
@@ -145,14 +127,23 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
             >
               <div className="relative mb-4">
                 <div className="relative h-32 w-32 overflow-hidden rounded-full bg-blue-100 ring-4 ring-blue-200">
-                  <Image
-                    src={getRelativePath(avatarToShow)}
-                    alt="User avatar"
-                    sizes="(max-width: 128px) 100vw, 128px"
-                    fill
-                    className="h-full w-full object-cover"
-                    priority
-                  />
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="h-full w-full rounded-full object-cover"
+                      style={{ width: 128, height: 128 }}
+                    />
+                  ) : (
+                    <Image
+                      src={getRelativePath(avatarToShow)}
+                      alt="User avatar"
+                      sizes="(max-width: 128px) 100vw, 128px"
+                      fill
+                      className="h-full w-full object-cover"
+                      priority
+                    />
+                  )}
                 </div>
               </div>
 
@@ -214,18 +205,18 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
           <div className="flex-1">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-foreground">
-                {user?.name}
+                {userData.name}
               </h2>
               <p className="text-lg text-muted-foreground">
-                {user?.positionId || "Employee"}
+                {userData.positions?.name || "Employee"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {user?.departments?.name}
+                {userData.departments?.name}
               </p>
               <div className="mt-2">
                 <Badge
                   variant={
-                    user?.status === "active" ? "default" : "destructive"
+                    userData.status === "active" ? "default" : "destructive"
                   }
                   className="bg-green-600"
                 >
@@ -243,7 +234,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Email</p>
-                    <p className="text-sm font-medium">{user?.email}</p>
+                    <p className="text-sm font-medium">{userData.email}</p>
                   </div>
                 </div>
               </Card>
@@ -255,7 +246,7 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Phone</p>
-                    <p className="text-sm font-medium">{user?.phone}</p>
+                    <p className="text-sm font-medium">{userData.phone}</p>
                   </div>
                 </div>
               </Card>
@@ -267,7 +258,9 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Employee ID</p>
-                    <p className="text-sm font-medium">{user?.employeeCode}</p>
+                    <p className="text-sm font-medium">
+                      {userData.employeeCode}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -289,25 +282,27 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Full Name</span>
-                <span className="text-sm font-medium">{user?.name}</span>
+                <span className="text-sm font-medium">{userData.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">
                   First Name
                 </span>
-                <span className="text-sm font-medium">{user?.firstName}</span>
+                <span className="text-sm font-medium">
+                  {userData.firstName}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Last Name</span>
-                <span className="text-sm font-medium">{user?.lastName}</span>
+                <span className="text-sm font-medium">{userData.lastName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">{user?.email}</span>
+                <span className="text-sm font-medium">{userData.email}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Phone</span>
-                <span className="text-sm font-medium">{user?.phone}</span>
+                <span className="text-sm font-medium">{userData.phone}</span>
               </div>
             </div>
           </CardContent>
@@ -327,19 +322,19 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   Department
                 </span>
                 <span className="text-sm font-medium">
-                  {user?.departments?.name ?? "Not assigned"}
+                  {userData.departments?.name ?? "Not assigned"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Position</span>
                 <span className="text-sm font-medium">
-                  {user?.positionId ?? "Not assigned"}
+                  {userData.positions?.name ?? "Not assigned"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Role</span>
                 <span className="text-sm font-medium">
-                  {user?.role?.name ?? "Not assigned"}
+                  {userData.role?.name ?? "Not assigned"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -347,9 +342,9 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   Created At
                 </span>
                 <span className="text-sm font-medium">
-                  {user?.createdAt
-                    ? formatDate(user.createdAt.toString())
-                    : "Not assigned"}
+                  {userData.createdAt
+                    ? formatDate(userData.createdAt.toString())
+                    : "null"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -357,9 +352,9 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
                   Updated At
                 </span>
                 <span className="text-sm font-medium">
-                  {user?.updatedAt
-                    ? formatDate(user.updatedAt.toString())
-                    : "Not assigned"}
+                  {userData.updatedAt
+                    ? formatDate(userData.updatedAt.toString())
+                    : "null"}
                 </span>
               </div>
             </div>
@@ -383,72 +378,74 @@ export const ProfileContent = ({ userId }: { userId: string }) => {
             <TableBody>
               <TableRow>
                 <TableCell className="font-medium">ID</TableCell>
-                <TableCell>{user?.id}</TableCell>
+                <TableCell>{userData.id}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Employee Code</TableCell>
-                <TableCell>{user?.employeeCode}</TableCell>
+                <TableCell>{userData.employeeCode ?? "null"}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Name</TableCell>
-                <TableCell>{user?.name}</TableCell>
+                <TableCell>{userData.name}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">First Name</TableCell>
-                <TableCell>{user?.firstName}</TableCell>
+                <TableCell>{userData.firstName}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Last Name</TableCell>
-                <TableCell>{user?.lastName}</TableCell>
+                <TableCell>{userData.lastName}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Email</TableCell>
-                <TableCell>{user?.email}</TableCell>
+                <TableCell>{userData.email}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Phone</TableCell>
-                <TableCell>{user?.phone}</TableCell>
+                <TableCell>{userData.phone}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Status</TableCell>
                 <TableCell>
                   <Badge
                     variant={
-                      user?.status === "active" ? "default" : "destructive"
+                      userData.status === "active" ? "default" : "destructive"
                     }
                   >
-                    {user?.status}
+                    {userData.status}
                   </Badge>
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Department</TableCell>
                 <TableCell>
-                  {user?.departments?.name ?? "Not assigned"}
+                  {userData.departments?.name ?? "Not assigned"}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Position</TableCell>
-                <TableCell>{user?.positionId ?? "Not assigned"}</TableCell>
+                <TableCell>
+                  {userData.positions?.name ?? "Not assigned"}
+                </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Role ID</TableCell>
-                <TableCell>{user?.role?.name ?? "Not assigned"}</TableCell>
+                <TableCell>{userData.role?.name ?? "Not assigned"}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Created At</TableCell>
                 <TableCell>
-                  {user?.createdAt
-                    ? formatDate(user.createdAt.toString())
-                    : "Not assigned"}
+                  {userData.createdAt
+                    ? formatDate(userData.createdAt.toString())
+                    : "null"}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Updated At</TableCell>
                 <TableCell>
-                  {user?.updatedAt
-                    ? formatDate(user.updatedAt.toString())
-                    : "Not assigned"}
+                  {userData.updatedAt
+                    ? formatDate(userData.updatedAt.toString())
+                    : "null"}
                 </TableCell>
               </TableRow>
             </TableBody>
