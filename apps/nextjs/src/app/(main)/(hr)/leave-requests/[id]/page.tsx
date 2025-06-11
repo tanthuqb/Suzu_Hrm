@@ -1,6 +1,5 @@
 import { checkAuth } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getLeaveRequestById } from "~/libs/data/leaverequest";
 import { LeaveRequestsTable } from "../../_components/leave-requests/leave-requests-table";
 
 export default async function LeaveRequestDetailPage({
@@ -11,17 +10,19 @@ export default async function LeaveRequestDetailPage({
   const AuthUser = await checkAuth();
 
   const { user } = AuthUser;
-  const { id } = params;
-  const { state } = await ssrPrefetch(trpc.leaveRequest.getAll.queryOptions());
+  const { id } = await params;
+  const leaveRequest = await getLeaveRequestById(id);
 
   return (
-    <HydrateClient state={state}>
-      <div className="container mx-auto space-y-6 py-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Leave Request Detail
-        </h1>
-        <LeaveRequestsTable userId={user?.id!} leaveRequestId={id} />
-      </div>
-    </HydrateClient>
+    <div className="container mx-auto space-y-6 py-6">
+      <h1 className="text-2xl font-bold tracking-tight">
+        Leave Request Detail
+      </h1>
+      <LeaveRequestsTable
+        userId={user?.id!}
+        leaveRequest={leaveRequest}
+        currentUserRole={user?.roleName}
+      />
+    </div>
   );
 }

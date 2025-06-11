@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { VALID_ROLES } from "@acme/db";
 
 import { checkRole } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getUserById } from "~/libs/data/users";
 import { ProfileContent } from "../_components/profile";
 
 export default async function ProfilePage() {
@@ -16,13 +15,8 @@ export default async function ProfilePage() {
     );
   }
 
-  const { state } = await ssrPrefetch(
-    trpc.user.byId.queryOptions({ id: user?.id! }),
-  );
+  const userId = user?.id;
+  const userData = await getUserById(userId!);
 
-  return (
-    <HydrateClient state={state}>
-      <ProfileContent userId={user?.id!} />;
-    </HydrateClient>
-  );
+  return <ProfileContent userData={userData!} />;
 }

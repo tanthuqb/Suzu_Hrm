@@ -47,10 +47,10 @@ export const sendLeaveRequest = async (
     reason: leaveRequestsInput.reason,
     link: `${env.NEXT_PUBLIC_APP_URL}/leave-requests/${leaveRequestId}`,
   });
-
+  const toEmails = env.EMAIL_TO!.split(",").map((e) => e.trim());
   await resend.emails.send({
     from: "HR System <delivered@resend.dev>",
-    to: env.EMAIL_TO!,
+    to: toEmails,
     subject: `Đơn xin làm việc tại nhà - ${leaveRequestsInput.name}`,
     html: htmlContent,
   });

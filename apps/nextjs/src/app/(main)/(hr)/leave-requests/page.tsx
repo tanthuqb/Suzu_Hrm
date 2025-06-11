@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { VALID_ROLES } from "@acme/db";
 
 import { checkRole } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getAllLeaveRequests } from "~/libs/data/leaverequest";
 import { LeaveRequestsTable } from "./../_components/leave-requests/leave-requests-table";
 
 export default async function LeaveManagementPage() {
@@ -14,21 +13,24 @@ export default async function LeaveManagementPage() {
       `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
     );
   }
-  const { state } = await ssrPrefetch(trpc.leaveRequest.getAll.queryOptions());
+
+  const leaveRequests = await getAllLeaveRequests({
+    userId: user?.id,
+  });
 
   return (
-    <HydrateClient state={state}>
-      <div className="container mx-auto space-y-6 py-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Quản lý nghỉ phép
-          </h1>
-          <p className="text-muted-foreground">
-            Xem, Tìm kiếm và quản lý nghỉ phép
-          </p>
-        </div>
-        <LeaveRequestsTable userId={user?.id!} />
+    <div className="container mx-auto space-y-6 py-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">Quản lý nghỉ phép</h1>
+        <p className="text-muted-foreground">
+          Xem, Tìm kiếm và quản lý nghỉ phép
+        </p>
       </div>
-    </HydrateClient>
+      <LeaveRequestsTable
+        userId={user?.id!}
+        currentUserRole={user?.roleName}
+        initialData={leaveRequests}
+      />
+    </div>
   );
 }

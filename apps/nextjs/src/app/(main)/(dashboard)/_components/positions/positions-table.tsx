@@ -137,7 +137,6 @@ export function PositionsTable({
 
   const handleCreate = async (data: Position) => {
     try {
-      console.log("Creating position with data:", data);
       await createPositionMuation.mutateAsync({
         name: data.name,
         departmentId: data.department_id,

@@ -31,8 +31,29 @@ export interface UserListResult {
 
 export interface SalarySlip {
   id: string;
+  userId: string;
+  month: string;
+  basicSalary: number;
+  workingSalary: number;
+  bonus: number;
+  allowance: number;
+  otherIncome: number;
+  totalIncome: number;
+  socialInsuranceBase?: number | null;
+  socialInsuranceDeducted?: number | null;
+  unionFee?: number | null;
+  taxableIncome?: number | null;
+  personalDeduction?: number | null;
+  familyDeduction?: number | null;
+  taxIncomeFinal?: number | null;
+  personalIncomeTax?: number | null;
+  advance?: number | null;
+  otherDeductions?: number | null;
+  totalDeductions?: number | null;
+  netIncome: number;
+  status: string;
   createdAt: string;
-  [key: string]: any;
+  updatedAt?: string;
 }
 
 export type UserByIdResult = FullHrmUser & {
@@ -134,31 +155,92 @@ export const getUserListFirstPageCached = cache(() =>
   }),
 );
 
-export const getUserById = async (id: string): Promise<UserByIdResult> => {
+export async function getUserById(id: string): Promise<UserByIdResult | null> {
   const supabase = await createServerClient();
-  const { data, error } = await supabase
+
+  // Lấy user
+  const { data: userData, error: userError } = await supabase
     .from("users")
     .select(
-      `*, role:roleId(*), department:departmentId(*), position:positionId(*), salarySlips:salarySlips(*)`,
+      `
+        *,
+        role:role_id ( id, name ),
+        department:department_id ( id, name ),
+        position:position_id ( id, name )
+      `,
     )
     .eq("id", id)
     .single();
 
-  if (error) throw new Error(error.message);
+  if (userError || !userData) {
+    console.error("Failed to get user:", userError?.message);
+    return null;
+  }
 
-  const latestSalary = Array.isArray(data.salarySlips)
-    ? data.salarySlips.sort(
-        (a: SalarySlip, b: SalarySlip) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )[0]
+  // Lấy phiếu lương gần nhất
+  const { data: salaryData, error: salaryError } = await supabase
+    .from("salary_slips")
+    .select("*")
+    .eq("user_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (salaryError) {
+    console.error("Failed to get salary:", salaryError.message);
+  }
+
+  // Map đúng type
+  const latestSalarySlip: SalarySlip | undefined = salaryData
+    ? {
+        id: salaryData.id,
+        userId: salaryData.user_id,
+        month: salaryData.month,
+        basicSalary: salaryData.basic_salary,
+        workingSalary: salaryData.working_salary,
+        bonus: salaryData.bonus ?? 0,
+        allowance: salaryData.allowance ?? 0,
+        otherIncome: salaryData.other_income ?? 0,
+        totalIncome: salaryData.total_income,
+        socialInsuranceBase: salaryData.social_insurance_base ?? undefined,
+        socialInsuranceDeducted:
+          salaryData.social_insurance_deduction ?? undefined,
+        unionFee: salaryData.union_fee ?? undefined,
+        taxableIncome: salaryData.taxable_income ?? undefined,
+        personalDeduction: salaryData.personal_deduction ?? undefined,
+        familyDeduction: salaryData.family_deduction ?? undefined,
+        taxIncomeFinal: salaryData.tax_income_final ?? undefined,
+        personalIncomeTax: salaryData.personal_income_tax ?? undefined,
+        advance: salaryData.advance ?? undefined,
+        otherDeductions: salaryData.other_deductions ?? undefined,
+        totalDeductions: salaryData.total_deductions ?? undefined,
+        netIncome: salaryData.net_income,
+        status: salaryData.status,
+        createdAt: salaryData.created_at
+          ? new Date(salaryData.created_at).toISOString()
+          : "",
+        updatedAt: salaryData.updated_at
+          ? new Date(salaryData.updated_at).toISOString()
+          : undefined,
+      }
     : undefined;
 
   return {
-    ...data,
-    latestSalarySlip: latestSalary,
-    status: data.status as UserStatusEnum,
+    ...userData,
+    avatar: userData.avatar_url,
+    status: userData.status as UserStatusEnum,
+    latestSalarySlip,
+    role: userData.role?.id
+      ? { id: userData.role.id, name: userData.role.name }
+      : undefined,
+    departments: userData.department?.id
+      ? { id: userData.department.id, name: userData.department.name }
+      : undefined,
+    positions: userData.position?.id
+      ? { id: userData.position.id, name: userData.position.name }
+      : undefined,
   };
-};
+}
 
 export const getCountUserByStatus = async (
   status: UserStatusEnum,
