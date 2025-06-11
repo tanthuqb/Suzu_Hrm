@@ -35,7 +35,6 @@ function AttendanceDetailsDialog({
 }: {
   attendance: AttendanceRecord;
 }) {
-  console.log("AttendanceDetailsDialog", attendance);
   return (
     <Dialog>
       <DialogTrigger asChild>
