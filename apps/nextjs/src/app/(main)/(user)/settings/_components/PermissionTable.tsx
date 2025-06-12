@@ -5,7 +5,7 @@ import { Checkbox } from "@acme/ui/checkbox";
 export interface AllAction {
   module: string;
   action: string;
-  type: "query" | "mutation" | "subscription";
+  type: string;
 }
 
 interface PermissionTableProps {

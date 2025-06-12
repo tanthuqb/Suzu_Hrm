@@ -1,6 +1,5 @@
 "use client";
 
-import App from "next/app";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -20,6 +19,7 @@ import {
   SelectValue,
 } from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
+import { toast } from "@acme/ui/toast";
 
 const leaveRequestSchema = z.object({
   name: z
@@ -119,7 +119,7 @@ export function LeaveRequestForm({
       onSubmit(data);
     },
     (errors) => {
-      console.log("Validation errors:", errors);
+      toast.error("Có lỗi xảy ra khi gửi biểu mẫu. Vui lòng kiểm tra lại.");
     },
   );
 

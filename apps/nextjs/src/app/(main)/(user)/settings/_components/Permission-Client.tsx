@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useState, useTransition } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@acme/ui/button";
 import {
@@ -14,105 +14,105 @@ import {
 } from "@acme/ui/card";
 import { toast } from "@acme/ui/toast";
 
-import { useTRPC } from "~/trpc/react";
+import type { PermissionAction, RolePermission } from "~/libs/data/permisions";
+import type { Role } from "~/libs/data/roles";
 import { PermissionTable } from "./PermissionTable";
 import { RoleSelector } from "./RoleSelector";
 import { SelectAllButtons } from "./SelectAllButtons";
 
-// export const DEFAULT_ROLE_ID = "00000000-0000-0000-0000-000000000000";
-const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-
-export default function Permissions() {
-  const trpc = useTRPC();
+export default function Permissions({
+  roles,
+  permissions: allActions,
+}: {
+  roles: Role[];
+  permissions: PermissionAction[];
+}) {
   const [selectedRole, setSelectedRole] = useState<string>("");
-  const [permissions, setPermissions] = useState<
-    Record<string, Record<string, boolean>>
-  >({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [rolePerms, setRolePerms] = useState<RolePermission | null>(null);
+  const [isSaving, startTransition] = useTransition();
+  const [state, setState] = useState<Record<string, Record<string, boolean>>>(
+    {},
+  );
 
-  const { data: roles } = useQuery({
-    ...trpc.role.getAll.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
+  // Gán role mặc định
   useEffect(() => {
-    if (roles?.length && !selectedRole) {
-      setSelectedRole(roles[0]?.id!);
+    if (!selectedRole) {
+      if (roles.length && !selectedRole && roles[0]) {
+        setSelectedRole(roles[0].id);
+      } else {
+        const defaultState: typeof state = {};
+        allActions.forEach((p) => {
+          (defaultState[p.module] ??= {})[p.action] = p.allow ?? false;
+        });
+        setState(defaultState);
+      }
     }
-  }, [roles, selectedRole]);
+  }, [roles, selectedRole, allActions]);
 
-  const { data: allActions } = useQuery({
-    ...trpc.permission.getAllActions.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const opts = trpc.permission.getPermissionsByRoleId.queryOptions({
-    roleId: selectedRole || ZERO_UUID,
-  });
-
-  const { data: rolePerms } = useQuery({
-    queryKey: opts.queryKey,
-    queryFn: opts.queryFn,
-  });
-
+  // Lấy quyền theo role khi selectedRole thay đổi
   useEffect(() => {
-    if (!rolePerms) return;
-    const init: typeof permissions = {};
-    rolePerms.permissions.forEach((p) => {
-      if (!p.module || !p.action) return;
-      init[p.module] ??= {};
-      const modulePerms = init[p.module];
-      if (!modulePerms) return;
-      modulePerms[p.action] = p.allow ?? false;
-    });
-    setPermissions(init);
-  }, [rolePerms, selectedRole]);
+    if (!selectedRole) return;
+
+    fetch(`/api/permissions/${selectedRole}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Lỗi HTTP khi lấy quyền");
+        return res.json();
+      })
+      .then((data: RolePermission) => {
+        setRolePerms(data);
+        const init: typeof state = {};
+        data.permissions.forEach((p) => {
+          (init[p.module] ??= {})[p.action] = p.allow ?? false;
+        });
+        setState(init);
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi lấy permission theo role:", err);
+        toast.error("Không thể tải quyền cho vai trò được chọn.");
+      });
+  }, [selectedRole]);
 
   const handleToggle = (module: string, action: string) => {
-    setPermissions((prev) => ({
+    setState((prev) => ({
       ...prev,
       [module]: { ...prev[module], [action]: !prev[module]?.[action] },
     }));
   };
 
   const handleSelectAll = () => {
-    const all: typeof permissions = {};
-    allActions?.forEach((p) => {
-      if (!p.module || !p.action) return;
-      const moduleKey = p.module;
-      const actionKey = p.action;
-      all[moduleKey] ??= {};
-      all[moduleKey][actionKey] = true;
+    const all: typeof state = {};
+    allActions.forEach((p) => {
+      all[p.module] ??= {};
+      (all[p.module] ??= {})[p.action] = p.allow ?? false;
     });
-    setPermissions(all);
+    setState(all);
   };
 
-  const handleDeselectAll = () => setPermissions({});
+  const handleDeselectAll = () => setState({});
 
-  const save = useMutation(
-    trpc.permission.saveActions.mutationOptions({
-      onSuccess: () => toast.success("Lưu quyền thành công!"),
-      onError: (err) => toast.error(err.message),
-    }),
-  );
-
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!selectedRole) return;
-    setIsSaving(true);
-    const payload = Object.entries(permissions).flatMap(([mod, actions]) =>
-      Object.entries(actions).map(([act, allow]) => ({
-        module: mod,
-        action: act,
-        type: "query" as const,
-        allow,
-      })),
-    );
-    await save.mutateAsync({ roleId: selectedRole, actions: payload });
-    setIsSaving(false);
+    startTransition(async () => {
+      const payload: PermissionAction[] = Object.entries(state).flatMap(
+        ([mod, actions]) =>
+          Object.entries(actions).map(([act, allow]) => ({
+            module: mod,
+            action: act,
+            type: "query", // hoặc giữ type từ allActions nếu cần
+            allow,
+          })),
+      );
+
+      const res = await fetch("/api/permissions", {
+        method: "POST",
+        body: JSON.stringify({ roleId: selectedRole, actions: payload }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+      if (data.ok) toast.success("✅ Lưu quyền thành công!");
+      else toast.error(`❌ ${data.error}`);
+    });
   };
 
   return (
@@ -125,11 +125,11 @@ export default function Permissions() {
       </CardHeader>
       <CardContent className="space-y-6">
         <RoleSelector
-          roles={roles!}
+          roles={roles}
           selected={selectedRole}
           onSelect={setSelectedRole}
         />
-        {selectedRole && allActions && rolePerms && (
+        {selectedRole && allActions.length > 0 && rolePerms && (
           <>
             <SelectAllButtons
               onSelectAll={handleSelectAll}
@@ -137,7 +137,7 @@ export default function Permissions() {
             />
             <PermissionTable
               allActions={allActions}
-              state={permissions}
+              state={state}
               onToggle={handleToggle}
             />
           </>

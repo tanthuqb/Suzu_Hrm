@@ -1,5 +1,7 @@
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "~/libs/logger";
+
 export interface AttendanceRecord {
   id: string;
   date: string;
@@ -98,7 +100,7 @@ export async function getAllAttendances(
 
   if (error) throw new Error(error.message);
 
-  const records: AttendanceRecord[] = (data ?? []).map((att) => {
+  const records: AttendanceRecord[] = (data ?? []).map((att: any) => {
     const user = Array.isArray(att.user) ? att.user[0] : att.user;
     const department = Array.isArray(user?.department)
       ? user.department[0]
@@ -112,7 +114,7 @@ export async function getAllAttendances(
       : att.leave_requests;
     const approvedBy = Array.isArray(leaveRequest?.approved_by)
       ? leaveRequest.approved_by[0]?.name
-      : (leaveRequest?.approved_by as any)?.name;
+      : leaveRequest?.approved_by?.name;
 
     return {
       id: att.id,

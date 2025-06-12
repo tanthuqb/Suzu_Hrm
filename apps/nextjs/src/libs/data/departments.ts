@@ -1,5 +1,7 @@
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface Department {
   id: string;
   name: string;
@@ -15,7 +17,11 @@ export async function getAllDepartments(): Promise<Department[]> {
     .from("departments")
     .select("*")
     .order("created_at", { ascending: true });
+  logger.error("Error fetching departments", {
+    error,
+  });
   if (error) throw new Error(error.message);
+
   return data as Department[];
 }
 
@@ -26,6 +32,10 @@ export async function getDepartmentById(id: number) {
     .select("*")
     .eq("id", id)
     .single();
+  logger.error("Error fetching department by ID", {
+    id,
+    error,
+  });
   if (error) throw new Error(error.message);
-  return data;
+  return data as Department;
 }

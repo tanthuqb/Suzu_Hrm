@@ -2,8 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 
 import { checkRole } from "~/actions/auth";
-import { HydrateClient, trpc } from "~/trpc/server";
-import { ssrPrefetch } from "~/trpc/ssrPrefetch";
+import { getAllRoles } from "~/libs/data/roles";
 import RoleManager from "../_components/role-table";
 
 export default async function PageRolesManagers() {
@@ -13,11 +12,7 @@ export default async function PageRolesManagers() {
       `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
     );
   }
-  const { state } = await ssrPrefetch(trpc.role.getAll.queryOptions());
+  const roles = await getAllRoles();
 
-  return (
-    <HydrateClient state={state}>
-      <RoleManager />
-    </HydrateClient>
-  );
+  return <RoleManager roles={roles} />;
 }

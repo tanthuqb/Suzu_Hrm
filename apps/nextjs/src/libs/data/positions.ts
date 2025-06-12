@@ -1,6 +1,8 @@
 import type { UserStatusEnum } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface UserPositionCount {
   positionId: string;
   positionName: string;
@@ -32,6 +34,9 @@ export async function getAllPositions(): Promise<Position[]> {
       `id, name, department_id, created_at, updated_at, department:department_id(id, name)`,
     )
     .order("created_at", { ascending: true });
+  logger.error("Error fetching positions", {
+    error,
+  });
   if (error) throw new Error(error.message);
   return data as unknown as Position[];
 }
@@ -43,7 +48,12 @@ export async function getPositionById(id: number) {
     .select("*")
     .eq("id", id)
     .single();
+  logger.error("Error fetching position by ID", {
+    id,
+    error,
+  });
   if (error) throw new Error(error.message);
+
   return data;
 }
 
@@ -56,10 +66,10 @@ export async function getAllUserCountsByPosition(
     .select("position_id, position:position_id(id, name)")
     .eq("status", status);
 
-  const users = data as unknown as UserPosition[];
-
   if (error) {
-    console.error("Supabase error:", error.message);
+    logger.error("Error fetching user counts by position", {
+      error,
+    });
     throw new Error("Failed to fetch user counts by position");
   }
 
@@ -67,14 +77,13 @@ export async function getAllUserCountsByPosition(
 
   for (const item of data ?? ([] as UserPosition[])) {
     const posId = item.position_id;
-
     let posName = "Unknown";
     if (
-      Array.isArray(item.position) &&
-      item.position.length > 0 &&
-      item.position[0]
+      item.position &&
+      typeof item.position === "object" &&
+      "name" in item.position
     ) {
-      posName = item.position[0].name ?? "Unknown";
+      posName = item.position.name ?? "Unknown";
     }
 
     if (!posId) continue;

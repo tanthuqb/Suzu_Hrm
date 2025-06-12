@@ -9,15 +9,15 @@ import { checkPermissionOrThrow } from "../libs";
 import { protectedProcedure } from "../trpc";
 
 export const noteRouter = {
-  getAllNotes: protectedProcedure.query(async ({ ctx }) => {
-    await checkPermissionOrThrow(
-      ctx,
-      "notes",
-      "getAll",
-      "Không có quyền xem tất cả ghi chú",
-    );
-    return await ctx.db.select().from(Notes).orderBy(desc(Notes.createdAt));
-  }),
+  // getAllNotes: protectedProcedure.query(async ({ ctx }) => {
+  //   await checkPermissionOrThrow(
+  //     ctx,
+  //     "notes",
+  //     "getAll",
+  //     "Không có quyền xem tất cả ghi chú",
+  //   );
+  //   return await ctx.db.select().from(Notes).orderBy(desc(Notes.createdAt));
+  // }),
   getNoteById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {

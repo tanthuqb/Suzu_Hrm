@@ -26,7 +26,9 @@ export default function CountPositionPage({
             key={position.positionId}
             className="flex items-center justify-between"
           >
-            <span className="text-sm font-medium">{position.positionName ?? 'Total Nhân viên'}</span>
+            <span className="text-sm font-medium">
+              {position.positionName ?? "Total Nhân viên"}
+            </span>
             <span className="text-sm text-muted-foreground">
               {position.count} Nhân viên
             </span>

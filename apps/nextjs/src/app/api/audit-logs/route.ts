@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 
+import { checkPermissionOrThrow, createTRPCContext } from "@acme/api";
+
 import { getAllAuditLogs } from "~/libs/data/auditlog";
 
 export async function GET(req: Request) {
+  const headers = req.headers;
+  const ctx = await createTRPCContext({ headers, session: null });
+
+  try {
+    await checkPermissionOrThrow(ctx, "auditlog", "getAll");
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: err.message ?? "Forbidden" },
+      { status: 403 },
+    );
+  }
   const { searchParams } = new URL(req.url);
 
   const page = Number(searchParams.get("page") ?? 1);

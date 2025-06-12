@@ -4,6 +4,8 @@ import type { FullHrmUser, UserStatusEnum } from "@acme/db";
 import type { SalarySlipRecord } from "@acme/db/schema";
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface UserListItem {
   id: string;
   email: string;
@@ -99,6 +101,14 @@ export const getUserListUncached = async ({
     .order(sortBy || "email", { ascending: order === "asc" });
 
   const { data, error, count } = await query;
+  logger.error("Error fetching user list", {
+    page,
+    pageSize,
+    search,
+    sortBy,
+    order,
+    error,
+  });
 
   if (error) throw new Error(error.message);
 
@@ -113,18 +123,21 @@ export const getUserListUncached = async ({
       .from("salary_slips")
       .select("*")
       .in("user_id", userIds);
-
+    logger.error("Error fetching salary slips", {
+      userIds,
+      error: salaryError,
+    });
     if (salaryError) throw new Error(salaryError.message);
 
     // Lấy salary slip mới nhất cho từng user
     latestSalaryByUserIds = userIds
-      .map((userId) => {
+      .map((userId: any) => {
         const slips = (salaryData ?? []).filter(
           (s: any) => s.user_id === userId,
         );
         if (slips.length === 0) return null;
         return slips.sort(
-          (a, b) =>
+          (a: any, b: any) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )[0];
       })
@@ -173,7 +186,10 @@ export async function getUserById(id: string): Promise<UserByIdResult | null> {
     .single();
 
   if (userError || !userData) {
-    console.error("Failed to get user:", userError?.message);
+    logger.error("Error fetching user by ID", {
+      id,
+      error: userError?.message || "User not found",
+    });
     return null;
   }
 
@@ -187,7 +203,11 @@ export async function getUserById(id: string): Promise<UserByIdResult | null> {
     .maybeSingle();
 
   if (salaryError) {
-    console.error("Failed to get salary:", salaryError.message);
+    logger.error("Error fetching latest salary slip for user", {
+      userId: id,
+      error: salaryError.message,
+    });
+    return null;
   }
 
   // Map đúng type
@@ -258,6 +278,11 @@ export const getCountUserByStatus = async (
   }
 
   const { data, error } = await query;
+  logger.error("Error fetching user count by status", {
+    status,
+    year,
+    error,
+  });
   if (error) throw new Error(error.message);
 
   const monthCounts: MonthCount[] = Array.from({ length: 12 }, (_, i) => ({
@@ -280,7 +305,9 @@ export const getUserCountByPosition = async (): Promise<PositionCount[]> => {
     .from("users")
     .select("positionId, position:positionId(name)")
     .eq("status", "active");
-
+  logger.error("Error fetching user counts by position", {
+    error,
+  });
   if (error) throw new Error(error.message);
 
   const counts: Record<string, { positionName: string; count: number }> = {};

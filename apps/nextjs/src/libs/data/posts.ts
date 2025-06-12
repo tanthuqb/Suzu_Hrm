@@ -1,6 +1,8 @@
 import { postStatusValues } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface Post {
   id: string;
   title: string;
@@ -95,6 +97,14 @@ export async function getAllPosts({
   }
 
   const { data, count: totalCount, error } = await baseQuery;
+  logger.error("Error fetching posts", {
+    page,
+    pageSize,
+    status,
+    search,
+    authorId,
+    error,
+  });
   if (error) throw new Error(error.message);
 
   const processedPosts = (data ?? []).map((post) => {
