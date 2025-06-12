@@ -232,10 +232,12 @@ export async function getLeaveRequestById(
     )
     .eq("id", id)
     .single();
-  logger.error("Error fetching leave request by ID", {
-    id,
-    error,
-  });
+  if (error) {
+    logger.error("Error fetching leave request by ID", {
+      id,
+      error,
+    });
+  }
   if (error) throw new Error(error.message);
   if (!data) return null;
 
