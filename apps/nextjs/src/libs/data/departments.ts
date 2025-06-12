@@ -17,10 +17,12 @@ export async function getAllDepartments(): Promise<Department[]> {
     .from("departments")
     .select("*")
     .order("created_at", { ascending: true });
-  logger.error("Error fetching departments", {
-    error,
-  });
-  if (error) throw new Error(error.message);
+  if (error) {
+    logger.error("Error fetching departments", {
+      error,
+    });
+    throw new Error(error.message);
+  }
 
   return data as Department[];
 }
