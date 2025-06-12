@@ -130,15 +130,17 @@ export async function getAllLeaveRequests({
   }
 
   const { data, count, error } = await query;
-  logger.error("Error fetching leave requests", {
-    page,
-    pageSize,
-    search,
-    status,
-    userId,
-    error,
-  });
-  if (error) throw new Error(error.message);
+  if (error) {
+    logger.error("Error fetching leave requests", {
+      page,
+      pageSize,
+      search,
+      status,
+      userId,
+      error,
+    });
+    throw new Error(error.message);
+  }
 
   const leaveRequests: LeaveRequestRecord[] = (data ?? []).map((r) => {
     const requesterRaw = r.requester;
