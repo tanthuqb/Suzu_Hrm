@@ -13,15 +13,6 @@ import type {
   TagRecord,
 } from "../schema";
 
-// User Types
-export type UserRole =
-  | "ADMIN"
-  | "USER"
-  | "MANAGER"
-  | "user"
-  | "admin"
-  | "Admin";
-
 // Notication Types
 export type NotificationType = "Email" | "Sms" | "Important";
 
@@ -67,26 +58,6 @@ export interface AuthUser {
   };
 }
 
-export interface ResponeAuthUser {
-  status: boolean;
-  message: string;
-}
-
-// Request/Response Types
-export interface CreateUserInput {
-  name: string;
-  email: string;
-  role: string;
-  status?: UserStatusEnum;
-}
-
-export interface UpdateUserInput {
-  name?: string;
-  email?: string;
-  role?: string;
-  status?: UserStatusEnum;
-}
-
 export interface HRMUserInput {
   firstName: string;
   lastName: string;
@@ -106,40 +77,8 @@ export interface AttendanceInput {
   date: string;
 }
 
-export type SalarySlipWithUser = HRMUserInput & {
-  status: UserStatusEnum;
-};
-
-export type SalarySlipWithTableUser = DBUser & {
-  status?: UserStatusEnum;
-  latestSalarySlip?: SalarySlipRecord;
-};
-
 /* Permison Types and Role  */
 export type PermissionAction = "create" | "read" | "update" | "delete";
-
-export interface RoutePermission {
-  path: string;
-  actions: Record<PermissionAction, boolean>;
-}
-
-export interface FullAttendanceRecord {
-  id: string;
-  date: Date;
-  userId: string;
-  userName: string | null;
-  userEmail: string | null;
-  status: string;
-  isRemote: boolean | null;
-  remoteReason: string | null;
-  leaveRequestId: string | null;
-  leaveRequestStatus: string | null;
-  leaveRequestReason: string | null;
-  leaveRequestsApprovedBy: string | null;
-  approvedByName: string | null;
-  office: string | null;
-  departmentName: string | null;
-}
 
 export interface RecentActivity extends AuditLogRecord {
   user: DBUser | null;

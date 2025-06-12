@@ -1,5 +1,7 @@
 import { createBrowserClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface LeaveBalanceRecord {
   id: string;
   user_id: string;
@@ -128,8 +130,17 @@ export async function getAllLeaveRequests({
   }
 
   const { data, count, error } = await query;
-
-  if (error) throw new Error(error.message);
+  if (error) {
+    logger.error("Error fetching leave requests", {
+      page,
+      pageSize,
+      search,
+      status,
+      userId,
+      error,
+    });
+    throw new Error(error.message);
+  }
 
   const leaveRequests: LeaveRequestRecord[] = (data ?? []).map((r) => {
     const requesterRaw = r.requester;
@@ -221,7 +232,12 @@ export async function getLeaveRequestById(
     )
     .eq("id", id)
     .single();
-
+  if (error) {
+    logger.error("Error fetching leave request by ID", {
+      id,
+      error,
+    });
+  }
   if (error) throw new Error(error.message);
   if (!data) return null;
 
@@ -276,8 +292,14 @@ export async function getLeaveBalanceByUserId(
     .limit(1)
     .single();
 
+  logger.error("Error fetching leave balance by user ID", {
+    userId,
+    year,
+    error,
+  });
   if (error && error.code !== "PGRST116") {
     throw new Error(error.message);
   }
+
   return data as LeaveBalanceRecord;
 }

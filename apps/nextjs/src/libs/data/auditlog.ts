@@ -2,6 +2,8 @@ import { cache } from "react";
 
 import { createServerClient } from "@acme/supabase";
 
+import { logger } from "../logger";
+
 export interface AuditLog {
   [key: string]: any;
   users?: any;
@@ -55,9 +57,21 @@ export const getAllAuditLogs = cache(
     if (payload) query = query.eq("payload", payload);
     const { data, error, count } = await query;
     if (error) {
-      console.error("Supabase error:", error.message);
+      logger.error("Error fetching audit logs", {
+        userId,
+        email,
+        action,
+        entity,
+        request,
+        response,
+        payload,
+        page,
+        pageSize,
+        error: error.message,
+      });
       throw new Error("Failed to fetch audit logs");
     }
+
     return {
       logs: data,
       pagination: {

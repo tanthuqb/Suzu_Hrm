@@ -64,6 +64,7 @@
     "recharts": "^2.15.3",
     "resend": "^4.2.0",
     "superjson": "2.2.2",
+    "ts-morph": "^26.0.0",
     "uuidv4": "^6.2.13",
     "winston": "^3.17.0",
     "zod": "catalog:"

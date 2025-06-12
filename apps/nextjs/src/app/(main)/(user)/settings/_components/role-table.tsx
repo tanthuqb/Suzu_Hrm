@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
@@ -38,42 +39,25 @@ import {
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
+import type { Role } from "~/libs/data/roles";
 import { useTRPC } from "~/trpc/react";
 
-interface Role {
-  id: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date | null;
-  description: string | null;
-}
-
-export default function RoleManager() {
+export default function RoleManager({ roles = [] }: { roles?: Role[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<Role | null>(null);
   const [newRole, setNewRole] = useState({ name: "", description: "" });
+  const router = useRouter();
   const trpc = useTRPC();
-
-  const {
-    data: roles,
-    refetch,
-    isFetching,
-  } = useQuery({
-    ...trpc.role.getAll.queryOptions(),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
 
   const createRoleMutation = useMutation(
     trpc.role.create.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã thêm vai trò người dùng`);
-        refetch();
         setIsCreateModalOpen(false);
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -85,8 +69,8 @@ export default function RoleManager() {
     trpc.role.update.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã cập nhật vai trò người dùng`);
-        refetch();
         setIsCreateModalOpen(false);
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -98,8 +82,8 @@ export default function RoleManager() {
     trpc.role.delete.mutationOptions({
       onSuccess: () => {
         toast.success(`Đã xóa vai trò người dùng`);
-        refetch();
         setIsCreateModalOpen(false);
+        router.refresh();
       },
       onError(err) {
         toast.error(err.message);
@@ -107,12 +91,8 @@ export default function RoleManager() {
     }),
   );
 
-  if (isFetching) {
-    return <div>Loading...</div>;
-  }
-
-  const filteredRoles = roles?.filter(
-    (role) =>
+  const filteredRoles = roles.filter(
+    (role: Role) =>
       role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       role.description?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -231,7 +211,7 @@ export default function RoleManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRoles?.length === 0 ? (
+                {filteredRoles.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={3}
@@ -241,7 +221,7 @@ export default function RoleManager() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRoles?.map((role) => (
+                  filteredRoles.map((role) => (
                     <TableRow key={role.id}>
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell className="hidden md:table-cell">

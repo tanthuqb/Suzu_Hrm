@@ -1,11 +1,12 @@
 "use client";
 
-import type { RoleRecord } from "@acme/db/schema";
 import { Label } from "@acme/ui/label";
 import { RadioGroup, RadioGroupItem } from "@acme/ui/radio-group";
 
+import type { Role } from "~/libs/data/roles";
+
 interface RoleSelectorProps {
-  roles: RoleRecord[];
+  roles: Role[];
   selected: string;
   onSelect: (roleId: string) => void;
 }

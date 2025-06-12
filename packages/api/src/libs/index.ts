@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
+import { logger } from "../../../../apps/nextjs/src/libs/logger";
 import { appRouter } from "../root";
 
 function extractProcedures(
