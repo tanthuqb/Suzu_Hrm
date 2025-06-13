@@ -6,7 +6,7 @@ import { getAllPositions } from "~/libs/data/positions";
 import { PositionsTable } from "../_components/positions/positions-table";
 
 export default async function PositionsPage() {
-  const { status, message } = await checkRole(["admin"]);
+  const { status, message } = await checkRole(["admin", "hr"]);
   if (!status) {
     redirect(
       `/profile?message=${encodeURIComponent(message ?? "Bạn không có quyền truy cập.")}`,
@@ -15,6 +15,7 @@ export default async function PositionsPage() {
 
   const positions = await getAllPositions();
   const departments = await getAllDepartments();
+
   return (
     <div className="container py-10">
       <h1 className="mb-6 text-3xl font-bold">Positions</h1>
