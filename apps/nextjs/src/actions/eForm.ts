@@ -66,8 +66,14 @@ export const sendLeaveRequest = async (
     subject: `Đơn xin làm việc tại nhà - ${leaveRequestsInput.name}`,
     html: htmlContent,
   });
-  logger.error("Error sending email", {
-    sendEmail,
-  });
+  if (sendEmail.error) {
+    logger.error("Error sending email", {
+      error: sendEmail.error,
+    });
+  } else {
+    logger.info("Email sent successfully", {
+      sendEmail,
+    });
+  }
   return { data: [data], error };
 };
