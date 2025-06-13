@@ -78,12 +78,17 @@ export async function getAllUserCountsByPosition(
   for (const item of data ?? ([] as UserPosition[])) {
     const posId = item.position_id;
     let posName = "Unknown";
-    if (
+    if (Array.isArray(item.position)) {
+      const first = (item.position as unknown as { name?: string }[])[0];
+      if (first && typeof first.name === "string") {
+        posName = first.name;
+      }
+    } else if (
       item.position &&
       typeof item.position === "object" &&
-      "name" in item.position
+      typeof (item.position as unknown as { name?: unknown }).name === "string"
     ) {
-      posName = item.position.name ?? "Unknown";
+      posName = (item.position as unknown as { name: string }).name;
     }
 
     if (!posId) continue;

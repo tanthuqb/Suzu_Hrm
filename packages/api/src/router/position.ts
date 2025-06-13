@@ -32,12 +32,12 @@ export const positionRouter = {
     }),
 
   getAll: publicProcedure.query(async ({ ctx }) => {
-    // await checkPermissionOrThrow(
-    //   ctx,
-    //   "position",
-    //   "getAll",
-    //   "Không có quyền xem danh sách vị trí công việc",
-    // );
+    await checkPermissionOrThrow(
+      ctx,
+      "position",
+      "getAll",
+      "Không có quyền xem danh sách vị trí công việc",
+    );
     return await ctx.db
       .select({
         id: Position.id,
