@@ -75,3 +75,9 @@ export function mergeDehydratedStates(
     mutations: states.flatMap((s) => s.mutations),
   };
 }
+
+export function getMonthRange(year: number, month: number) {
+  const fromDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const toDate = new Date(year, month, 0).toISOString().slice(0, 10);
+  return { fromDate, toDate };
+}

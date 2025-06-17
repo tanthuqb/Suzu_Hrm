@@ -71,12 +71,6 @@ export interface HRMUserInput {
   updatedAt: Date;
 }
 
-export interface AttendanceInput {
-  user_id: string;
-  status: string;
-  date: string;
-}
-
 /* Permison Types and Role  */
 export type PermissionAction = "create" | "read" | "update" | "delete";
 

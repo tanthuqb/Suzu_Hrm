@@ -26,30 +26,8 @@ export function normalizeStatusValue(value: string): string | null {
       return AttendanceStatus.UnpaidLeave as string;
     case "p1":
       return AttendanceStatus.PaidLeaveHalfWork as string;
-    case "p2":
-      return AttendanceStatus.PaidLeaveHalfUnpaid as string;
     case "l":
       return AttendanceStatus.PaidHoliday as string;
-    case "ct":
-      return AttendanceStatus.CompanyLeave as string;
-    case "nb":
-      return AttendanceStatus.CompensateFull as string;
-    case "nb1":
-      return AttendanceStatus.CompensateHalfWork as string;
-    case "nb2":
-      return AttendanceStatus.CompensateHalfUnpaid as string;
-    case "bh":
-      return AttendanceStatus.InsuranceLeave as string;
-    case "bd":
-      return AttendanceStatus.NightCompensate as string;
-    case "bc":
-      return AttendanceStatus.SundayCompensateFull as string;
-    case "bc1":
-      return AttendanceStatus.SundayCompensateHalfWork as string;
-    case "bc2":
-      return AttendanceStatus.SundayCompensateHalfUnpaid as string;
-    case "x/2":
-      return AttendanceStatus.HalfPaidHalfUnpaid as string;
     default:
       return null;
   }
@@ -69,4 +47,29 @@ export function getCurrentVietnamMonth() {
     new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
   );
   return `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Kiểm tra xem chuỗi có phải là ngày hợp lệ theo định dạng YYYY-MM-DD không
+export function isValidDateString(dateString: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateString);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
+export function normalizeSheetNameToMonth(sheetName: string): string | null {
+  const matched = /\d{1,2}/.exec(sheetName);
+  if (!matched) return null;
+
+  const monthNumber = parseInt(matched[0], 10);
+  if (monthNumber < 1 || monthNumber > 12) return null;
+
+  return monthNumber.toString().padStart(2, "0");
 }

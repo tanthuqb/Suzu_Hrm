@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { approvalStatusEnum } from "@acme/db";
+import { approvalStatusEnum, AttendanceStatus } from "@acme/db";
 import { Badge } from "@acme/ui/badge";
 import { Button } from "@acme/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@acme/ui/card";
@@ -29,7 +29,10 @@ const leaveRequestSchema = z.object({
   userId: z.string().optional(),
   departmentId: z.string().optional(),
   departmentName: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(Object.values(AttendanceStatus) as [string, ...string[]], {
+    required_error: "Trạng thái là bắt buộc",
+    invalid_type_error: "Trạng thái không hợp lệ",
+  }),
   start_date: z.date({
     required_error: "Ngày bắt đầu là bắt buộc",
   }),
@@ -118,7 +121,7 @@ export function LeaveRequestForm({
     (data) => {
       onSubmit(data);
     },
-    (errors) => {
+    () => {
       toast.error("Có lỗi xảy ra khi gửi biểu mẫu. Vui lòng kiểm tra lại.");
     },
   );
