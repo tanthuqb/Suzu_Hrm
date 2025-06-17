@@ -28,7 +28,6 @@ export default async function ProfilePage() {
     fromDate,
     toDate,
   });
-  console.log("userLeaveBalance", userLeaveBalance);
   return (
     <ProfileContent userData={userData!} userLeaveBalance={userLeaveBalance} />
   );

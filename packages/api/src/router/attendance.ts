@@ -5,7 +5,6 @@ import { z } from "zod";
 import { alias, and, eq } from "@acme/db";
 import {
   Attendance,
-  attendanceStatusEnum,
   CreateAttendanceSchema,
   Department,
   HRMUser,

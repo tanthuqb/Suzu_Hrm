@@ -1,6 +1,5 @@
 "use client";
 
-import type { AttendanceInput } from "node_modules/@acme/api/src/router/hr";
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
@@ -27,12 +26,11 @@ import {
 } from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
-import { normalizeSheetNameToMonth } from "@acme/utils";
 
 import { useTRPC } from "~/trpc/react";
 
 export default function ImportPage() {
-  const [fileData, setFileData] = useState<AttendanceInput[]>([]);
+  const [fileData, setFileData] = useState<any>([]);
   const [textPreview, setTextPreview] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +58,7 @@ export default function ImportPage() {
       onMutate() {
         setIsLoading(true);
       },
-      onSuccess: (data: AttendanceInput[]) => {
+      onSuccess: (data: any[]) => {
         setFileData(data);
         setTextPreview(JSON.stringify(data, null, 2));
       },
@@ -167,7 +165,7 @@ export default function ImportPage() {
     setIsLoading(true);
     importMutation.mutate({
       month: selectedMonth!,
-      items: fileData.map((d) => ({
+      items: fileData.map((d: any) => ({
         ...d,
         status: d.status as AttendanceStatus,
       })),

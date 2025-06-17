@@ -39,9 +39,6 @@ export const hrRouter = createTRPCRouter({
 
       const supabase = await createServerClient();
       const emailToUserId = await getEmailToUserIdMap(supabase);
-      console.log(
-        `🔍 Tìm thấy ${emailToUserId.size} người dùng trong Supabase`,
-      );
 
       const headerRow = input[0];
       const validDayKeys = Object.keys(headerRow!).filter((key) =>
@@ -87,7 +84,7 @@ export const hrRouter = createTRPCRouter({
           parsedMonth < 1 ||
           parsedMonth > 12
         ) {
-          // console.warn(`❌ Dòng ${i + 1}: sheetName không hợp lệ`, rawSheet);
+          console.warn(`❌ Dòng ${i + 1}: sheetName không hợp lệ`, rawSheet);
           continue;
         }
         let email: string | null = null;
@@ -106,12 +103,10 @@ export const hrRouter = createTRPCRouter({
             ? row[emailKey].normalize("NFKC").trim().toLowerCase()
             : null;
 
-        console.log(`📧 Dòng ${i + 1}: Email = ${email} , `);
-
         if (!email || !emailToUserId.has(email)) {
-          // console.warn(
-          //   `⚠️ Dòng ${i + 1}: Email không tồn tại trong Supabase: ${email}`,
-          // );
+          console.warn(
+            `⚠️ Dòng ${i + 1}: Email không tồn tại trong Supabase: ${email}`,
+          );
           continue;
         }
 
@@ -149,12 +144,6 @@ export const hrRouter = createTRPCRouter({
           message: "❌ Không có dòng dữ liệu nào hợp lệ.",
         });
       }
-
-      // ✅ Log tổng kết
-      const uniqueEmails = new Set(results.map((r) => r.email));
-      console.log(`📦 Tổng dòng hợp lệ: ${results.length}`);
-      console.log(`📧 Số email được xử lý: ${uniqueEmails.size}`);
-      console.log(`📅 Số ngày có dữ liệu: ${validDayKeys.length}`);
 
       return results;
     }),
@@ -202,7 +191,6 @@ export const hrRouter = createTRPCRouter({
           message: "❌ Không có dòng dữ liệu nào hợp lệ.",
         });
       }
-      console.log("validInput", validInput);
       const [year, monthStr] = month.split("-");
       const lastDay = new Date(Number(year), Number(monthStr), 0).getDate();
       const startDate = `${month}-01`;

@@ -158,12 +158,10 @@ const loggingMiddleware = t.middleware(async (opts) => {
   if (isMutation) {
     const userId = ctx.session?.authUser.id ?? "unknown";
     const rawInput = await getRawInput();
-    const MAX_LOG_LENGTH = 500;
+
     const inputStr = JSON.stringify(rawInput);
     const shortInputStr =
-      inputStr.length > MAX_LOG_LENGTH
-        ? inputStr.slice(0, MAX_LOG_LENGTH) + "..."
-        : inputStr;
+      inputStr.length > 500 ? inputStr.slice(0, 500) + "..." : inputStr;
     logger.info(
       `[TRPC] ${path} called by user ${userId} with input: ${shortInputStr}, took ${duration}ms`,
     );
