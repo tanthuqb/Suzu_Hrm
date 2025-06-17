@@ -1,4 +1,5 @@
 import type { FullHrmUser, NotificationType } from "@acme/db";
+
 export interface Notification {
   id: string;
   userId: string;
@@ -22,24 +23,7 @@ export interface LeaveRequestUpdateDTO {
   startDate: string;
   endDate: string;
   reason: string;
-  status:
-    | "1"
-    | "W"
-    | "P"
-    | "P1"
-    | "P2"
-    | "BH"
-    | "Rk"
-    | "x/2"
-    | "L"
-    | "Nb"
-    | "Nb1"
-    | "Nb2"
-    | "CT"
-    | "BD"
-    | "BC"
-    | "BC1"
-    | "BC2";
+  status: "1" | "P" | "P1" | "Pk" | "L" | "Nb" | "W";
   approvalStatus: "pending" | "approved" | "rejected";
   approvedBy: string;
   approvedAt: string;

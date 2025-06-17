@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, FileSpreadsheet, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import type { AttendanceInput, AttendanceStatus } from "@acme/db";
+import type { AttendanceStatus } from "@acme/db";
 import { Alert, AlertDescription } from "@acme/ui/alert";
 import { Button } from "@acme/ui/button";
 import {
@@ -17,16 +17,24 @@ import {
 } from "@acme/ui/card";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@acme/ui/select";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
 
 export default function ImportPage() {
-  const [fileData, setFileData] = useState<AttendanceInput[]>([]);
+  const [fileData, setFileData] = useState<any>([]);
   const [textPreview, setTextPreview] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const trpc = useTRPC();
 
   const importMutation = useMutation(
@@ -50,7 +58,7 @@ export default function ImportPage() {
       onMutate() {
         setIsLoading(true);
       },
-      onSuccess: (data: any) => {
+      onSuccess: (data: any[]) => {
         setFileData(data);
         setTextPreview(JSON.stringify(data, null, 2));
       },
@@ -79,58 +87,66 @@ export default function ImportPage() {
         let rawJson: any[] = [];
 
         if (ext === "json") {
-          if (!rawData) {
-            setError("❌ Không thể đọc file JSON.");
-            return;
-          }
+          if (!rawData) throw new Error("Không thể đọc file JSON.");
           rawJson = JSON.parse(rawData as string);
         } else if (ext === "xlsx" || ext === "xls") {
-          if (!rawData) {
-            setError("❌ Không thể đọc file Excel.");
-            return;
-          }
+          if (!rawData) throw new Error("Không thể đọc file Excel.");
 
           const workbook = XLSX.read(rawData, { type: "binary" });
-
           if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-            setError("❌ File Excel không chứa sheet nào.");
+            throw new Error("File Excel không chứa sheet nào.");
+          }
+
+          // Chuyển selectedMonth (vd: "2025-06") => "tháng 6"
+          let monthNum = 0;
+          if (selectedMonth) {
+            const [, monthPart] = selectedMonth.split("-");
+            monthNum = Number(monthPart);
+          }
+          const normalizedSheetName = `tháng ${monthNum}`;
+          const targetSheet = workbook.Sheets[normalizedSheetName];
+          if (!targetSheet) {
+            console.error(`❌ Không tìm thấy sheet với tên "${selectedMonth}"`);
             return;
           }
 
-          const firstSheetName = workbook.SheetNames[0];
-          if (!firstSheetName) {
-            setError("❌ Sheet đầu tiên không hợp lệ.");
-            return;
-          }
+          const sheetData = XLSX.utils.sheet_to_json(targetSheet, {
+            defval: "",
+            raw: true,
+          });
 
-          const sheet = workbook.Sheets[firstSheetName];
-          if (!sheet) {
-            setError("❌ Sheet đầu tiên không hợp lệ.");
-            return;
-          }
+          sheetData.forEach((row: any) => {
+            let email = row.Email || row.email;
 
-          rawJson = XLSX.utils.sheet_to_json(sheet);
+            if (!email) {
+              for (const key of Object.keys(row)) {
+                const value = row[key];
+                if (typeof value === "string" && value.includes("@")) {
+                  email = value;
+                  break;
+                }
+              }
+            }
+
+            if (!email) return;
+
+            rawJson.push({
+              ...row,
+              Email: email.trim(),
+              sheetName: selectedMonth,
+            });
+          });
         } else {
-          setError("❌ Chỉ hỗ trợ file .json, .xlsx hoặc .xls");
-          return;
+          throw new Error("Chỉ hỗ trợ file .json, .xlsx hoặc .xls");
         }
 
-        // Hiển thị dữ liệu gốc để debug
         setTextPreview(JSON.stringify(rawJson, null, 2));
-
-        // Gửi dữ liệu thô lên server để chuẩn hóa preview
         previewMutation.mutate(rawJson);
       } catch (err) {
         console.error(err);
-
-        // Handle error safely
-        if (err instanceof Error) {
-          setError(`❌ Không thể đọc file: ${err.message}`);
-        } else {
-          setError(
-            "❌ Không thể đọc file. Vui lòng kiểm tra định dạng và nội dung.",
-          );
-        }
+        const message =
+          err instanceof Error ? err.message : "Không thể đọc file.";
+        setError(`❌ ${message}`);
       }
     };
 
@@ -142,17 +158,18 @@ export default function ImportPage() {
   };
 
   const handleImport = () => {
-    setIsLoading(true);
     if (!fileData.length) {
       setError("Chưa có dữ liệu!");
       return;
     }
-    importMutation.mutate(
-      fileData.map((d) => ({
+    setIsLoading(true);
+    importMutation.mutate({
+      month: selectedMonth!,
+      items: fileData.map((d: any) => ({
         ...d,
         status: d.status as AttendanceStatus,
       })),
-    );
+    });
   };
 
   return (
@@ -166,9 +183,35 @@ export default function ImportPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="file" className="mb-1">
-              Chọn file
-            </Label>
+            <Label htmlFor="month">Chọn tháng</Label>
+            <Select
+              value={selectedMonth?.slice(5) ?? ""}
+              onValueChange={setSelectedMonth}
+            >
+              <SelectTrigger id="month" className="w-full">
+                <SelectValue
+                  placeholder="Chọn tháng (tuỳ chọn)"
+                  defaultValue=""
+                >
+                  {selectedMonth ? `Tháng ${selectedMonth.slice(5)}` : ""}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const month = (i + 1).toString().padStart(2, "0");
+                  const year = new Date().getFullYear();
+                  const value = `${year}-${month}`;
+                  return (
+                    <SelectItem key={value} value={value}>
+                      Tháng {month}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="file">Chọn file</Label>
             <Input
               id="file"
               type="file"
@@ -176,7 +219,7 @@ export default function ImportPage() {
               onChange={handleFileChange}
               className="cursor-pointer"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Hỗ trợ định dạng: .json, .xlsx, .xls
             </p>
           </div>
@@ -189,9 +232,7 @@ export default function ImportPage() {
           )}
 
           <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="preview" className="mb-1">
-              Nội dung file
-            </Label>
+            <Label htmlFor="preview">Nội dung file</Label>
             <Textarea
               id="preview"
               rows={12}

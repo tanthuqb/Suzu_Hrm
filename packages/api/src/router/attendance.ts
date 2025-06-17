@@ -118,11 +118,11 @@ export const attendanceRouter = {
       const [created] = await ctx.db
         .insert(Attendance)
         .values({
-          ...rest,
           date: new Date(date),
           userId,
           isRemote,
           remoteReason,
+          ...rest,
         })
         .returning();
       return created;
@@ -132,25 +132,7 @@ export const attendanceRouter = {
     .input(
       z.object({
         id: z.string().uuid(),
-        status: z.enum([
-          "1",
-          "W",
-          "P",
-          "P1",
-          "P2",
-          "BH",
-          "Rk",
-          "x/2",
-          "L",
-          "Nb",
-          "Nb1",
-          "Nb2",
-          "CT",
-          "BD",
-          "BC",
-          "BC1",
-          "BC2",
-        ]),
+        status: z.enum(["1", "P", "P1", "Pk", "L", "Nb", "W"]),
       }),
     )
     .mutation(async ({ input, ctx }) => {

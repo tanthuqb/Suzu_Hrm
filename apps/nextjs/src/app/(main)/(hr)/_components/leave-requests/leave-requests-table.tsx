@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Calendar, Edit, Search, Trash2, X } from "lucide-react";
 
+import { approvalStatusEnum } from "@acme/db";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +78,19 @@ function TableSkeleton() {
       ))}
     </>
   );
+}
+
+function convertStatus(status: string): string {
+  switch (status) {
+    case approvalStatusEnum.APPROVED:
+      return "Đã duyệt";
+    case approvalStatusEnum.REJECTED:
+      return "Đã từ chối";
+    case approvalStatusEnum.PENDING:
+      return "Đang chờ duyệt";
+    default:
+      return status;
+  }
 }
 
 export function LeaveRequestsTable({
@@ -274,10 +288,12 @@ export function LeaveRequestsTable({
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Họ tên</TableHead>
-              <TableHead className="font-semibold">Phòng ban</TableHead>
-              <TableHead className="font-semibold">Ngày bắt đầu</TableHead>
-              <TableHead className="font-semibold">Ngày kết thúc</TableHead>
+              <TableHead className="font-semibold">Chức vụ</TableHead>
+              <TableHead className="font-semibold">Phòng Ban</TableHead>
+              <TableHead className="font-semibold">Từ ngày</TableHead>
+              <TableHead className="font-semibold">Đến ngày</TableHead>
               <TableHead className="font-semibold">Lý do</TableHead>
+              <TableHead className="font-semibold">Trạng Thái</TableHead>
               <TableHead className="text-right font-semibold">
                 Thao tác
               </TableHead>
@@ -310,13 +326,18 @@ export function LeaveRequestsTable({
             ) : (
               filteredRequests.map((request: LeaveRequestRecord) => (
                 <TableRow key={request.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">{request.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {request.userName}
+                  </TableCell>
                   <TableCell>
                     {request.departmentName ? (
                       <Badge variant="outline">{request.departmentName}</Badge>
                     ) : (
                       <span className="text-muted-foreground">N/A</span>
                     )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {request.positionName ?? "N/A"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {format(request.start_date, "dd/MM/yyyy")}
@@ -329,6 +350,21 @@ export function LeaveRequestsTable({
                       {request.reason}
                     </div>
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge
+                      variant={
+                        request.approvedStatus === approvalStatusEnum.APPROVED
+                          ? "default"
+                          : request.approvedStatus ===
+                              approvalStatusEnum.REJECTED
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
+                      {convertStatus(request.approvedStatus)}
+                    </Badge>
+                  </TableCell>
+
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

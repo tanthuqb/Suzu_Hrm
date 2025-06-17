@@ -17,13 +17,6 @@ export default function WorkFromHomeEmailTemplate({
   reason: string;
   link: string;
 }) {
-  console.log("Rendering Work From Home Email Template", {
-    name,
-    department,
-    position,
-    reason,
-    link,
-  });
   return (
     <Html lang="vi">
       <Section

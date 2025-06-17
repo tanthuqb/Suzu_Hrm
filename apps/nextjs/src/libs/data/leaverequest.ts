@@ -19,24 +19,7 @@ export interface LeaveRequestRecord {
   reason: string;
   start_date: string;
   end_date: string;
-  status:
-    | "1"
-    | "W"
-    | "P"
-    | "P1"
-    | "P2"
-    | "BH"
-    | "Rk"
-    | "x/2"
-    | "L"
-    | "Nb"
-    | "Nb1"
-    | "Nb2"
-    | "CT"
-    | "BD"
-    | "BC"
-    | "BC1"
-    | "BC2";
+  status: "1" | "P" | "P1" | "Pk" | "L" | "Nb" | "W";
   approvedStatus: "pending" | "approved" | "rejected";
   createdAt: string;
   approvedByName: string | null;

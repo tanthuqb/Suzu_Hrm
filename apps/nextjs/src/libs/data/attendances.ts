@@ -1,31 +1,16 @@
+import type { AttendanceStatus } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
-
-import { logger } from "~/libs/logger";
 
 export interface AttendanceRecord {
   id: string;
   date: string;
   userId: string;
+  phone?: string | null;
+  userFirtName: string | null;
+  userLastName: string | null;
   userName: string | null;
   userEmail: string | null;
-  status:
-    | "1"
-    | "W"
-    | "P"
-    | "P1"
-    | "P2"
-    | "BH"
-    | "Rk"
-    | "x/2"
-    | "L"
-    | "Nb"
-    | "Nb1"
-    | "Nb2"
-    | "CT"
-    | "BD"
-    | "BC"
-    | "BC1"
-    | "BC2";
+  status: "1" | "P" | "P1" | "Pk" | "L" | "Nb" | "W";
   isRemote: boolean;
   remoteReason: string | null;
   leaveRequestId: string | null;
@@ -35,6 +20,9 @@ export interface AttendanceRecord {
   office: "SKY" | "NTL" | null;
   departmentName: string | null;
   postion?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt?: string | null;
 }
 
 export interface GetAllAttendancesOptions {
@@ -42,6 +30,19 @@ export interface GetAllAttendancesOptions {
   pageSize?: number;
   search?: string;
   userId?: string;
+  fromDate?: string;
+  toDate?: string;
+  approvedById?: string;
+  approvalStatus?: "pending" | "approved" | "rejected";
+}
+
+export interface AttendanceStatusCount {
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  userFirtName: string | null;
+  userLastName: string | null;
+  counts: Record<AttendanceStatus, number>;
 }
 
 export interface GetAllAttendancesResponse {
@@ -76,11 +77,17 @@ export async function getAllAttendances(
         is_remote,
         remote_reason,
         leave_request_id,
-        user:user_id(id, name, email, department:department_id(id, name, office), position: position_id(name)),
+        user:user_id(
+          id, name, email, firstName, lastName, phone
+          department:department_id(id, name, office),
+          position:position_id(name)
+        ),
         leave_requests:leave_request_id(
           id,
           approval_status,
           reason,
+          start_date,
+          end_date,
           approved_by:users!user_id(id, name)
         )
       `,
@@ -89,11 +96,32 @@ export async function getAllAttendances(
     .order("date", { ascending: true })
     .range(from, to);
 
+  // Filter theo user_id
   if (options.userId) {
     query = query.eq("user_id", options.userId);
   }
+
+  // Filter theo tên người dùng (user.name)
   if (options.search) {
     query = query.ilike("users.name", `%${options.search}%`);
+  }
+
+  // Filter theo khoảng thời gian
+  if (options.fromDate) {
+    query = query.gte("date", options.fromDate);
+  }
+  if (options.toDate) {
+    query = query.lte("date", options.toDate);
+  }
+
+  // Filter theo người duyệt (approved_by user id trong leave_requests)
+  if (options.approvedById) {
+    query = query.eq("leave_requests.approved_by", options.approvedById);
+  }
+
+  // Filter theo trạng thái duyệt
+  if (options.approvalStatus) {
+    query = query.eq("leave_requests.approval_status", options.approvalStatus);
   }
 
   const { data, error, count } = await query;
@@ -120,8 +148,10 @@ export async function getAllAttendances(
       id: att.id,
       date: att.date,
       userId: att.user_id,
-      userName: user?.name ?? null,
+      userFirtName: user?.firstName ?? null,
+      userLastName: user?.lastName ?? null,
       userEmail: user?.email ?? null,
+      userName: user?.name ?? null,
       status: att.status,
       isRemote: att.is_remote,
       remoteReason: att.remote_reason ?? null,
@@ -132,6 +162,9 @@ export async function getAllAttendances(
       office: department?.office ?? null,
       departmentName: department?.name ?? null,
       postion: position?.name ?? null,
+      startDate: leaveRequest?.start_date ?? null,
+      endDate: leaveRequest?.end_date ?? null,
+      createdAt: leaveRequest?.created_at ?? null,
     };
   });
 
@@ -144,4 +177,71 @@ export async function getAllAttendances(
       totalPages: Math.ceil((count ?? 0) / pageSize),
     },
   };
+}
+
+export async function countAttendanceByStatus({
+  userId,
+  fromDate,
+  toDate,
+}: {
+  userId?: string;
+  fromDate: string;
+  toDate: string;
+}): Promise<AttendanceStatusCount[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from("attendances")
+    .select(
+      `
+        user_id,
+        status,
+        user:users!attendances_user_id_fkey(
+          id,
+          name,
+          email,
+          firstName,
+          lastName
+        )
+      `,
+    )
+    .eq("user_id", userId)
+    .gte("date", fromDate)
+    .lte("date", toDate);
+
+  if (error) throw new Error(error.message);
+
+  const groupedMap = new Map<string, AttendanceStatusCount>();
+
+  for (const row of data ?? []) {
+    const userId = row.user_id;
+    const status = row.status as AttendanceStatus;
+
+    if (!groupedMap.has(userId)) {
+      const user = Array.isArray(row.user) ? row.user[0] : row.user;
+      groupedMap.set(userId, {
+        userId,
+        userName: user?.name ?? null,
+        userEmail: user?.email ?? null,
+        userFirtName: user?.firstName ?? null,
+        userLastName: user?.lastName ?? null,
+        counts: {
+          "1": 0,
+          P: 0,
+          P1: 0,
+          Pk: 0,
+          L: 0,
+          Nb: 0,
+          W: 0,
+        },
+      });
+    }
+
+    const userData = groupedMap.get(userId)!;
+    if (userData.counts[status] !== undefined) {
+      userData.counts[status] += 1;
+    }
+  }
+
+  return Array.from(groupedMap.values());
 }
