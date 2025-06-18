@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+// TipTap Extensions
 import CodeBlock from "@tiptap/extension-code-block";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
@@ -39,13 +40,14 @@ export const useTiptapEditor = ({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        strike: false, // fix duplicate
       }),
+      Strike, // dùng riêng
       CodeBlock,
       Color,
       Highlight,
       Link.configure({ openOnClick: true }),
       Placeholder.configure({ placeholder }),
-      Strike,
       Subscript,
       Superscript,
       Table.configure({ resizable: true }),
@@ -63,13 +65,13 @@ export const useTiptapEditor = ({
         allowBase64: true,
       }),
     ],
-    immediatelyRender: false,
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg focus:outline-none min-h-[200px] max-w-none",
+          "tiptap ProseMirror prose prose-sm sm:prose lg:prose-lg focus:outline-none min-h-[200px] max-w-none",
       },
     },
+    immediatelyRender: false,
     onUpdate({ editor }) {
       setContent(editor.getHTML());
     },
@@ -78,7 +80,7 @@ export const useTiptapEditor = ({
   const updateContent = useCallback(
     (html: string) => {
       setContent(html);
-      editor?.commands.setContent(html);
+      editor?.commands.setContent(html, false);
     },
     [editor],
   );
