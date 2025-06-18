@@ -24,6 +24,7 @@
     "@react-email/components": "0.0.34",
     "@react-pdf/renderer": "^4.3.0",
     "@t3-oss/env-nextjs": "^0.12.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-query-devtools": "4",
     "@tiptap/extension-code-block": "^2.12.0",

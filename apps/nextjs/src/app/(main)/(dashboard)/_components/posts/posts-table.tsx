@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronLeft,
@@ -14,6 +16,7 @@ import {
   Plus,
   Search,
   Trash2,
+  UploadCloud,
   X,
 } from "lucide-react";
 
@@ -55,69 +58,17 @@ import {
   TableHeader,
   TableRow,
 } from "@acme/ui/table";
-import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 
 import type { GetAllPostsResponse, Post } from "~/libs/data/posts";
-
-interface Author {
-  id: string;
-  name: string;
-  role: string;
-}
+import { useTiptapEditor } from "~/hooks/useTiptapEditor";
+import { formatDate } from "~/libs";
+import { useTRPC } from "~/trpc/react";
+import { TiptapEditor } from "./../tiptap/TiptapEditor";
 
 interface PostsTableProps {
   initialPosts?: GetAllPostsResponse;
 }
-
-// Mock data
-const mockAuthors: Author[] = [
-  { id: "user-1", name: "Nguyễn Văn A", role: "Admin" },
-  { id: "user-2", name: "Trần Thị B", role: "Editor" },
-  { id: "user-3", name: "Lê Văn C", role: "Writer" },
-  { id: "user-4", name: "Phạm Thị D", role: "Writer" },
-];
-
-const mockPosts: FullPostRecord[] = [
-  {
-    id: "550e8400-e29b-41d4-a716-446655440000",
-    title: "Hướng dẫn sử dụng React và TypeScript",
-    content: "<p>React là một thư viện JavaScript mạnh mẽ...</p>",
-    status: "published",
-    author: {
-      id: "user-1",
-      firstName: "Nguyễn Văn A",
-      lastName: "Nguyễn",
-      email: "sd@gmail.com",
-    },
-    authorId: "user-1",
-    notes: [],
-    tags: [],
-    post_tags: [],
-    attachments: ["react-guide.pdf"],
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-16"),
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440000",
-    title: "Hướng dẫn sử dụng React và TypeScript",
-    content: "<p>React là một thư viện JavaScript mạnh mẽ...</p>",
-    status: "published",
-    author: {
-      id: "user-1",
-      firstName: "Nguyễn Văn A",
-      lastName: "Nguyễn",
-      email: "sd@gmail.com",
-    },
-    authorId: "user-1",
-    notes: [],
-    tags: [],
-    post_tags: [],
-    attachments: ["react-guide.pdf"],
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-16"),
-  },
-];
 
 const StatusBadge = ({
   status,
@@ -154,84 +105,156 @@ const StatusBadge = ({
 
 export default function PostsTable({ initialPosts }: PostsTableProps) {
   const router = useRouter();
-  const [posts, setPosts] = useState<GetAllPostsResponse["posts"]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<
-    GetAllPostsResponse["posts"]
-  >([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [postsPerPage] = useState(5);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    GetAllPostsResponse["posts"][number]["status"] | "all"
-  >("all");
-  const [authorFilter, setAuthorFilter] = useState<string>("all");
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | Post["status"]>(
+    "all",
+  );
+  const [authorFilter, setAuthorFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(initialPosts?.pagination.page);
+  const postsPerPage = initialPosts?.pagination.pageSize;
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  const allPosts = initialPosts?.posts || [];
+
+  const filteredPosts = allPosts.filter((post) => {
+    const matchesStatus =
+      statusFilter === "all" || post.status === statusFilter;
+    const matchesAuthor =
+      authorFilter === "all" || post.author.id === authorFilter;
+    const matchesSearch = post.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    return matchesStatus && matchesAuthor && matchesSearch;
+  });
+
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     status: "draft" as GetAllPostsResponse["posts"][number]["status"],
-    authorId: "user-1",
+    authorId: "",
     tags: [] as string[],
     attachments: [] as string[],
   });
   const [newTag, setNewTag] = useState("");
+  const trpc = useTRPC();
 
-  useEffect(() => {
-    const postsWithAuthorNames = initialPosts?.posts.map((post: Post) => {
-      const author = mockAuthors.find(
-        (author) => author.id === post.authorId.id,
-      );
-      return {
-        ...post,
-        authorName: author?.name || "Unknown",
-      };
-    });
-    setPosts(postsWithAuthorNames!);
-    setFilteredPosts(postsWithAuthorNames!);
-  }, [initialPosts]);
+  const { getContent } = useTiptapEditor({
+    initialContent: formData.content,
+  });
 
-  useEffect(() => {
-    let result = [...posts];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const totalCount = filteredPosts.length;
+  const totalPages = Math.ceil(totalCount / postsPerPage!);
 
-    if (statusFilter !== "all") {
-      result = result.filter((post) => post.status === statusFilter);
-    }
-
-    if (authorFilter !== "all") {
-      result = result.filter((post) => post.authorId.id === authorFilter);
-    }
-
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      result = result.filter(
-        (post) => post.title.toLowerCase().includes(searchLower),
-        //   post.tags.some((tag) => tag.toLowerCase().includes(searchLower)) ||
-        //   post.authorName?.toLowerCase().includes(searchLower),
-      );
-    }
-
-    setFilteredPosts(result);
-    setCurrentPage(1);
-  }, [posts, statusFilter, authorFilter, searchTerm]);
-
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const indexOfLastPost = currentPage! * postsPerPage!;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage!;
   const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  const handleCreatePost = () => {
+  // ✅ CREATE Post
+  const handleCreateMutationPost = useMutation(
+    trpc.posts.createPost.mutationOptions({
+      onSuccess: () => {
+        toast("Thành công", {
+          description: "Bài viết đã được tạo.",
+        });
+        setIsCreateDialogOpen(false);
+        router.refresh();
+      },
+      onError: (error) => {
+        toast("Lỗi", {
+          description: error.message || "Tạo thất bại",
+        });
+      },
+    }),
+  );
+
+  const handleSubmitCreate = async () => {
+    if (!formData.title.trim()) {
+      toast("Lỗi", { description: "Tiêu đề không được để trống." });
+      return;
+    }
+    const finalContent = getContent();
+
+    console.log("form data", formData, finalContent);
+
+    await handleCreateMutationPost.mutateAsync({
+      title: formData.title,
+      content: finalContent,
+      status: formData.status,
+      authorId: formData.authorId,
+      tags: formData.tags,
+      attachments: formData.attachments,
+    });
+  };
+
+  // ✅ EDIT
+  const handleEditMutationPost = useMutation(
+    trpc.posts.updatePost.mutationOptions({
+      onSuccess: () => {
+        toast("Thành công", {
+          description: "Cập nhật bài viết thành công.",
+        });
+        setIsEditDialogOpen(false);
+        setSelectedPost(null);
+        router.refresh();
+      },
+      onError: (error) => {
+        toast("Lỗi", {
+          description: error.message || "Cập nhật thất bại",
+        });
+      },
+    }),
+  );
+
+  const handleSubmitEdit = async () => {
+    if (!selectedPost || !formData.title.trim()) {
+      toast("Lỗi", { description: "Vui lòng nhập đủ tiêu đề." });
+      return;
+    }
+    const finalContent = getContent();
+    await handleEditMutationPost.mutateAsync({
+      id: selectedPost.id,
+      title: formData.title,
+      content: finalContent,
+      status: formData.status,
+      authorId: formData.authorId,
+      tags: formData.tags,
+      attachments: formData.attachments,
+    });
+  };
+
+  // ✅ DELETE
+  const handleDeleteMutationPost = useMutation(
+    trpc.posts.deletePost.mutationOptions({
+      onSuccess: () => {
+        toast("Thành công", { description: "Xóa bài viết thành công." });
+        setIsDeleteDialogOpen(false);
+        setSelectedPost(null);
+        router.refresh();
+      },
+      onError: (error) => {
+        toast("Lỗi", {
+          description: error.message || "Xóa bài viết thất bại",
+        });
+      },
+    }),
+  );
+
+  // Handle create post
+  const handleSubmitCreatePost = () => {
     setFormData({
       title: "",
       content: "",
       status: "draft",
-      authorId: "user-1",
+      authorId: "",
       tags: [],
       attachments: [],
     });
@@ -240,16 +263,16 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
 
   // Handle edit post
   const handleEditPost = (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
+    const post = allPosts.find((p) => p.id === postId);
     if (post) {
       setSelectedPost(post);
       setFormData({
         title: post.title,
         content: post.content,
         status: post.status,
-        authorId: post.authorId.id,
-        tags: Array.isArray(post.tags) ? post.tags.map((tag) => tag.name) : [],
-        attachments: post.attachments,
+        authorId: post.author.id,
+        tags: post.tags.map((tag) => tag.name),
+        attachments: post.attachments || [],
       });
       setIsEditDialogOpen(true);
     }
@@ -257,7 +280,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
 
   // Handle view post
   const handleViewPost = (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
+    const post = allPosts.find((p) => p.id === postId);
     if (post) {
       setSelectedPost(post);
       setIsViewDialogOpen(true);
@@ -266,113 +289,17 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
 
   // Handle delete post
   const handleDeletePost = (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
+    const post = allPosts.find((p) => p.id === postId);
     if (post) {
       setSelectedPost(post);
       setIsDeleteDialogOpen(true);
     }
   };
 
-  // Submit create form
-  const handleSubmitCreate = async () => {
-    if (!formData.title.trim()) {
-      toast("Lỗi", {
-        description: "Vui lòng nhập tiêu đề bài viết.",
-      });
-      return;
-    }
-
-    const newPost: Post = {
-      id: `550e8400-e29b-41d4-a716-${Date.now()}`,
-      title: formData.title,
-      content: formData.content,
-      status: formData.status,
-      authorId: {
-        id: formData.authorId,
-        name:
-          mockAuthors.find((a) => a.id === formData.authorId)?.name ||
-          "Unknown",
-      },
-      post_tags: [],
-      tags: [],
-      notes: [],
-      attachments: formData.attachments,
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
-
-    setPosts([newPost, ...posts]);
-    setIsCreateDialogOpen(false);
-    toast("Thành công", {
-      description: "Bài viết đã được tạo thành công.",
-    });
-    setFormData({
-      title: "",
-      content: "",
-      status: "draft",
-      authorId: "user-1",
-      tags: [],
-      attachments: [],
-    });
-  };
-
-  const handleSubmitEdit = async () => {
-    if (!selectedPost || !formData.title.trim()) {
-      toast("Lỗi", {
-        description: "Vui lòng nhập tiêu đề bài viết.",
-      });
-      return;
-    }
-
-    const updatedPosts = {
-      // posts.map((post) =>
-      //   post.id === selectedPost.id
-      //     ? {
-      //         ...post,
-      //         title: formData.title,
-      //         content: formData.content,
-      //         status: formData.status,
-      //         authorId: formData.authorId,
-      //         authorName:
-      //           mockAuthors.find((a) => a.id === formData.authorId)?.name ||
-      //           "Unknown",
-      //         post_tags: [],
-      //         notes: [],
-      //         author: {
-      //           id: formData.authorId,
-      //           firstName:
-      //             mockAuthors
-      //               .find((a) => a.id === formData.authorId)
-      //               ?.name.split(" ")[0] || "Unknown",
-      //           lastName:
-      //             mockAuthors
-      //               .find((a) => a.id === formData.authorId)
-      //               ?.name.split(" ")[1] || "Unknown",
-      //           email:
-      //             mockAuthors.find((a) => a.id === formData.authorId)?.name || "",
-      //         },
-      //         s
-      //         tags: formData.tags,
-      //         attachments: formData.attachments,
-      //         updatedAt: new Date(),
-      //       }
-      //     : post,
-      // );
-      // setPosts(updatedPosts);
-      // setIsEditDialogOpen(false);
-      // setSelectedPost(null);
-      // toast("Thành công", {
-      //   description: "Bài viết đã được cập nhật thành công.",
-      // });
-    };
-  };
-
   // Confirm delete
   const handleConfirmDelete = async () => {
     if (!selectedPost) return;
-
-    const updatedPosts = posts.filter((post) => post.id !== selectedPost.id);
-    setPosts(updatedPosts);
+    await handleDeleteMutationPost.mutateAsync({ id: selectedPost.id });
     setIsDeleteDialogOpen(false);
     setSelectedPost(null);
     toast("Thành công", {
@@ -404,6 +331,19 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
     setStatusFilter("all");
     setAuthorFilter("all");
     setSearchTerm("");
+  };
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const fileArray = Array.from(files);
+    const uploaded = fileArray.map((f) => f.name);
+
+    setFormData((prev) => ({
+      ...prev,
+      attachments: [...prev.attachments, ...uploaded],
+    }));
   };
 
   return (
@@ -502,7 +442,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                       Tất cả
                     </span>
                   </DropdownMenuItem>
-                  {mockAuthors.map((author) => (
+                  {/* {mockAuthors.map((author) => (
                     <DropdownMenuItem
                       key={author.id}
                       onClick={() => setAuthorFilter(author.id)}
@@ -515,12 +455,12 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                         {author.name}
                       </span>
                     </DropdownMenuItem>
-                  ))}
+                  ))} */}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button onClick={handleCreatePost}>Tạo mới</Button>
+            <Button onClick={handleSubmitCreatePost}>Tạo bài viết</Button>
           </div>
         </div>
 
@@ -560,7 +500,9 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {/* {post.updatedAt.toLocaleDateString("vi-VN")} */}
+                      {selectedPost?.updated_at
+                        ? formatDate(selectedPost.updated_at.toString())
+                        : ""}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -607,7 +549,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
         {filteredPosts.length > 0 && (
           <div className="mt-4 flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              Hiển thị {indexOfFirstPost + 1}-
+              Hiển thị {indexOfFirstPost + 1}–
               {Math.min(indexOfLastPost, filteredPosts.length)} trong{" "}
               {filteredPosts.length} bài viết
             </div>
@@ -615,7 +557,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentPage(1)}
+                onClick={() => paginate(1)}
                 disabled={currentPage === 1}
               >
                 <ChevronsLeft className="h-4 w-4" />
@@ -623,7 +565,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentPage(currentPage - 1)}
+                onClick={() => paginate(currentPage! - 1)}
                 disabled={currentPage === 1}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -631,17 +573,13 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((page) => {
-                    // Show current page, first page, last page, and pages around current page
                     return (
                       page === 1 ||
                       page === totalPages ||
-                      Math.abs(page - currentPage) <= 1 ||
-                      (page === 2 && currentPage === 1) ||
-                      (page === totalPages - 1 && currentPage === totalPages)
+                      Math.abs(page - currentPage!) <= 1
                     );
                   })
                   .map((page, index, array) => {
-                    // Add ellipsis if there's a gap
                     const showEllipsisBefore =
                       index > 0 && array[index - 1] !== page - 1;
                     const showEllipsisAfter =
@@ -668,7 +606,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentPage(currentPage + 1)}
+                onClick={() => paginate(currentPage! + 1)}
                 disabled={currentPage === totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -676,7 +614,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setCurrentPage(totalPages)}
+                onClick={() => paginate(totalPages)}
                 disabled={currentPage === totalPages}
               >
                 <ChevronsRight className="h-4 w-4" />
@@ -706,17 +644,58 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                 placeholder="Nhập tiêu đề bài viết..."
               />
             </div>
+            <TiptapEditor
+              initialContent=""
+              onChange={(html) =>
+                setFormData((prev) => ({ ...prev, content: html }))
+              }
+            />
             <div>
-              <Label htmlFor="content">Nội dung</Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
-                }
-                placeholder="Nhập nội dung bài viết..."
-                rows={6}
-              />
+              <Label>Đính kèm tệp</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Tải lên tệp
+                </Button>
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
+
+              {formData.attachments.length > 0 && (
+                <ul className="mt-2 space-y-1 text-sm">
+                  {formData.attachments.map((att, index) => (
+                    <li
+                      key={index}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="truncate">{att}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            attachments: prev.attachments.filter(
+                              (_, i) => i !== index,
+                            ),
+                          }))
+                        }
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -740,23 +719,16 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               </div>
               <div>
                 <Label htmlFor="author">Tác giả</Label>
-                <Select
-                  value={formData.authorId}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, authorId: value }))
+                <Input
+                  id="author"
+                  value={
+                    allPosts[0]?.author.lastName +
+                    "" +
+                    allPosts[0]?.author.firstName
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn tác giả" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockAuthors.map((author) => (
-                      <SelectItem key={author.id} value={author.id}>
-                        {author.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  disabled
+                  readOnly
+                />
               </div>
             </div>
             <div>
@@ -828,16 +800,62 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
               />
             </div>
             <div>
-              <Label htmlFor="edit-content">Nội dung</Label>
-              <Textarea
-                id="edit-content"
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
-                }
-                placeholder="Nhập nội dung bài viết..."
-                rows={6}
-              />
+              <Label htmlFor="content">Nội dung</Label>
+              <div className="min-h-[200px] rounded-md border p-2">
+                <TiptapEditor
+                  initialContent={allPosts[0]?.content! || ""}
+                  onChange={(html) =>
+                    setFormData((prev) => ({ ...prev, content: html }))
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Đính kèm tệp</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Tải lên tệp
+                </Button>
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
+
+              {formData.attachments.length > 0 && (
+                <ul className="mt-2 space-y-1 text-sm">
+                  {formData.attachments.map((att, index) => (
+                    <li
+                      key={index}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="truncate">{att}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            attachments: prev.attachments.filter(
+                              (_, i) => i !== index,
+                            ),
+                          }))
+                        }
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -860,24 +878,17 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="edit-author">Tác giả</Label>
-                <Select
-                  value={formData.authorId}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, authorId: value }))
+                <Label htmlFor="author">Tác giả</Label>
+                <Input
+                  id="author"
+                  value={
+                    allPosts[0]?.author.firstName +
+                    " " +
+                    allPosts[0]?.author.lastName
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn tác giả" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockAuthors.map((author) => (
-                      <SelectItem key={author.id} value={author.id}>
-                        {author.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  disabled
+                  readOnly
+                />
               </div>
             </div>
             <div>
@@ -988,7 +999,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                     Ngày tạo
                   </Label>
                   <p className="text-sm">
-                    {selectedPost.created_at.toLocaleDateString("vi-VN")}
+                    {formatDate(selectedPost.created_at.toString())}
                   </p>
                 </div>
                 <div>
@@ -996,7 +1007,7 @@ export default function PostsTable({ initialPosts }: PostsTableProps) {
                     Ngày cập nhật
                   </Label>
                   <p className="text-sm">
-                    {selectedPost.updated_at.toLocaleDateString("vi-VN")}
+                    {formatDate(selectedPost.updated_at.toString())}
                   </p>
                 </div>
               </div>

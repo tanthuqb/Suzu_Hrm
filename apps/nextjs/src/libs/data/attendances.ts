@@ -189,7 +189,7 @@ export async function countAttendanceByStatus({
   toDate: string;
 }): Promise<AttendanceStatusCount[]> {
   const supabase = await createServerClient();
-
+  console.log("countAttendanceByStatus", { userId, fromDate, toDate });
   const { data, error } = await supabase
     .from("attendances")
     .select(

@@ -1,3 +1,4 @@
+import type { DBUser } from "@acme/db";
 import { postStatusValues } from "@acme/db";
 import { createServerClient } from "@acme/supabase";
 
@@ -6,6 +7,7 @@ import { logger } from "../logger";
 export interface Post {
   id: string;
   title: string;
+  author: DBUser;
   authorId: {
     id: string;
     name: string;
@@ -97,6 +99,7 @@ export async function getAllPosts({
   }
 
   const { data, count: totalCount, error } = await baseQuery;
+
   logger.error("Error fetching posts", {
     page,
     pageSize,

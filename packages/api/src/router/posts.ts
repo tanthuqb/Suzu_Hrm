@@ -1,16 +1,10 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, like } from "drizzle-orm";
+import { and, count, desc, eq, inArray, like } from "drizzle-orm";
 import { z } from "zod";
 
 import { postStatusValues } from "@acme/db";
-import {
-  CreatePostSchema,
-  HRMUser,
-  Posts,
-  PostTags,
-  Tags,
-} from "@acme/db/schema";
+import { HRMUser, Posts, PostTags, Tags } from "@acme/db/schema";
 
 import { checkPermissionOrThrow } from "../libs";
 import { protectedProcedure } from "../trpc";
@@ -156,7 +150,16 @@ export const postsRouter = {
       return result[0];
     }),
   createPost: protectedProcedure
-    .input(CreatePostSchema)
+    .input(
+      z.object({
+        title: z.string().min(1),
+        content: z.string().min(1),
+        authorId: z.string().uuid(),
+        status: z.enum(postStatusValues).default(postStatusValues[2]),
+        attachments: z.array(z.string()).optional().default([]),
+        tags: z.array(z.string()).optional().default([]),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await checkPermissionOrThrow(
         ctx,
@@ -164,7 +167,7 @@ export const postsRouter = {
         "createPost",
         "Không có quyền tạo bài viết",
       );
-      const { title, content, authorId, status, attachments } = input;
+      const { title, content, authorId, status, attachments, tags } = input;
 
       const post = await ctx.db
         .insert(Posts)
@@ -177,6 +180,57 @@ export const postsRouter = {
         })
         .returning();
 
+      const createdPost = post[0];
+
+      const uniqueTagNames = [
+        ...new Set(tags.map((t) => t.trim()).filter(Boolean)),
+      ];
+
+      const tagSlugs = (name: string) =>
+        name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+
+      const existingTags = await ctx.db
+        .select()
+        .from(Tags)
+        .where(inArray(Tags.name, uniqueTagNames));
+
+      const existingTagMap = new Map(
+        existingTags.map((tag) => [tag.name, tag]),
+      );
+
+      const newTagsToInsert = uniqueTagNames
+        .filter((name) => !existingTagMap.has(name))
+        .map((name) => ({
+          name,
+          slug: tagSlugs(name),
+        }));
+
+      let insertedTags: (typeof Tags.$inferSelect)[] = [];
+
+      if (newTagsToInsert.length > 0) {
+        insertedTags = await ctx.db
+          .insert(Tags)
+          .values(newTagsToInsert)
+          .returning();
+      }
+
+      const allTagIds = [
+        ...existingTags.map((tag) => tag.id),
+        ...insertedTags.map((tag) => tag.id),
+      ];
+
+      if (allTagIds.length > 0) {
+        await ctx.db.insert(PostTags).values(
+          allTagIds.map((tagId) => ({
+            postId: createdPost?.id!,
+            tagId,
+          })),
+        );
+      }
+
       if (!post.length) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -187,8 +241,14 @@ export const postsRouter = {
     }),
   updatePost: protectedProcedure
     .input(
-      CreatePostSchema.extend({
+      z.object({
         id: z.string().uuid(),
+        title: z.string().min(1),
+        content: z.string().min(1),
+        authorId: z.string().uuid(),
+        status: z.enum(postStatusValues).default(postStatusValues[2]),
+        attachments: z.array(z.string()).optional().default([]),
+        tags: z.array(z.string().uuid()).optional().default([]),
       }),
     )
     .mutation(async ({ input, ctx }) => {
